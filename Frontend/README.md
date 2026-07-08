@@ -59,7 +59,7 @@ A modern, responsive web application for municipal administration, civic issue r
 
 ---
 
-## 📦 Available Scripts
+## Available Scripts
 
 | Command | Description |
 | :--- | :--- |
