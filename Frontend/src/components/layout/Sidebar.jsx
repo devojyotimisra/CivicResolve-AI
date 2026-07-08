@@ -7,7 +7,6 @@ import {
   Receipt,
   Building2,
   User,
-  Users,
   Tags,
   ShieldCheck,
   ChevronLeft,
@@ -49,7 +48,6 @@ export const getCommissionerLinks = () => [
   },
   { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
   { label: "Bills", path: "/dash/commissioner/bills", icon: Receipt },
-  { label: "Citizens", path: "/dash/commissioner/citizens", icon: Users },
   { label: "Profile", path: "/dash/commissioner/profile", icon: User },
 ];
 

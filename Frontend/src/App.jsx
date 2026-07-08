@@ -34,7 +34,6 @@ import { CommissionerProfile } from "@/pages/commissioner/Profile";
 import { CommissionerFacilities } from "@/pages/commissioner/Facilities";
 import { CommissionerDepartments } from "@/pages/commissioner/Departments";
 import { CommissionerBills } from "@/pages/commissioner/Bills";
-import { CommissionerCitizens } from "@/pages/commissioner/Citizens";
 
 const DashboardLayout = ({ children }) => {
   return (
@@ -204,10 +203,6 @@ export function AppContent() {
                       element={<CommissionerDepartments />}
                     />
                     <Route path="/bills" element={<CommissionerBills />} />
-                    <Route
-                      path="/citizens"
-                      element={<CommissionerCitizens />}
-                    />
 
                     <Route path="/profile" element={<CommissionerProfile />} />
                     <Route
