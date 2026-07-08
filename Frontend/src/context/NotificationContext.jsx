@@ -11,6 +11,11 @@ import { toast } from "sonner";
 
 const NotificationContext = createContext(null);
 
+const sortNotifs = (list) =>
+  [...list].sort(
+    (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0),
+  );
+
 export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -42,7 +47,7 @@ export const NotificationProvider = ({ children }) => {
     const customNotifs = currentList.filter(
       (n) => !defaults.some((seed) => seed.id === n.id),
     );
-    const finalList = [...syncedDefaults, ...customNotifs];
+    const finalList = sortNotifs([...syncedDefaults, ...customNotifs]);
 
     setNotifications(finalList);
     localStorage.setItem(storageKey, JSON.stringify(finalList));
@@ -60,8 +65,8 @@ export const NotificationProvider = ({ children }) => {
   const markAsRead = useCallback(
     (id) => {
       setNotifications((prev) => {
-        const updated = prev.map((item) =>
-          item.id === id ? { ...item, read: true } : item,
+        const updated = sortNotifs(
+          prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
         );
         saveToStorage(updated);
         return updated;
@@ -73,8 +78,10 @@ export const NotificationProvider = ({ children }) => {
   const markAsUnread = useCallback(
     (id) => {
       setNotifications((prev) => {
-        const updated = prev.map((item) =>
-          item.id === id ? { ...item, read: false } : item,
+        const updated = sortNotifs(
+          prev.map((item) =>
+            item.id === id ? { ...item, read: false } : item,
+          ),
         );
         saveToStorage(updated);
         return updated;
@@ -85,7 +92,7 @@ export const NotificationProvider = ({ children }) => {
 
   const markAllAsRead = useCallback(() => {
     setNotifications((prev) => {
-      const updated = prev.map((item) => ({ ...item, read: true }));
+      const updated = sortNotifs(prev.map((item) => ({ ...item, read: true })));
       saveToStorage(updated);
       toast.success("All notifications marked as read");
       return updated;
@@ -95,7 +102,7 @@ export const NotificationProvider = ({ children }) => {
   const deleteNotification = useCallback(
     (id) => {
       setNotifications((prev) => {
-        const updated = prev.filter((item) => item.id !== id);
+        const updated = sortNotifs(prev.filter((item) => item.id !== id));
         saveToStorage(updated);
         return updated;
       });
@@ -119,7 +126,7 @@ export const NotificationProvider = ({ children }) => {
       };
 
       setNotifications((prev) => {
-        const updated = [newNotif, ...prev];
+        const updated = sortNotifs([newNotif, ...prev]);
         saveToStorage(updated);
         return updated;
       });

@@ -31,7 +31,7 @@ const formatTimeAgo = (dateString) => {
   const date = new Date(dateString);
   const diffInSeconds = Math.floor((now - date) / 1000);
 
-  if (diffInSeconds < 60) return "Just now";
+  if (isNaN(diffInSeconds) || diffInSeconds < 60) return "Just now";
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
@@ -117,9 +117,13 @@ export const NotificationModal = ({
       );
     }
 
+    const sortedList = [...list].sort(
+      (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0),
+    );
+
     return (
       <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 my-3 max-h-[50vh] sm:max-h-[55vh] min-h-[220px] custom-scrollbar">
-        {list.map((item) => (
+        {sortedList.map((item) => (
           <div
             key={item.id}
             className={cn(
@@ -142,7 +146,14 @@ export const NotificationModal = ({
                   {item.title}
                 </h4>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md">
+                  <span
+                    className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md"
+                    title={
+                      item.timestamp
+                        ? new Date(item.timestamp).toLocaleString()
+                        : "Arrival time"
+                    }
+                  >
                     {formatTimeAgo(item.timestamp)}
                   </span>
                   {!item.read ? (
