@@ -125,19 +125,19 @@ export const TrackComplaint = () => {
               className="flex flex-col sm:flex-row items-center gap-3"
             >
               <div className="relative w-full">
-                <Search className="absolute left-4 top-3.5 h-5 w-4 text-muted-foreground" />
+                <Search className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Enter Token Code (e.g., CRA-8B2Z9X)"
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
-                  className="pl-11 h-12 font-serif uppercase text-base tracking-wider font-semibold"
+                  className="pl-11 h-12 font-mono uppercase text-base tracking-wider font-semibold"
                 />
               </div>
               <Button
                 type="submit"
                 size="lg"
-                className="w-full sm:w-auto h-12 px-8 font-serif-bold shrink-0 shadow-lg"
+                className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
               >
                 {loading ? "Searching..." : "Track Status"}
               </Button>
