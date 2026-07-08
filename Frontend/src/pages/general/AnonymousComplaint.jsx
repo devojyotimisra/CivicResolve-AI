@@ -88,18 +88,17 @@ export const AnonymousComplaint = () => {
             Report a <span className="text-primary">Civic Hazard</span> Now
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Submit road hazards, overflowing waste, or broken street lights
-            directly to municipal crews without revealing your identity.
+            Report road hazards, waste issues, or damaged public infrastructure anonymously so the concerned authorities can take action.
           </p>
         </div>
 
-        <Card className="border-2 shadow-2xl bg-card/90 backdrop-blur-md">
+        <Card className="border-2 shadow-2xl bg-card backdrop-blur-md">
           <CardContent className="p-5 sm:p-6">
             <Button
               type="button"
               size="lg"
               onClick={() => setIsFormModalOpen(true)}
-              className="w-full h-12 px-10 text-lg font-extrabold shadow-xl"
+              className="w-full h-11 px-11 text-lg font-extrabold shadow-xl"
             >
               <span>File Anonymous Report Now</span>
             </Button>
@@ -115,8 +114,7 @@ export const AnonymousComplaint = () => {
                 Report Details
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground text-left">
-                Please provide location details and evidence to assist field
-                officers.
+                Please provide accurate location details and supporting evidence to help authorities investigate the issue.
               </DialogDescription>
             </DialogHeader>
 
@@ -179,7 +177,7 @@ export const AnonymousComplaint = () => {
                         Click to upload evidence
                       </span>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        PNG, JPG, MP4, WEBP up to 20MB
+                        Supported formats: PNG, JPG, WEBP, MP4 (Max 20 MB)
                       </p>
                     </div>
                     <input
