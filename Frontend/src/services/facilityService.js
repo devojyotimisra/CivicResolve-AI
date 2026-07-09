@@ -11,7 +11,7 @@ function getFacilitiesFromStorage() {
   }
   try {
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return INITIAL_FACILITIES;
   }
 }
@@ -28,7 +28,7 @@ function getBookingsFromStorage() {
   }
   try {
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return INITIAL_BOOKINGS;
   }
 }
@@ -42,7 +42,7 @@ export const facilityService = {
     await new Promise((res) => setTimeout(res, 300));
     const facilities = getFacilitiesFromStorage();
     if (type && type !== "all") {
-      return facilities.filter((f) => f.type?.toLowerCase() === type.toLowerCase());
+      return facilities.filter((f) => f.facilityType?.toLowerCase() === type.toLowerCase());
     }
     return facilities;
   },
@@ -57,8 +57,9 @@ export const facilityService = {
 
   checkAvailability: async (facilityId, dateStr) => {
     await new Promise((res) => setTimeout(res, 200));
-    const facility = await facilityService.getFacilityById(facilityId);
-    return !facility.bookedDates?.includes(dateStr);
+    const bookings = getBookingsFromStorage();
+    const isBooked = bookings.some((b) => b.facilityId === facilityId && b.bookedDate === dateStr && b.status !== "Cancelled");
+    return !isBooked;
   },
 
   bookFacility: async (bookingData) => {
@@ -71,18 +72,10 @@ export const facilityService = {
     if (facility.isActive === false) {
       throw new Error("This facility is currently not accepting reservations.");
     }
-    if (facility.bookedDates?.includes(bookingData.bookedDate)) {
+    const bookings = getBookingsFromStorage();
+    if (bookings.some((b) => b.facilityId === bookingData.facilityId && b.bookedDate === bookingData.bookedDate && b.status !== "Cancelled")) {
       throw new Error("This date has already been booked by another citizen.");
     }
-
-    // Add date to facility bookedDates
-    if (!facility.bookedDates) facility.bookedDates = [];
-    facility.bookedDates.push(bookingData.bookedDate);
-    facilities[facIndex] = facility;
-    saveFacilitiesToStorage(facilities);
-
-    // Create booking record
-    const bookings = getBookingsFromStorage();
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let refPart = "";
     for (let i = 0; i < 6; i++) {
@@ -92,15 +85,15 @@ export const facilityService = {
 
     const newBooking = {
       id: `bkg_${Date.now()}`,
-      referenceCode: refCode,
-      citizenId: bookingData.citizenId,
+      bookingReference: refCode,
+      userId: bookingData.userId,
       citizenName: bookingData.citizenName,
       facilityId: bookingData.facilityId,
       facilityName: facility.name,
       bookedDate: bookingData.bookedDate,
       amountPaid: facility.pricePerDay,
       status: "Confirmed",
-      bookedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       purpose: bookingData.purpose || "Community Gathering"
     };
 
@@ -109,16 +102,16 @@ export const facilityService = {
     return newBooking;
   },
 
-  getUserBookings: async (citizenId) => {
+  getUserBookings: async (userId) => {
     await new Promise((res) => setTimeout(res, 300));
     const bookings = getBookingsFromStorage();
-    return bookings.filter((b) => b.citizenId === citizenId).sort((a, b) => new Date(b.bookedAt) - new Date(a.bookedAt));
+    return bookings.filter((b) => b.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   getAllBookings: async () => {
     await new Promise((res) => setTimeout(res, 300));
     const bookings = getBookingsFromStorage();
-    return bookings.sort((a, b) => new Date(b.bookedAt) - new Date(a.bookedAt));
+    return bookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   saveFacility: async (facilityData) => {
@@ -131,8 +124,8 @@ export const facilityService = {
         facilities[index] = {
           ...facilities[index],
           ...facilityData,
-          pricePerDay: Number(facilityData.pricePerDay !== undefined ? facilityData.pricePerDay : facilities[index].pricePerDay),
-          capacity: Number(facilityData.capacity !== undefined ? facilityData.capacity : facilities[index].capacity)
+          pricePerDay: parseFloat(String(facilityData.pricePerDay !== undefined ? facilityData.pricePerDay : facilities[index].pricePerDay).replace(/,/g, "")) || 0,
+          capacity: facilityData.capacity !== undefined && facilityData.capacity !== "" && facilityData.capacity !== null ? (parseInt(facilityData.capacity, 10) || null) : (facilities[index].capacity || null)
         };
         saveFacilitiesToStorage(facilities);
         return facilities[index];
@@ -142,11 +135,9 @@ export const facilityService = {
     const newFac = {
       id: `fac_${Date.now()}`,
       isActive: true,
-      bookedDates: [],
-      image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&auto=format&fit=crop&q=80",
       ...facilityData,
-      pricePerDay: Number(facilityData.pricePerDay),
-      capacity: Number(facilityData.capacity)
+      pricePerDay: parseFloat(String(facilityData.pricePerDay || 0).replace(/,/g, "")) || 0,
+      capacity: facilityData.capacity !== undefined && facilityData.capacity !== "" && facilityData.capacity !== null ? (parseInt(facilityData.capacity, 10) || null) : null
     };
 
     facilities.push(newFac);
@@ -163,5 +154,27 @@ export const facilityService = {
     facilities[index].isActive = !facilities[index].isActive;
     saveFacilitiesToStorage(facilities);
     return facilities[index];
+  },
+
+  deleteFacility: async (facilityId) => {
+    await new Promise((res) => setTimeout(res, 300));
+    let facilities = getFacilitiesFromStorage();
+    const index = facilities.findIndex((f) => f.id === facilityId);
+    if (index === -1) throw new Error("Facility not found");
+
+    facilities.splice(index, 1);
+    saveFacilitiesToStorage(facilities);
+    return true;
+  },
+
+  deleteBooking: async (bookingId) => {
+    await new Promise((res) => setTimeout(res, 300));
+    let bookings = getBookingsFromStorage();
+    const index = bookings.findIndex((b) => b.id === bookingId);
+    if (index === -1) throw new Error("Booking not found");
+
+    bookings.splice(index, 1);
+    saveBookingsToStorage(bookings);
+    return true;
   }
 };

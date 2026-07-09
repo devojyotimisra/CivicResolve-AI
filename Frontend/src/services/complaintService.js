@@ -1,7 +1,6 @@
 import { INITIAL_COMPLAINTS } from "@/api/mockSeedData";
-import { authService } from "./authService";
 
-const COMPLAINTS_KEY = "civic_complaints_v2";
+const COMPLAINTS_KEY = "civic_complaints";
 
 function getComplaintsFromStorage() {
   const data = localStorage.getItem(COMPLAINTS_KEY);
@@ -11,7 +10,7 @@ function getComplaintsFromStorage() {
   }
   try {
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return INITIAL_COMPLAINTS;
   }
 }
@@ -34,12 +33,11 @@ export const complaintService = {
     if (filters.search) {
       const q = filters.search.toLowerCase();
       complaints = complaints.filter(
-        (c) => c.title.toLowerCase().includes(q) || c.token.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)
+        (c) => c.title?.toLowerCase().includes(q) || c.token?.toLowerCase().includes(q) || c.location?.toLowerCase().includes(q)
       );
     }
 
-    // Sort by latest submitted
-    return complaints.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    return complaints.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
   getComplaintByToken: async (token) => {
@@ -56,7 +54,6 @@ export const complaintService = {
     await new Promise((res) => setTimeout(res, 600));
     const complaints = getComplaintsFromStorage();
 
-    // Generate random 12 char token (e.g., CRA-8X9Y2Z)
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let randomPart = "";
     for (let i = 0; i < 6; i++) {
@@ -68,21 +65,22 @@ export const complaintService = {
       id: `comp_${Date.now()}`,
       token: token,
       title: complaintData.title,
-
       status: "Submitted",
       description: complaintData.description,
       location: complaintData.location,
-      submittedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       submittedPhoto: complaintData.submittedPhoto || "",
       assignedOfficerId: null,
       assignedOfficerName: null,
       department: "Pending Classification",
-      citizenId: null,
-      timeline: [
+      updates: [
         {
-          status: "Submitted",
-          timestamp: new Date().toISOString(),
+          newStatus: "Submitted",
+          oldStatus: null,
+          updatedById: null,
+          updatedByName: "Public Portal",
+          createdAt: new Date().toISOString(),
           note: "Report filed via public portal"
         }
       ]
@@ -101,8 +99,15 @@ export const complaintService = {
     if (index === -1) throw new Error("Complaint not found");
 
     const complaint = complaints[index];
+    const oldStatus = complaint.status;
     complaint.status = newStatus;
     complaint.updatedAt = new Date().toISOString();
+    if (newStatus === "Resolved") {
+      complaint.resolvedAt = new Date().toISOString();
+    }
+    if (newStatus === "Closed") {
+      complaint.closedAt = new Date().toISOString();
+    }
 
     if (resolutionPhoto) {
       complaint.resolutionPhoto = resolutionPhoto;
@@ -111,14 +116,16 @@ export const complaintService = {
       complaint.resolutionNote = resolutionNote;
     }
 
-    const timelineItem = {
-      status: newStatus,
-      timestamp: new Date().toISOString()
+    const updateItem = {
+      newStatus: newStatus,
+      oldStatus: oldStatus,
+      updatedById: officerId,
+      updatedByName: complaint.assignedOfficerName || "Assigned Officer",
+      createdAt: new Date().toISOString(),
+      note: note || `Status updated to ${newStatus}`
     };
-    if (note) {
-      timelineItem.note = note;
-    }
-    complaint.timeline.push(timelineItem);
+    if (!complaint.updates) complaint.updates = [];
+    complaint.updates.push(updateItem);
 
     complaints[index] = complaint;
     saveComplaintsToStorage(complaints);
@@ -132,15 +139,20 @@ export const complaintService = {
     if (index === -1) throw new Error("Complaint not found");
 
     const complaint = complaints[index];
+    const oldStatus = complaint.status;
     complaint.assignedOfficerId = officerId;
     complaint.assignedOfficerName = officerName;
     if (complaint.status === "Submitted") {
       complaint.status = "Assigned";
     }
     complaint.updatedAt = new Date().toISOString();
-    complaint.timeline.push({
-      status: "Assigned",
-      timestamp: new Date().toISOString(),
+    if (!complaint.updates) complaint.updates = [];
+    complaint.updates.push({
+      newStatus: complaint.status,
+      oldStatus: oldStatus,
+      updatedById: officerId,
+      updatedByName: officerName,
+      createdAt: new Date().toISOString(),
       note: `Assigned to Field Officer ${officerName}`
     });
 

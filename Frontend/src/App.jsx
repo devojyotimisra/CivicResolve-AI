@@ -34,6 +34,7 @@ import { CommissionerProfile } from "@/pages/commissioner/Profile";
 import { CommissionerFacilities } from "@/pages/commissioner/Facilities";
 import { CommissionerDepartments } from "@/pages/commissioner/Departments";
 import { CommissionerBills } from "@/pages/commissioner/Bills";
+import { CommissionerBillTypes } from "@/pages/commissioner/BillTypes";
 
 const DashboardLayout = ({ children }) => {
   return (
@@ -201,6 +202,10 @@ export function AppContent() {
                     <Route
                       path="/departments"
                       element={<CommissionerDepartments />}
+                    />
+                    <Route
+                      path="/bill-types"
+                      element={<CommissionerBillTypes />}
                     />
                     <Route path="/bills" element={<CommissionerBills />} />
 

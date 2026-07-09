@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -46,8 +46,9 @@ export const getCommissionerLinks = () => [
     path: "/dash/commissioner/facilities",
     icon: Building2,
   },
-  { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
   { label: "Bills", path: "/dash/commissioner/bills", icon: Receipt },
+  { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
+  { label: "Bill Types", path: "/dash/commissioner/bill-types", icon: Tags },
   { label: "Profile", path: "/dash/commissioner/profile", icon: User },
 ];
 
@@ -64,21 +65,21 @@ export const Sidebar = () => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
       return saved !== null ? JSON.parse(saved) : false;
-    } catch (e) {
+    } catch {
       return false;
     }
   });
   const sidebarRef = React.useRef(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       localStorage.setItem("sidebar_collapsed", JSON.stringify(isCollapsed));
-    } catch (e) {}
+    } catch {}
   }, [isCollapsed]);
 
   const links = getDashboardLinks(role);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const sidebar = sidebarRef.current;
     if (!sidebar) return;
 

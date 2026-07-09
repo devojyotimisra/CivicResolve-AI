@@ -118,7 +118,7 @@ export const NotificationModal = ({
     }
 
     const sortedList = [...list].sort(
-      (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0),
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
     );
 
     return (
@@ -128,19 +128,19 @@ export const NotificationModal = ({
             key={item.id}
             className={cn(
               "group relative flex items-start gap-3 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-md hover:border-primary/30",
-              item.read
+              item.isRead
                 ? "bg-card/60 border-border/60 opacity-80 hover:opacity-100"
                 : "bg-primary/5 border-primary/25 shadow-xs font-medium",
             )}
           >
-            {getTypeIcon(item.type)}
+            {getTypeIcon(item.notifType)}
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <h4
                   className={cn(
                     "text-sm font-semibold truncate tracking-tight text-foreground",
-                    !item.read && "text-primary dark:text-primary font-bold",
+                    !item.isRead && "text-primary dark:text-primary font-bold",
                   )}
                 >
                   {item.title}
@@ -149,14 +149,14 @@ export const NotificationModal = ({
                   <span
                     className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md"
                     title={
-                      item.timestamp
-                        ? new Date(item.timestamp).toLocaleString()
+                      item.createdAt
+                        ? new Date(item.createdAt).toLocaleString()
                         : "Arrival time"
                     }
                   >
-                    {formatTimeAgo(item.timestamp)}
+                    {formatTimeAgo(item.createdAt)}
                   </span>
-                  {!item.read ? (
+                  {!item.isRead ? (
                     <button
                       onClick={() => markAsRead(item.id)}
                       className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-150 shadow-2xs"
@@ -201,8 +201,8 @@ export const NotificationModal = ({
     );
   };
 
-  const unreadList = notifications.filter((n) => !n.read);
-  const readList = notifications.filter((n) => n.read);
+  const unreadList = notifications.filter((n) => !n.isRead);
+  const readList = notifications.filter((n) => n.isRead);
 
   return (
     <>

@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { INITIAL_NOTIFICATIONS } from "@/api/mockSeedData";
@@ -13,7 +14,7 @@ const NotificationContext = createContext(null);
 
 const sortNotifs = (list) =>
   [...list].sort(
-    (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0),
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
   );
 
 export const NotificationProvider = ({ children }) => {
@@ -26,7 +27,7 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    const storageKey = `civic_notifications_v2_${user.id || user.role}`;
+    const storageKey = `civic_notifications_${user.id || user.role}`;
     const defaults = INITIAL_NOTIFICATIONS[user.role] || [];
     const stored = localStorage.getItem(storageKey);
     let currentList = [];
@@ -34,7 +35,7 @@ export const NotificationProvider = ({ children }) => {
     if (stored) {
       try {
         currentList = JSON.parse(stored);
-      } catch (e) {
+      } catch {
         currentList = [];
       }
     }
@@ -56,7 +57,7 @@ export const NotificationProvider = ({ children }) => {
   const saveToStorage = useCallback(
     (updatedList) => {
       if (!isAuthenticated || !user?.role) return;
-      const storageKey = `civic_notifications_v2_${user.id || user.role}`;
+      const storageKey = `civic_notifications_${user.id || user.role}`;
       localStorage.setItem(storageKey, JSON.stringify(updatedList));
     },
     [isAuthenticated, user],
@@ -66,7 +67,9 @@ export const NotificationProvider = ({ children }) => {
     (id) => {
       setNotifications((prev) => {
         const updated = sortNotifs(
-          prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
+          prev.map((item) =>
+            item.id === id ? { ...item, isRead: true } : item,
+          ),
         );
         saveToStorage(updated);
         return updated;
@@ -80,7 +83,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => {
         const updated = sortNotifs(
           prev.map((item) =>
-            item.id === id ? { ...item, read: false } : item,
+            item.id === id ? { ...item, isRead: false } : item,
           ),
         );
         saveToStorage(updated);
@@ -92,7 +95,9 @@ export const NotificationProvider = ({ children }) => {
 
   const markAllAsRead = useCallback(() => {
     setNotifications((prev) => {
-      const updated = sortNotifs(prev.map((item) => ({ ...item, read: true })));
+      const updated = sortNotifs(
+        prev.map((item) => ({ ...item, isRead: true })),
+      );
       saveToStorage(updated);
       toast.success("All notifications marked as read");
       return updated;
@@ -120,8 +125,8 @@ export const NotificationProvider = ({ children }) => {
     (notif) => {
       const newNotif = {
         id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        timestamp: new Date().toISOString(),
-        read: false,
+        createdAt: new Date().toISOString(),
+        isRead: false,
         ...notif,
       };
 
@@ -131,12 +136,11 @@ export const NotificationProvider = ({ children }) => {
         return updated;
       });
 
-      toast[newNotif.type === "alert" ? "error" : newNotif.type || "info"](
-        newNotif.title,
-        {
-          description: newNotif.message,
-        },
-      );
+      toast[
+        newNotif.notifType === "alert" ? "error" : newNotif.notifType || "info"
+      ](newNotif.title, {
+        description: newNotif.message,
+      });
     },
     [saveToStorage],
   );
@@ -154,8 +158,7 @@ export const NotificationProvider = ({ children }) => {
     addNotification({
       title: randomNotif.title,
       message: randomNotif.message,
-      type: randomNotif.type,
-      link: randomNotif.link,
+      notifType: randomNotif.notifType,
     });
   }, [user, addNotification]);
 
@@ -165,22 +168,38 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [simulateNewNotification]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.isRead).length,
+    [notifications],
+  );
+
+  const value = useMemo(
+    () => ({
+      notifications,
+      unreadCount,
+      markAsRead,
+      markAsUnread,
+      markAllAsRead,
+      deleteNotification,
+      clearAll,
+      addNotification,
+      simulateNewNotification,
+    }),
+    [
+      notifications,
+      unreadCount,
+      markAsRead,
+      markAsUnread,
+      markAllAsRead,
+      deleteNotification,
+      clearAll,
+      addNotification,
+      simulateNewNotification,
+    ],
+  );
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        markAsRead,
-        markAsUnread,
-        markAllAsRead,
-        deleteNotification,
-        clearAll,
-        addNotification,
-        simulateNewNotification,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

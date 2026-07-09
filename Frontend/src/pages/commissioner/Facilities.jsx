@@ -29,6 +29,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Building2,
   Plus,
   Pencil,
@@ -37,12 +45,15 @@ import {
   Users,
   BadgeDollarSign,
   Search,
+  CalendarIcon,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 const BLANK_FORM = {
   name: "",
-  type: "Community Hall",
+  facilityType: "Community Hall",
   address: "",
   pincode: "",
   pricePerDay: "",
@@ -52,24 +63,36 @@ const BLANK_FORM = {
 };
 
 export const CommissionerFacilities = () => {
+  const [mainTab, setMainTab] = useState("facilities");
   const [facilities, setFacilities] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [reservationQuery, setReservationQuery] = useState("");
+  const [reservationFilter, setReservationFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(null);
+  const [deletingFacility, setDeletingFacility] = useState(null);
+  const [isDeletingFacility, setIsDeletingFacility] = useState(false);
+  const [deletingBooking, setDeletingBooking] = useState(null);
+  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await facilityService.getAllFacilities();
-      setFacilities(data);
-    } catch (err) {
-      toast.error("Failed to load municipal facilities");
+      const [facData, bkgData] = await Promise.all([
+        facilityService.getAllFacilities(),
+        facilityService.getAllBookings(),
+      ]);
+      setFacilities(facData);
+      setAllBookings(bkgData);
+    } catch {
+      toast.error("Failed to load municipal data");
     } finally {
       setLoading(false);
     }
@@ -80,23 +103,59 @@ export const CommissionerFacilities = () => {
   }, []);
 
   const facilityTypes = Array.from(
-    new Set(facilities.map((f) => f.type).filter(Boolean)),
+    new Set(facilities.map((f) => f.facilityType).filter(Boolean)),
   );
 
   const filtered = facilities.filter((f) => {
     const matchesSearch =
       f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.type.toLowerCase().includes(searchQuery.toLowerCase());
+      f.facilityType.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && f.isActive) ||
       (statusFilter === "inactive" && !f.isActive);
 
-    const matchesType = typeFilter === "all" || f.type === typeFilter;
+    const matchesType = typeFilter === "all" || f.facilityType === typeFilter;
 
     return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const searchedBookings = allBookings.filter((bkg) => {
+    if (reservationQuery.trim() !== "") {
+      const keywords = reservationQuery
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      return keywords.every((query) => {
+        const matchRef = (bkg.bookingReference || "")
+          .toLowerCase()
+          .includes(query);
+        const matchFac = (bkg.facilityName || "").toLowerCase().includes(query);
+        const matchPurpose = (bkg.purpose || "").toLowerCase().includes(query);
+        const matchStatus = (bkg.status || "").toLowerCase().includes(query);
+        const matchAmount = (bkg.amountPaid || "").toString().includes(query);
+        const matchDate = (bkg.bookedDate || "").includes(query);
+        return (
+          matchRef ||
+          matchFac ||
+          matchPurpose ||
+          matchStatus ||
+          matchAmount ||
+          matchDate
+        );
+      });
+    }
+    return true;
+  });
+
+  const filteredBookings = searchedBookings.filter((bkg) => {
+    if (reservationFilter === "all") return true;
+    if (reservationFilter === "confirmed") return bkg.status === "Confirmed";
+    if (reservationFilter === "completed") return bkg.status === "Completed";
+    return true;
   });
 
   const openNew = () => {
@@ -109,7 +168,7 @@ export const CommissionerFacilities = () => {
     setEditing(fac);
     setForm({
       name: fac.name || "",
-      type: fac.type || "Community Hall",
+      facilityType: fac.facilityType || "Community Hall",
       address: fac.address || "",
       pincode: fac.pincode || "",
       pricePerDay: fac.pricePerDay || "",
@@ -130,7 +189,7 @@ export const CommissionerFacilities = () => {
         `"${fac.name}" is now ${fac.isActive ? "Inactive" : "Active"}.`,
       );
       load();
-    } catch (err) {
+    } catch {
       toast.error("Failed to update facility status");
     } finally {
       setToggling(null);
@@ -147,12 +206,12 @@ export const CommissionerFacilities = () => {
     try {
       const payload = {
         ...form,
-        amenities: form.amenities
+        amenities: form.amenities && typeof form.amenities === "string"
           ? form.amenities
               .split(",")
               .map((a) => a.trim())
               .filter(Boolean)
-          : [],
+          : Array.isArray(form.amenities) ? form.amenities : [],
       };
       if (editing) {
         payload.id = editing.id;
@@ -174,6 +233,36 @@ export const CommissionerFacilities = () => {
     }
   };
 
+  const handleDeleteFacility = async () => {
+    if (!deletingFacility) return;
+    setIsDeletingFacility(true);
+    try {
+      await facilityService.deleteFacility(deletingFacility.id);
+      toast.success(`Facility "${deletingFacility.name}" deleted!`);
+      setDeletingFacility(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete facility");
+    } finally {
+      setIsDeletingFacility(false);
+    }
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!deletingBooking) return;
+    setIsDeletingBooking(true);
+    try {
+      await facilityService.deleteBooking(deletingBooking.id);
+      toast.success(`Reservation "${deletingBooking.bookingReference}" deleted!`);
+      setDeletingBooking(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete reservation");
+    } finally {
+      setIsDeletingBooking(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -184,52 +273,79 @@ export const CommissionerFacilities = () => {
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Control all civic venues — toggle availability and add new municipal
-            locations.
+            locations, and manage reservations.
           </p>
         </div>
-        <Button onClick={openNew} className="font-bold shadow-md shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Add New Facility
-        </Button>
+        <div className="flex gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          <Button
+            variant={mainTab === "facilities" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMainTab("facilities")}
+            className="font-semibold text-xs"
+          >
+            <Building2 className="mr-1.5 h-4 w-4" /> Manage Venues
+          </Button>
+          <Button
+            variant={mainTab === "bookings" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMainTab("bookings")}
+            className="font-semibold text-xs"
+          >
+            <CalendarIcon className="mr-1.5 h-4 w-4" /> All Reservations
+          </Button>
+        </div>
       </div>
 
-      <Card className="bg-card/80 border shadow-sm">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search facilities by name, type or address..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 text-xs h-9"
-            />
+      {mainTab === "facilities" ? (
+        <>
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+            <Card className="bg-card/80 border shadow-sm flex-1">
+              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search facilities by name, type or address..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 text-xs h-9"
+                  />
+                </div>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue placeholder="Filter by Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {facilityTypes.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/80 border shadow-sm shrink-0 flex items-center">
+              <CardContent className="p-4 w-full">
+                <Button onClick={openNew} className="font-bold shadow-md h-9 w-full">
+                  <Plus className="w-4 h-4 mr-2" /> Add New Facility
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="text-xs h-9">
-              <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="text-xs h-9">
-              <SelectValue placeholder="Filter by Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {facilityTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
 
       {loading ? (
         <div className="p-12 text-center text-muted-foreground text-sm">
@@ -260,7 +376,7 @@ export const CommissionerFacilities = () => {
                         variant="outline"
                         className="mb-1.5 text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
                       >
-                        {fac.type}
+                        {fac.facilityType}
                       </Badge>
                       <CardTitle className="text-base font-bold leading-tight text-foreground">
                         {fac.name}
@@ -353,10 +469,129 @@ export const CommissionerFacilities = () => {
                         ? "Deactivate"
                         : "Activate"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeletingFacility(fac)}
+                    className="px-2.5 font-semibold text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+                    title="Delete Facility"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+        </>
+      ) : (
+        <div className="space-y-6">
+          <Card className="bg-card/80 border shadow-sm">
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="relative md:col-span-2">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by reference code, venue name, date, purpose, amount, or status..."
+                  value={reservationQuery}
+                  onChange={(e) => setReservationQuery(e.target.value)}
+                  className="pl-9 text-xs h-9"
+                />
+              </div>
+
+              <Select value={reservationFilter} onValueChange={setReservationFilter}>
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reservations</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          <Card className="border shadow-md">
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-12 text-center text-muted-foreground text-sm">
+                  Loading reservations...
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <EmptyState
+                  title="No Reservations Found"
+                  description={
+                    allBookings.length === 0
+                      ? "There are no reservations for municipal facilities yet."
+                      : "No reservations match your search or filter criteria."
+                  }
+                  icon={CalendarIcon}
+                  inCard
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Reference Code</TableHead>
+                        <TableHead>Citizen</TableHead>
+                        <TableHead>Venue Name</TableHead>
+                        <TableHead>Reserved Date</TableHead>
+                        <TableHead>Purpose</TableHead>
+                        <TableHead>Amount Paid</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredBookings.map((bkg) => (
+                        <TableRow key={bkg.id} className="hover:bg-muted/50">
+                          <TableCell className="font-mono font-bold text-xs text-primary">
+                            {bkg.bookingReference}
+                          </TableCell>
+                          <TableCell className="text-sm font-semibold">
+                            {bkg.citizenName || "—"}
+                          </TableCell>
+                          <TableCell className="font-bold text-sm max-w-[200px] truncate">
+                            {bkg.facilityName}
+                          </TableCell>
+                          <TableCell className="font-semibold text-xs text-foreground">
+                            {new Date(bkg.bookedDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                            {bkg.purpose}
+                          </TableCell>
+                          <TableCell className="font-extrabold text-sm text-primary">
+                            ₹{bkg.amountPaid.toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="bg-primary/10 text-primary border-primary/20 font-bold"
+                            >
+                              {bkg.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletingBooking(bkg)}
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                              title="Delete Reservation"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -402,16 +637,22 @@ export const CommissionerFacilities = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Type *</Label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full h-9 text-xs rounded-md border border-input bg-background px-3 py-1"
+                <Select
+                  value={form.facilityType}
+                  onValueChange={(val) =>
+                    setForm({ ...form, facilityType: val })
+                  }
                 >
-                  <option>Community Hall</option>
-                  <option>Park</option>
-                  <option>Sports Arena</option>
-                  <option>Library</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 text-xs">
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Community Hall">Community Hall</SelectItem>
+                    <SelectItem value="Park">Park</SelectItem>
+                    <SelectItem value="Sports Arena">Sports Arena</SelectItem>
+                    <SelectItem value="Library">Library</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Capacity *</Label>
@@ -516,6 +757,28 @@ export const CommissionerFacilities = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmationModal
+        isOpen={!!deletingFacility}
+        onClose={() => setDeletingFacility(null)}
+        onConfirm={handleDeleteFacility}
+        title="Delete Municipal Facility?"
+        description={`Are you sure you want to permanently delete "${deletingFacility?.name}"? All related data and future reservation records for this venue will be affected.`}
+        confirmText="Delete Facility"
+        isLoading={isDeletingFacility}
+        variant="destructive"
+      />
+
+      <ConfirmationModal
+        isOpen={!!deletingBooking}
+        onClose={() => setDeletingBooking(null)}
+        onConfirm={handleDeleteBooking}
+        title="Delete Reservation?"
+        description={`Are you sure you want to permanently remove reservation #${deletingBooking?.bookingReference} (${deletingBooking?.citizenName} at ${deletingBooking?.facilityName})?`}
+        confirmText="Delete Reservation"
+        isLoading={isDeletingBooking}
+        variant="destructive"
+      />
     </div>
   );
 };

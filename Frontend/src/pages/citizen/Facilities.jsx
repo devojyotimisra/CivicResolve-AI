@@ -47,6 +47,7 @@ export const CitizenFacilities = () => {
   const [mainTab, setMainTab] = useState("explore");
   const [facilities, setFacilities] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -66,7 +67,13 @@ export const CitizenFacilities = () => {
       toast.error("Please select a reservation date from the calendar.");
       return;
     }
-    if (selectedFacility.bookedDates?.includes(selectedDateStr)) {
+    const isBooked = allBookings.some(
+      (b) =>
+        b.facilityId === selectedFacility.id &&
+        b.bookedDate === selectedDateStr &&
+        b.status !== "Cancelled",
+    );
+    if (isBooked) {
       toast.error("This date is already booked. Please choose another date.");
       return;
     }
@@ -76,13 +83,15 @@ export const CitizenFacilities = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [facData, bkgData] = await Promise.all([
+      const [facData, bkgData, allBkgData] = await Promise.all([
         facilityService.getAllFacilities("all"),
         user ? facilityService.getUserBookings(user.id) : Promise.resolve([]),
+        facilityService.getAllBookings(),
       ]);
       setFacilities(facData);
       setBookings(bkgData);
-    } catch (err) {
+      setAllBookings(allBkgData);
+    } catch {
       toast.error("Failed to load civic facilities and reservations");
     } finally {
       setLoading(false);
@@ -104,7 +113,9 @@ export const CitizenFacilities = () => {
         const matchName = (fac.name || "").toLowerCase().includes(query);
         const matchAddress = (fac.address || "").toLowerCase().includes(query);
         const matchDesc = (fac.description || "").toLowerCase().includes(query);
-        const matchType = (fac.type || "").toLowerCase().includes(query);
+        const matchType = (fac.facilityType || "")
+          .toLowerCase()
+          .includes(query);
         const matchAmenities = (fac.amenities || []).some((a) =>
           a.toLowerCase().includes(query),
         );
@@ -118,7 +129,7 @@ export const CitizenFacilities = () => {
 
   const filteredFacilities = searchedFacilities.filter((fac) => {
     if (typeFilter === "all") return true;
-    return fac.type?.toLowerCase() === typeFilter.toLowerCase();
+    return fac.facilityType?.toLowerCase() === typeFilter.toLowerCase();
   });
 
   const searchedBookings = bookings.filter((bkg) => {
@@ -129,7 +140,7 @@ export const CitizenFacilities = () => {
         .split(/\s+/)
         .filter(Boolean);
       return keywords.every((query) => {
-        const matchRef = (bkg.referenceCode || "")
+        const matchRef = (bkg.bookingReference || "")
           .toLowerCase()
           .includes(query);
         const matchFac = (bkg.facilityName || "").toLowerCase().includes(query);
@@ -162,7 +173,13 @@ export const CitizenFacilities = () => {
       toast.error("Please select a reservation date from the calendar.");
       return;
     }
-    if (selectedFacility.bookedDates?.includes(selectedDateStr)) {
+    const isBooked = allBookings.some(
+      (b) =>
+        b.facilityId === selectedFacility.id &&
+        b.bookedDate === selectedDateStr &&
+        b.status !== "Cancelled",
+    );
+    if (isBooked) {
       toast.error("This date is already booked. Please choose another date.");
       return;
     }
@@ -170,14 +187,14 @@ export const CitizenFacilities = () => {
     setBookingLoading(true);
     try {
       const result = await facilityService.bookFacility({
-        citizenId: user?.id || "cit_1",
+        userId: user?.id || "cit_1",
         citizenName: user?.name || "Citizen",
         facilityId: selectedFacility.id,
         bookedDate: selectedDateStr,
         purpose: purpose.trim() || "Community Gathering",
       });
       toast.success(
-        `Booking confirmed! Reference Code: ${result.referenceCode}`,
+        `Booking confirmed! Reference Code: ${result.bookingReference}`,
       );
       setSelectedFacility(null);
       setSelectedDate("");
@@ -194,23 +211,33 @@ export const CitizenFacilities = () => {
 
   const handleDownloadPermit = (bkg) => {
     toast.success(
-      `Official Municipal Permit for ${bkg.referenceCode} downloaded!`,
+      `Official Municipal Permit for ${bkg.bookingReference} downloaded!`,
     );
   };
 
   const disabledDates = [
     { before: new Date() },
-    ...(selectedFacility?.bookedDates || []).map((dStr) => {
-      const [y, m, d] = dStr.split("-").map(Number);
-      return new Date(y, m - 1, d);
-    }),
+    ...allBookings
+      .filter(
+        (b) =>
+          b.facilityId === selectedFacility?.id && b.status !== "Cancelled",
+      )
+      .map((b) => {
+        const [y, m, d] = b.bookedDate.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }),
   ];
 
   const bookedModifiers = {
-    booked: (selectedFacility?.bookedDates || []).map((dStr) => {
-      const [y, m, d] = dStr.split("-").map(Number);
-      return new Date(y, m - 1, d);
-    }),
+    booked: allBookings
+      .filter(
+        (b) =>
+          b.facilityId === selectedFacility?.id && b.status !== "Cancelled",
+      )
+      .map((b) => {
+        const [y, m, d] = b.bookedDate.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }),
   };
 
   return (
@@ -277,7 +304,7 @@ export const CitizenFacilities = () => {
                 Community Halls (
                 {
                   searchedFacilities.filter(
-                    (f) => f.type?.toLowerCase() === "community hall",
+                    (f) => f.facilityType?.toLowerCase() === "community hall",
                   ).length
                 }
                 )
@@ -291,7 +318,7 @@ export const CitizenFacilities = () => {
                 Public Parks (
                 {
                   searchedFacilities.filter(
-                    (f) => f.type?.toLowerCase() === "park",
+                    (f) => f.facilityType?.toLowerCase() === "park",
                   ).length
                 }
                 )
@@ -324,7 +351,7 @@ export const CitizenFacilities = () => {
                             variant="outline"
                             className="mb-2 text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
                           >
-                            {fac.type === "Community Hall"
+                            {fac.facilityType === "Community Hall"
                               ? "Community Hall"
                               : "Public Park"}
                           </Badge>
@@ -496,18 +523,6 @@ export const CitizenFacilities = () => {
                       : "No reservations match your search or filter criteria."
                   }
                   icon={CalendarIcon}
-                  actionLabel={
-                    bookings.length === 0
-                      ? "Explore Civic Facilities"
-                      : "Clear Filters"
-                  }
-                  onAction={() => {
-                    if (bookings.length === 0) setMainTab("explore");
-                    else {
-                      setReservationQuery("");
-                      setReservationFilter("all");
-                    }
-                  }}
                   inCard
                 />
               ) : (
@@ -530,7 +545,7 @@ export const CitizenFacilities = () => {
                       {filteredBookings.map((bkg) => (
                         <TableRow key={bkg.id} className="hover:bg-muted/50">
                           <TableCell className="font-mono font-bold text-xs text-primary">
-                            {bkg.referenceCode}
+                            {bkg.bookingReference}
                           </TableCell>
                           <TableCell className="font-bold text-sm max-w-[200px] truncate">
                             {bkg.facilityName}
@@ -611,9 +626,13 @@ export const CitizenFacilities = () => {
                           );
                           const d = String(date.getDate()).padStart(2, "0");
                           const dateStr = `${y}-${m}-${d}`;
-                          if (
-                            selectedFacility?.bookedDates?.includes(dateStr)
-                          ) {
+                          const isBooked = allBookings.some(
+                            (b) =>
+                              b.facilityId === selectedFacility?.id &&
+                              b.bookedDate === dateStr &&
+                              b.status !== "Cancelled",
+                          );
+                          if (isBooked) {
                             toast.error(
                               "This date is already booked! Please choose another date.",
                             );

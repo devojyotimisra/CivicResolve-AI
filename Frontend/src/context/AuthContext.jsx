@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { authService } from "@/services/authService";
 import { toast } from "sonner";
 
@@ -49,43 +56,48 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await authService.logout();
-      setUser(null);
-      setToken(null);
-      toast.info("You have been logged out securely.");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    await authService.logout();
+    setUser(null);
+    setToken(null);
+    toast.info("You have been logged out securely.");
   };
 
-  const updateProfile = async (updatedData) => {
-    try {
-      if (!user) return;
-      const updatedUser = await authService.updateProfile(user.id, updatedData);
-      setUser(updatedUser);
-      toast.success("Profile updated successfully!");
-      return updatedUser;
-    } catch (error) {
-      toast.error(error.message || "Failed to update profile");
-      throw error;
-    }
-  };
+  const updateProfile = useCallback(
+    async (updatedData) => {
+      try {
+        if (!user) return;
+        const updatedUser = await authService.updateProfile(
+          user.id,
+          updatedData,
+        );
+        setUser(updatedUser);
+        toast.success("Profile updated successfully!");
+        return updatedUser;
+      } catch (error) {
+        toast.error(error.message || "Failed to update profile");
+        throw error;
+      }
+    },
+    [user],
+  );
+
+  const value = useMemo(
+    () => ({
+      user,
+      role: user?.role || null,
+      token,
+      loading,
+      isAuthenticated: !!user,
+      login,
+      signup,
+      logout,
+      updateProfile,
+    }),
+    [user, token, loading, updateProfile],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        role: user?.role || null,
-        token,
-        loading,
-        isAuthenticated: !!user,
-        login,
-        signup,
-        logout,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {!loading && children}
     </AuthContext.Provider>
   );

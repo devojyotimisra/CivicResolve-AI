@@ -10,26 +10,21 @@ export const CitizenDashboard = () => {
   const { user } = useAuth();
   const [bills, setBills] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadDashboardData = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const [billData, bookData] = await Promise.all([
-        billService.getUserBills(user.id),
-        facilityService.getUserBookings(user.id),
-      ]);
-      setBills(billData);
-      setBookings(bookData);
-    } catch (err) {
-      toast.error("Failed to load dashboard metrics");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user) return;
+      try {
+        const [billData, bookData] = await Promise.all([
+          billService.getUserBills(user.id),
+          facilityService.getUserBookings(user.id),
+        ]);
+        setBills(billData);
+        setBookings(bookData);
+      } catch {
+        toast.error("Failed to load dashboard metrics");
+      }
+    };
+
     loadDashboardData();
   }, [user]);
 
@@ -37,6 +32,9 @@ export const CitizenDashboard = () => {
   const pendingBillsAmount = bills
     .filter((b) => b.status === "Pending")
     .reduce((acc, b) => acc + (b.amount || 0), 0);
+  const confirmedBookingsCount = bookings.filter(
+    (b) => b.status === "Confirmed",
+  ).length;
   const upcomingBookingsCount = bookings.filter(
     (b) => new Date(b.bookedDate) >= new Date(),
   ).length;
@@ -64,9 +62,9 @@ export const CitizenDashboard = () => {
         />
         <StatsCard
           title="Confirmed Bookings"
-          value={upcomingBookingsCount}
+          value={confirmedBookingsCount}
           icon={Calendar}
-          description={`${bookings.length} total municipal facility reservations`}
+          description={`${upcomingBookingsCount} upcoming reservation${upcomingBookingsCount !== 1 ? "s" : ""} scheduled`}
           color="primary"
           className="min-h-[260px] sm:min-h-[300px] flex flex-col justify-center rounded-2xl shadow-lg border-border/80"
         />

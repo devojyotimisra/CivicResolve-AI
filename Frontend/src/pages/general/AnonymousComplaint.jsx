@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { complaintService } from "@/services/complaintService";
-import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { MapPin, Copy, Check, Upload, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 export const AnonymousComplaint = () => {
@@ -46,13 +45,13 @@ export const AnonymousComplaint = () => {
   };
 
   const handleSubmit = async () => {
+    setLoading(true);
     try {
       const complaintData = {
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
         submittedPhoto: photoUrl || "",
-        citizenId: null,
       };
 
       const result =
@@ -82,7 +81,6 @@ export const AnonymousComplaint = () => {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       <div className="max-w-3xl mx-auto w-full space-y-8 my-auto">
-        {/* Page Header */}
         <div className="text-center space-y-3">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground max-w-2xl mx-auto leading-tight">
             Report a <span className="text-primary">Civic Hazard</span> Now
