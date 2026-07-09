@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,8 @@ export const CommissionerProfile = () => {
   const [passLoading, setPassLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || "Dr. Vikram Aditya",
-    phone: user?.phone || "+91 44 2538 1111",
+    name: user?.name || "",
+    phone: user?.phone || "",
   });
   const [confirmProfile, setConfirmProfile] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState(false);
@@ -24,8 +24,8 @@ export const CommissionerProfile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || "Dr. Vikram Aditya",
-        phone: user.phone || "+91 44 2538 1111",
+        name: user.name || "",
+        phone: user.phone || "",
       });
     }
   }, [user]);
@@ -40,7 +40,7 @@ export const CommissionerProfile = () => {
     try {
       await updateProfile(formData);
       setConfirmProfile(false);
-    } catch (error) {
+    } catch {
     } finally {
       setProfileLoading(false);
     }
@@ -74,7 +74,6 @@ export const CommissionerProfile = () => {
       <Card className="border shadow-xl overflow-hidden">
         <div className="bg-muted/40 p-6 border-b flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <Avatar className="w-24 h-24 ring-2 ring-primary/20 shadow-md">
-            <AvatarImage src={user?.avatar} alt={user?.name} />
             <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
               {user?.name?.charAt(0) || "C"}
             </AvatarFallback>
@@ -86,7 +85,7 @@ export const CommissionerProfile = () => {
                 variant="default"
                 className="bg-primary/15 text-primary border border-primary/30 font-bold text-xs px-2.5 py-0.5 rounded-md shadow-sm"
               >
-                Badge: {user?.badgeId || "COM-001"}
+                Badge: {user?.badgeId || ""}
               </Badge>
             </div>
             <h2 className="text-2xl font-extrabold text-foreground">

@@ -1,29 +1,20 @@
 import { INITIAL_USERS } from "@/api/mockSeedData";
 
-const USERS_KEY = "civic_users_v2";
+const USERS_KEY = "civic_users";
 const SESSION_KEY = "civic_current_session";
 
 function getUsersFromStorage() {
   const data = localStorage.getItem(USERS_KEY);
-  let storedUsers = [];
-  if (data) {
-    try {
-      storedUsers = JSON.parse(data);
-    } catch (e) {
-      storedUsers = [];
-    }
+  if (!data) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
+    return INITIAL_USERS;
   }
-  
-  const syncedUsers = INITIAL_USERS.map((seedUser) => {
-    const existing = storedUsers.find((u) => u.id === seedUser.id);
-    return existing ? { ...existing, ...seedUser } : seedUser;
-  });
-  
-  const customUsers = storedUsers.filter((u) => !INITIAL_USERS.some((seed) => seed.id === u.id));
-  const finalUsers = [...syncedUsers, ...customUsers];
-  
-  localStorage.setItem(USERS_KEY, JSON.stringify(finalUsers));
-  return finalUsers;
+  try {
+    return JSON.parse(data);
+  } catch {
+    localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
+    return INITIAL_USERS;
+  }
 }
 
 function saveUsersToStorage(users) {
@@ -32,12 +23,11 @@ function saveUsersToStorage(users) {
 
 export const authService = {
   login: async (emailOrBadge, password, role) => {
-    // Simulate slight network latency
     await new Promise((res) => setTimeout(res, 400));
     const users = getUsersFromStorage();
-    
+
     const user = users.find((u) => {
-      if (u.badgeId && u.badgeId.toLowerCase() === emailOrBadge.toLowerCase() && u.password === password && u.role === role) {
+      if (u.badgeId && String(u.badgeId).toLowerCase() === String(emailOrBadge).toLowerCase() && u.password === password && u.role === role) {
         return true;
       }
       return u.email?.toLowerCase() === emailOrBadge.toLowerCase() && u.password === password && u.role === role;
@@ -72,7 +62,6 @@ export const authService = {
     const newUser = {
       id: `usr_citizen_${Date.now()}`,
       role: "citizen",
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       ...userData,
     };
 
@@ -99,7 +88,7 @@ export const authService = {
     if (!data) return null;
     try {
       return JSON.parse(data);
-    } catch (e) {
+    } catch {
       return null;
     }
   },

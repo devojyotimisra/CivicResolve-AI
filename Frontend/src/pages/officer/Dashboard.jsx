@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { complaintService } from "@/services/complaintService";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatusBadge } from "@/components/common/StatusBadge";
-
+import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,31 +53,28 @@ export const OfficerDashboard = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
   const [resolutionPhoto, setResolutionPhoto] = useState("");
-  const [resolutionNote, setResolutionNote] = useState(
-    "Tarmac patched and compacted. Area cleaned and verified by engineering crew.",
-  );
+  const [resolutionNote, setResolutionNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showResolveForm, setShowResolveForm] = useState(false);
   const [ticketDrafts, setTicketDrafts] = useState({});
 
-  const loadTickets = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const data = await complaintService.getOfficerComplaints(user.id);
-      setTickets(data);
-      if (selectedTicket) {
-        const updatedSelected = data.find((t) => t.id === selectedTicket.id);
-        if (updatedSelected) setSelectedTicket(updatedSelected);
-      }
-    } catch (err) {
-      toast.error("Failed to load assigned field tickets");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadTickets = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const data = await complaintService.getOfficerComplaints(user.id);
+        setTickets(data);
+        if (selectedTicket) {
+          const updatedSelected = data.find((t) => t.id === selectedTicket.id);
+          if (updatedSelected) setSelectedTicket(updatedSelected);
+        }
+      } catch {
+        toast.error("Failed to load assigned field tickets");
+      } finally {
+        setLoading(false);
+      }
+    };
     loadTickets();
   }, [user]);
 
@@ -85,18 +82,13 @@ export const OfficerDashboard = () => {
     setSelectedTicket(ticket);
     const draft = ticketDrafts[ticket.id] || {};
     const photoVal = draft.photo || "";
-    const noteVal =
-      draft.note !== undefined
-        ? draft.note
-        : "Tarmac patched and compacted. Area cleaned and verified by engineering crew.";
+    const noteVal = draft.note !== undefined ? draft.note : "";
     setResolutionPhoto(photoVal);
     setResolutionNote(noteVal);
     setShowResolveForm(
       ticket.status === "In Progress" ||
         !!photoVal ||
-        (draft.note !== undefined &&
-          draft.note !==
-            "Tarmac patched and compacted. Area cleaned and verified by engineering crew."),
+        (draft.note !== undefined && draft.note !== ""),
     );
   };
 
@@ -115,8 +107,8 @@ export const OfficerDashboard = () => {
         setSelectedTicket({ ...selectedTicket, ...updated });
         if (nextStatus === "In Progress") setShowResolveForm(true);
       }
-    } catch (err) {
-      toast.error(err.message || "Failed to update status");
+    } catch {
+      toast.error("Failed to update status");
     }
   };
 
@@ -198,7 +190,7 @@ export const OfficerDashboard = () => {
         delete next[selectedTicket.id];
         return next;
       });
-    } catch (err) {
+    } catch {
       toast.error("Resolution submission failed");
     } finally {
       setSubmitting(false);
@@ -352,7 +344,7 @@ export const OfficerDashboard = () => {
                               size="icon"
                               onClick={() => openModal(t)}
                               title="View Details & Live Status"
-                              className="w-22 font-semibold shadow-lg"
+                              className="w-24 font-semibold shadow-lg"
                             >
                               View
                             </Button>
@@ -436,7 +428,7 @@ export const OfficerDashboard = () => {
                               size="icon"
                               onClick={() => openModal(t)}
                               title="View Timeline & Resolution Proof"
-                              className="w-23 font-semibold shadow-lg"
+                              className="w-24 font-semibold shadow-lg"
                             >
                               View
                             </Button>
@@ -472,10 +464,8 @@ export const OfficerDashboard = () => {
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       Submitted on{" "}
-                      {selectedTicket.submittedAt &&
-                        new Date(
-                          selectedTicket.submittedAt,
-                        ).toLocaleDateString()}
+                      {selectedTicket.createdAt &&
+                        new Date(selectedTicket.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -573,7 +563,7 @@ export const OfficerDashboard = () => {
                           </p>
                           {selectedTicket.resolutionNote && (
                             <p className="text-xs italic text-foreground/80 mt-1.5 border-l-2 border-primary/50 pl-2">
-                              "{selectedTicket.resolutionNote}"
+                              {selectedTicket.resolutionNote}
                             </p>
                           )}
                         </div>
@@ -676,8 +666,9 @@ export const OfficerDashboard = () => {
                               : "outline"
                           }
                           size="sm"
+                          disabled={selectedTicket.status !== "In Progress"}
                           onClick={() => setShowResolveForm(true)}
-                          className="text-xs sm:text-sm font-bold h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                          className="text-xs sm:text-sm font-bold h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           4. Resolve
                         </Button>
@@ -714,7 +705,7 @@ export const OfficerDashboard = () => {
                                     </div>
                                     <div>
                                       <span className="text-sm font-semibold text-foreground">
-                                        Click to upload photo or video
+                                        Click to upload evidence
                                       </span>
                                       <p className="text-xs text-muted-foreground mt-0.5">
                                         PNG, JPG, MP4, WEBP up to 20MB
@@ -831,36 +822,13 @@ export const OfficerDashboard = () => {
             </div>
           )}
 
-          <Dialog
-            open={!!viewingImage}
-            onOpenChange={(open) => {
-              if (!open) setViewingImage(null);
-            }}
-          >
-            <DialogContent className="max-w-5xl w-full border-2 border-primary/30 shadow-2xl bg-card/95 backdrop-blur-xl p-4 sm:p-6 flex flex-col items-center justify-center z-[100]">
-              <DialogHeader className="w-full border-b pb-3 mb-2 flex flex-row items-center justify-between">
-                <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-primary" />
-                  <span>{viewingImage?.title || "Photo Evidence"}</span>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-xl bg-black/90 border p-2">
-                {viewingImage?.url?.startsWith("data:video") ? (
-                  <video
-                    src={viewingImage?.url}
-                    controls
-                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                  />
-                ) : (
-                  <img
-                    src={viewingImage?.url}
-                    alt="Full View"
-                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <PhotoViewerModal
+            isOpen={!!viewingImage}
+            onClose={() => setViewingImage(null)}
+            photoUrl={viewingImage?.url}
+            title={viewingImage?.title}
+            description="Submitted image evidence."
+          />
         </DialogContent>
       </Dialog>
     </div>

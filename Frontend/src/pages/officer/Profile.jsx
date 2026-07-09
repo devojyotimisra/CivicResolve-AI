@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,28 @@ import { toast } from "sonner";
 export const OfficerProfile = () => {
   const { user } = useAuth();
   const [passLoading, setPassLoading] = useState(false);
+  const [passForm, setPassForm] = useState({ current: "", newPass: "" });
+  const [passError, setPassError] = useState("");
 
   const handlePasswordUpdate = (e) => {
     e.preventDefault();
+    setPassError("");
+    if (!passForm.current || !passForm.newPass) {
+      setPassError("Both fields are required.");
+      return;
+    }
+    if (passForm.current !== user?.password) {
+      setPassError("Current password is incorrect.");
+      return;
+    }
+    if (passForm.newPass.length < 8) {
+      setPassError("New password must be at least 8 characters.");
+      return;
+    }
     setPassLoading(true);
     setTimeout(() => {
       setPassLoading(false);
+      setPassForm({ current: "", newPass: "" });
       toast.success("Security password updated successfully!");
     }, 600);
   };
@@ -29,14 +45,13 @@ export const OfficerProfile = () => {
           Field Officer Credentials
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Field Officer profile.
+          View your credentials and update your security password.
         </p>
       </div>
 
       <Card className="border shadow-xl overflow-hidden">
         <div className="bg-muted/40 p-6 border-b flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <Avatar className="w-24 h-24 ring-2 ring-primary/20 shadow-md">
-            <AvatarImage src={user?.avatar} alt={user?.name} />
             <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
               {user?.name?.charAt(0) || "O"}
             </AvatarFallback>
@@ -48,7 +63,7 @@ export const OfficerProfile = () => {
                 variant="default"
                 className="bg-primary/15 text-primary border border-primary/30 font-bold text-xs px-2.5 py-0.5 rounded-md shadow-sm"
               >
-                Badge: {user?.badgeId || "OFF-104"}
+                Badge: {user?.badgeId || ""}
               </Badge>
             </div>
             <h2 className="text-2xl font-extrabold text-foreground">
@@ -87,7 +102,7 @@ export const OfficerProfile = () => {
                 <div className="relative">
                   <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
                   <Input
-                    value={user?.phone || "+91 98410 11223"}
+                    value={user?.phone || ""}
                     disabled
                     className="pl-9 bg-muted/50 text-muted-foreground cursor-not-allowed border-dashed"
                   />
@@ -104,6 +119,11 @@ export const OfficerProfile = () => {
               </h4>
             </div>
             <form onSubmit={handlePasswordUpdate} className="space-y-4 w-full">
+              {passError && (
+                <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                  {passError}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="curr-pass" className="text-xs">
                   Current Password
@@ -112,6 +132,10 @@ export const OfficerProfile = () => {
                   id="curr-pass"
                   type="password"
                   placeholder="••••••••"
+                  value={passForm.current}
+                  onChange={(e) =>
+                    setPassForm({ ...passForm, current: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -123,6 +147,10 @@ export const OfficerProfile = () => {
                   id="new-pass"
                   type="password"
                   placeholder="••••••••"
+                  value={passForm.newPass}
+                  onChange={(e) =>
+                    setPassForm({ ...passForm, newPass: e.target.value })
+                  }
                   required
                 />
               </div>

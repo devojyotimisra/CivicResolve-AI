@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Lock, Save, Trash2, SaveAll, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
@@ -33,10 +33,16 @@ export const CitizenProfile = () => {
 
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmPass, setConfirmPass] = useState(false);
+  const [passForm, setPassForm] = useState({ current: "", newPass: "" });
+  const [passError, setPassError] = useState("");
 
   const handleDeleteAccount = () => {
     setDeleting(true);
     setTimeout(() => {
+      try {
+        localStorage.removeItem(`civic_bills_${user?.id}`);
+        localStorage.removeItem(`civic_bookings_${user?.id}`);
+      } catch {}
       setDeleting(false);
       setConfirmDelete(false);
       logout();
@@ -50,17 +56,34 @@ export const CitizenProfile = () => {
     try {
       await updateProfile(formData);
       setConfirmUpdate(false);
-    } catch (err) {
+    } catch {
     } finally {
       setLoading(false);
     }
   };
 
   const handlePasswordUpdate = () => {
+    setPassError("");
+    if (!passForm.current || !passForm.newPass) {
+      setPassError("Both fields are required.");
+      setConfirmPass(false);
+      return;
+    }
+    if (passForm.current !== user?.password) {
+      setPassError("Current password is incorrect.");
+      setConfirmPass(false);
+      return;
+    }
+    if (passForm.newPass.length < 8) {
+      setPassError("New password must be at least 8 characters.");
+      setConfirmPass(false);
+      return;
+    }
     setPassLoading(true);
     setTimeout(() => {
       setPassLoading(false);
       setConfirmPass(false);
+      setPassForm({ current: "", newPass: "" });
       toast.success("Security password updated successfully!");
     }, 600);
   };
@@ -92,7 +115,6 @@ export const CitizenProfile = () => {
           <Card className="border shadow-md">
             <CardContent className="pt-6 text-center space-y-4">
               <Avatar className="w-24 h-24 mx-auto ring-4 ring-primary/20">
-                <AvatarImage src={user?.avatar} alt={user?.name} />
                 <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
                   {user?.name?.charAt(0) || "C"}
                 </AvatarFallback>
@@ -123,25 +145,38 @@ export const CitizenProfile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <form onSubmit={submitPassForm} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="curr-pass">Current Password</Label>
-                  <Input
-                    id="curr-pass"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-pass">New Security Password</Label>
-                  <Input
-                    id="new-pass"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
+                <form onSubmit={submitPassForm} className="space-y-4">
+                  {passError && (
+                    <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                      {passError}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="curr-pass">Current Password</Label>
+                    <Input
+                      id="curr-pass"
+                      type="password"
+                      placeholder="••••••••"
+                      value={passForm.current}
+                      onChange={(e) =>
+                        setPassForm({ ...passForm, current: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-pass">New Security Password</Label>
+                    <Input
+                      id="new-pass"
+                      type="password"
+                      placeholder="••••••••"
+                      value={passForm.newPass}
+                      onChange={(e) =>
+                        setPassForm({ ...passForm, newPass: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
                 <Button
                   type="submit"
                   variant="outline"
@@ -250,6 +285,7 @@ export const CitizenProfile = () => {
               <Button
                 type="button"
                 onClick={() => setConfirmDelete(true)}
+                variant="destructive"
                 className="font-bold shadow-md w-full sm:w-auto"
               >
                 <Trash2 className="mr-2 h-4 w-4" />

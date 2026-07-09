@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +41,7 @@ export const Navbar = () => {
     navigate("/");
   };
 
-  const getRoleBadgeColor = (r) => {
+  const getRoleBadgeColor = () => {
     return "bg-primary/10 text-primary border-primary/20";
   };
 
@@ -171,7 +171,7 @@ export const Navbar = () => {
             <div className="flex items-center gap-2">
               <Badge
                 variant="outline"
-                className={`hidden sm:inline-flex capitalize font-bold px-2.5 py-0.5 shadow-sm rounded-md ${getRoleBadgeColor(role)}`}
+                className={`hidden sm:inline-flex capitalize font-bold px-2.5 py-0.5 shadow-sm rounded-md ${getRoleBadgeColor()}`}
               >
                 {role === "officer" ? "Field Officer" : role}
               </Badge>
@@ -183,7 +183,6 @@ export const Navbar = () => {
                     className="relative h-9 w-9 rounded-full p-0 ring-2 ring-primary/20 hover:ring-primary/50"
                   >
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user?.avatar} alt={user?.name} />
                       <AvatarFallback className="bg-primary/20 text-primary font-bold">
                         {user?.name?.charAt(0) || "U"}
                       </AvatarFallback>

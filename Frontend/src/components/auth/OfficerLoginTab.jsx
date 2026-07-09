@@ -14,16 +14,19 @@ export const OfficerLoginTab = () => {
   );
   const [password, setPassword] = useState(defaultOfficer.password);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
       await login(badgeId, password, "officer");
       navigate("/dash/officer");
     } catch (err) {
+      setError(err.message || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -31,6 +34,11 @@ export const OfficerLoginTab = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {error && (
+        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+          {error}
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="officer-badge">Badge ID or Email</Label>
         <div className="relative">
@@ -68,7 +76,7 @@ export const OfficerLoginTab = () => {
         className="w-full font-semibold mt-2"
         disabled={loading}
       >
-        {loading ? "Authenticating...." : "Sign In"}
+        {loading ? "Authenticating..." : "Sign In"}
         {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
       </Button>
     </form>

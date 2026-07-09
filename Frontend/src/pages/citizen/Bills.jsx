@@ -49,7 +49,7 @@ export const CitizenBills = () => {
     try {
       const data = await billService.getUserBills(user.id);
       setBills(data);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load utility bills");
     } finally {
       setLoading(false);
@@ -198,15 +198,6 @@ export const CitizenBills = () => {
                   : "There are no billing records matching your current search query or filter."
               }
               icon={Receipt}
-              actionLabel={bills.length === 0 ? undefined : "Reset Filters"}
-              onAction={
-                bills.length === 0
-                  ? undefined
-                  : () => {
-                      setFilter("all");
-                      setSearchQuery("");
-                    }
-              }
               inCard
             />
           ) : (

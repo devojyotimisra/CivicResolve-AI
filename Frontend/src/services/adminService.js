@@ -14,7 +14,7 @@ function getDepartmentsFromStorage() {
   }
   try {
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return INITIAL_DEPARTMENTS;
   }
 }
@@ -28,10 +28,6 @@ export const adminService = {
     await new Promise((res) => setTimeout(res, 300));
     const users = authService.getUsers();
     return users.filter((u) => u.role === "officer");
-  },
-
-  getAllOfficers: async () => {
-    return adminService.getOfficers();
   },
 
   provisionOfficer: async (officerData) => {
@@ -174,7 +170,7 @@ export const adminService = {
     }));
 
     const recentComplaints = [...complaints]
-      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 20);
 
     return {
@@ -264,7 +260,7 @@ export const adminService = {
     return {
       complaints: complaints.filter((c) => c.title.toLowerCase().includes(q) || c.token.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)),
       bills: bills.filter((b) => b.billNumber.toLowerCase().includes(q) || b.citizenName?.toLowerCase().includes(q) || b.billType.toLowerCase().includes(q)),
-      bookings: bookings.filter((b) => b.referenceCode.toLowerCase().includes(q) || b.facilityName.toLowerCase().includes(q) || b.citizenName?.toLowerCase().includes(q)),
+      bookings: bookings.filter((b) => b.bookingReference.toLowerCase().includes(q) || b.facilityName.toLowerCase().includes(q) || b.citizenName?.toLowerCase().includes(q)),
       users: users.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.badgeId?.toLowerCase().includes(q))
     };
   }

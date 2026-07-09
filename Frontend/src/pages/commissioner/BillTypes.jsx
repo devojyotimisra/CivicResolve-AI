@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { adminService } from "@/services/adminService";
+import { billService } from "@/services/billService";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,29 +13,29 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Building2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Tags, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 const BLANK = { name: "" };
 
-export const CommissionerDepartments = () => {
-  const [departments, setDepartments] = useState([]);
+export const CommissionerBillTypes = () => {
+  const [billTypes, setBillTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
-  const [deletingDept, setDeletingDept] = useState(null);
+  const [deletingType, setDeletingType] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getDepartments();
-      setDepartments(data);
+      const data = await billService.getBillTypes();
+      setBillTypes(data);
     } catch {
-      toast.error("Failed to load departments");
+      toast.error("Failed to load bill types");
     } finally {
       setLoading(false);
     }
@@ -50,47 +50,47 @@ export const CommissionerDepartments = () => {
     setForm(BLANK);
     setDialogOpen(true);
   };
-  const openEdit = (dept) => {
-    setEditing(dept);
-    setForm({ name: dept.name });
+  const openEdit = (type) => {
+    setEditing(type);
+    setForm({ name: type.name });
     setDialogOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.name) {
-      toast.error("Department name is required.");
+      toast.error("Bill type name is required.");
       return;
     }
     setSaving(true);
     try {
-      await adminService.saveDepartment(
+      await billService.saveBillType(
         editing ? { ...form, id: editing.id } : form,
       );
       toast.success(
         editing
-          ? `Department "${form.name}" updated!`
-          : `Department "${form.name}" created!`,
+          ? `Bill Type "${form.name}" updated!`
+          : `Bill Type "${form.name}" created!`,
       );
       setDialogOpen(false);
       load();
     } catch (err) {
-      toast.error(err.message || "Failed to save department");
+      toast.error(err.message || "Failed to save bill type");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!deletingDept) return;
+    if (!deletingType) return;
     setIsDeleting(true);
     try {
-      await adminService.deleteDepartment(deletingDept.id);
-      toast.success(`Department "${deletingDept.name}" deleted successfully!`);
-      setDeletingDept(null);
+      await billService.deleteBillType(deletingType.id);
+      toast.success(`Bill Type "${deletingType.name}" deleted successfully!`);
+      setDeletingType(null);
       load();
     } catch (err) {
-      toast.error(err.message || "Failed to delete department");
+      toast.error(err.message || "Failed to delete bill type");
     } finally {
       setIsDeleting(false);
     }
@@ -101,47 +101,47 @@ export const CommissionerDepartments = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" /> City Departments
+            <Tags className="w-6 h-6 text-primary" /> Bill Types
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Manage the city departments responsible for resolving civic reports.
+            Manage the categories of bills that can be generated for citizens.
           </p>
         </div>
         <Button onClick={openNew} className="font-bold shadow-md shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Add Department
+          <Plus className="w-4 h-4 mr-2" /> Add Bill Type
         </Button>
       </div>
 
       {loading ? (
         <div className="p-12 text-center text-muted-foreground text-sm">
-          Loading departments...
+          Loading bill types...
         </div>
-      ) : departments.length === 0 ? (
+      ) : billTypes.length === 0 ? (
         <EmptyState
-          title="No Departments"
-          description="No departments defined yet."
-          icon={Building2}
-          actionLabel="Add First Department"
+          title="No Bill Types"
+          description="No bill types defined yet."
+          icon={Tags}
+          actionLabel="Add First Bill Type"
           onAction={openNew}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {departments.map((dept) => (
+          {billTypes.map((type) => (
             <Card
-              key={dept.id}
+              key={type.id}
               className="border shadow-sm hover:shadow-md transition-all"
             >
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold text-sm text-foreground leading-snug">
-                    {dept.name}
+                    {type.name}
                   </h3>
                   <div className="flex shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      onClick={() => openEdit(dept)}
+                      onClick={() => openEdit(type)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
@@ -149,7 +149,7 @@ export const CommissionerDepartments = () => {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => setDeletingDept(dept)}
+                      onClick={() => setDeletingType(type)}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -178,21 +178,21 @@ export const CommissionerDepartments = () => {
               ) : (
                 <Plus className="w-5 h-5" />
               )}
-              {editing ? "Edit Department" : "New Department"}
+              {editing ? "Edit Bill Type" : "New Bill Type"}
             </DialogTitle>
             <DialogDescription className="text-xs">
               {editing
-                ? "Update this department's name."
-                : "Define a new department."}
+                ? "Update this bill type's name."
+                : "Define a new bill type."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 py-2">
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Department Name *</Label>
+              <Label className="text-xs font-semibold">Bill Type Name *</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Roads & Traffic"
+                placeholder="e.g. Property Tax"
                 className="text-xs"
                 required
               />
@@ -213,8 +213,8 @@ export const CommissionerDepartments = () => {
                 {saving
                   ? "Saving..."
                   : editing
-                    ? "Update Department"
-                    : "Create Department"}
+                    ? "Update Bill Type"
+                    : "Create Bill Type"}
               </Button>
             </DialogFooter>
           </form>
@@ -222,12 +222,12 @@ export const CommissionerDepartments = () => {
       </Dialog>
 
       <ConfirmationModal
-        isOpen={!!deletingDept}
-        onClose={() => setDeletingDept(null)}
+        isOpen={!!deletingType}
+        onClose={() => setDeletingType(null)}
         onConfirm={handleDelete}
-        title="Delete Department?"
-        description={`Are you sure you want to delete the "${deletingDept?.name}" department? This action cannot be undone.`}
-        confirmText="Delete Department"
+        title="Delete Bill Type?"
+        description={`Are you sure you want to delete the "${deletingType?.name}" bill type? This action cannot be undone.`}
+        confirmText="Delete Bill Type"
         isLoading={isDeleting}
         variant="destructive"
       />

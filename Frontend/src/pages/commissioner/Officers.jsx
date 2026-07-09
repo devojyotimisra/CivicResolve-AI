@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -54,12 +54,12 @@ export const CommissionerOfficers = () => {
     setLoading(true);
     try {
       const [offData, deptData] = await Promise.all([
-        adminService.getAllOfficers(),
+        adminService.getOfficers(),
         adminService.getDepartments(),
       ]);
       setOfficers(offData);
       setDepartments(deptData);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load field crew directory");
     } finally {
       setLoading(false);
@@ -92,6 +92,12 @@ export const CommissionerOfficers = () => {
       toast.error("All fields are required.");
       return;
     }
+    const badgeRegex = /^OFF-\d{3}$/;
+    if (!badgeRegex.test(form.badgeId.trim().toUpperCase())) {
+      toast.error("Badge ID must be in the exact format OFF-*** (OFF followed by 3 digits, e.g., OFF-101).");
+      return;
+    }
+    setForm((prev) => ({ ...prev, badgeId: prev.badgeId.trim().toUpperCase() }));
     setConfirmSave(true);
   };
 
@@ -158,8 +164,8 @@ export const CommissionerOfficers = () => {
       </div>
 
       <Card className="bg-card/80 border shadow-sm">
-        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="relative">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative md:col-span-2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by officer name or badge ID..."
@@ -227,7 +233,6 @@ export const CommissionerOfficers = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <Avatar className="w-16 h-16 ring-2 ring-primary/20">
-                    <AvatarImage src={off.avatar} alt={off.name} />
                     <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
                       {off.name.charAt(0)}
                     </AvatarFallback>
@@ -317,13 +322,13 @@ export const CommissionerOfficers = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                Badge ID (Primary Key) *
+                Badge ID *
               </Label>
               <Input
                 value={form.badgeId}
                 onChange={(e) => setForm({ ...form, badgeId: e.target.value })}
-                placeholder="e.g. OFC-123"
-                className="text-xs"
+                placeholder="e.g. OFF-101"
+                className="text-xs font-mono"
                 required
                 disabled={!!editing}
               />

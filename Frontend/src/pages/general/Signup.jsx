@@ -41,8 +41,22 @@ export const Signup = () => {
       setError("Passwords do not match.");
       return;
     }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    const passwordRegex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setError(
+        "Password must be at least 8 characters long and contain a number and a special character.",
+      );
+      return;
+    }
+    const phoneRegex = /^(\+\d{1,3}[- ]?)?\d{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+    const pincodeRegex = /^[0-9]{6}$/;
+    if (!pincodeRegex.test(formData.pincode)) {
+      setError("Please enter a valid 6-digit pincode.");
       return;
     }
     setConfirmSubmit(true);
@@ -71,7 +85,7 @@ export const Signup = () => {
   return (
     <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-background to-muted/30">
       <div className="w-full max-w-lg">
-        <Card className="border-1 shadow-xl bg-card/90 backdrop-blur-md">
+        <Card className="border-2 shadow-xl bg-card/90 backdrop-blur-md">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-center">
               <CardTitle className="text-xl">Sign Up</CardTitle>

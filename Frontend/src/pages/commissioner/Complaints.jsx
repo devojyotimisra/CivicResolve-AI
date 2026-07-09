@@ -51,13 +51,13 @@ export const CommissionerComplaints = () => {
     try {
       const [compData, offData, deptData] = await Promise.all([
         complaintService.getAllComplaints(),
-        adminService.getAllOfficers(),
+        adminService.getOfficers(),
         adminService.getDepartments(),
       ]);
       setComplaints(compData);
       setOfficers(offData);
       setDepartments(deptData);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load master city complaints log");
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export const CommissionerComplaints = () => {
       setSelectedComplaint(null);
       setSelectedOfficerId("");
       loadData();
-    } catch (err) {
+    } catch {
       toast.error("Assignment failed");
     } finally {
       setAssigning(false);
@@ -101,7 +101,9 @@ export const CommissionerComplaints = () => {
     const matchesDept = deptFilter === "all" || comp.department === deptFilter;
     const matchesStatus =
       statusFilter === "all" ||
-      comp.status?.toLowerCase() === statusFilter.toLowerCase();
+      (statusFilter === "en-route-onsite"
+        ? comp.status === "En Route" || comp.status === "On Site"
+        : comp.status?.toLowerCase() === statusFilter.toLowerCase());
     const matchesSeverity =
       severityFilter === "all" ||
       comp.severity?.toLowerCase() === severityFilter.toLowerCase();
@@ -166,7 +168,9 @@ export const CommissionerComplaints = () => {
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="Submitted">Submitted (Unassigned)</SelectItem>
               <SelectItem value="Assigned">Assigned</SelectItem>
-              <SelectItem value="En Route">En Route / On Site</SelectItem>
+              <SelectItem value="en-route-onsite">
+                En Route / On Site
+              </SelectItem>
               <SelectItem value="In Progress">In Progress</SelectItem>
               <SelectItem value="Resolved">Resolved</SelectItem>
             </SelectContent>
@@ -174,7 +178,6 @@ export const CommissionerComplaints = () => {
         </CardContent>
       </Card>
 
-      {/* Complaints Table */}
       <Card className="border shadow-md">
         <CardContent className="p-0">
           {loading ? (
@@ -233,7 +236,6 @@ export const CommissionerComplaints = () => {
                         <span className="font-bold text-foreground block">
                           {comp.department}
                         </span>
-                        <span>{comp.zone}</span>
                       </TableCell>
                       <TableCell className="text-xs font-semibold">
                         {comp.assignedOfficerName ? (
@@ -254,15 +256,15 @@ export const CommissionerComplaints = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={comp.severity !== "Critical"}
+                            disabled={comp.severity !== "Critical" || comp.status === "Resolved" || comp.status === "Closed"}
                             onClick={() => setSelectedComplaint(comp)}
                             className={`h-8 text-xs font-bold ${
-                              comp.severity === "Critical"
+                              comp.severity === "Critical" && comp.status !== "Resolved" && comp.status !== "Closed"
                                 ? "text-primary border-primary/30 hover:bg-primary/10"
-                                : "text-muted-foreground border-border/50 opacity-50 cursor-not-allowed"
+                                : "opacity-50 cursor-not-allowed border-muted/50 text-muted-foreground"
                             }`}
                           >
-                            <UserPlus className="w-3.5 h-3.5 mr-1" /> Reassign
+                            <UserPlus className="w-3.5 h-3.5 mr-1" /> Assign/Reassign
                           </Button>
                         </div>
                       </TableCell>

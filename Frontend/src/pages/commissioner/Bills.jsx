@@ -30,30 +30,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Receipt, Plus, Search, CheckCircle2, Clock, Send } from "lucide-react";
+import { Receipt, Plus, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 const BLANK = {
-  citizenId: "",
+  userId: "",
   citizenName: "",
   billType: "Property Tax",
   amount: "",
   dueDate: "",
   period: "",
 };
-const BILL_TYPES = [
-  "Property Tax",
-  "Water & Sewage",
-  "Municipal Electricity",
-  "Garbage & Sanitation Fee",
-  "Trade License Fee",
-  "Building Plan Fee",
-];
 
 export const CommissionerBills = () => {
   const [bills, setBills] = useState([]);
   const [citizens, setCitizens] = useState([]);
+  const [billTypes, setBillTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -65,13 +58,15 @@ export const CommissionerBills = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const [billData, users] = await Promise.all([
+      const [billData, users, types] = await Promise.all([
         billService.getAllBills(),
         Promise.resolve(authService.getUsers()),
+        billService.getBillTypes(),
       ]);
       setBills(billData);
       setCitizens(users.filter((u) => u.role === "citizen"));
-    } catch (err) {
+      setBillTypes(types);
+    } catch {
       toast.error("Failed to load billing records");
     } finally {
       setLoading(false);
@@ -84,12 +79,12 @@ export const CommissionerBills = () => {
 
   const handleCitizenChange = (id) => {
     const c = citizens.find((u) => u.id === id);
-    setForm({ ...form, citizenId: id, citizenName: c?.name || "" });
+    setForm({ ...form, userId: id, citizenName: c?.name || "" });
   };
 
   const initGenerate = (e) => {
     e.preventDefault();
-    if (!form.citizenId || !form.billType || !form.amount || !form.dueDate) {
+    if (!form.userId || !form.billType || !form.amount || !form.dueDate) {
       toast.error("Citizen, bill type, amount, and due date are required.");
       return;
     }
@@ -121,19 +116,6 @@ export const CommissionerBills = () => {
     return matchSearch && matchStatus;
   });
 
-  const statusBadge = (s) =>
-    s === "Paid" ? (
-      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-bold">
-        <CheckCircle2 className="w-3 h-3 mr-1" />
-        Paid
-      </Badge>
-    ) : (
-      <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/30 text-[10px] font-bold">
-        <Clock className="w-3 h-3 mr-1" />
-        Pending
-      </Badge>
-    );
-
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -158,8 +140,8 @@ export const CommissionerBills = () => {
       </div>
 
       <Card className="bg-card/80 border shadow-sm">
-        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="relative">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative md:col-span-2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by bill no., citizen, or type..."
@@ -275,10 +257,7 @@ export const CommissionerBills = () => {
           <form onSubmit={initGenerate} className="space-y-4 py-2">
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Select Citizen *</Label>
-              <Select
-                value={form.citizenId}
-                onValueChange={handleCitizenChange}
-              >
+              <Select value={form.userId} onValueChange={handleCitizenChange}>
                 <SelectTrigger className="text-xs">
                   <SelectValue placeholder="Choose registered citizen..." />
                 </SelectTrigger>
@@ -301,9 +280,9 @@ export const CommissionerBills = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BILL_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
+                  {billTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.name}>
+                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

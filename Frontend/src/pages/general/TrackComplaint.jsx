@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { complaintService } from "@/services/complaintService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/common/StatusBadge";
-
+import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 import {
   Dialog,
   DialogContent,
@@ -50,8 +50,10 @@ export const TrackComplaint = () => {
       ) {
         setSearchParams({ token: cleanToken }, { replace: true });
       }
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      setError(
+        "No civic report found matching this 12-character tracking token. Please check the token code.",
+      );
       setComplaint(null);
     } finally {
       setLoading(false);
@@ -97,8 +99,8 @@ export const TrackComplaint = () => {
           ? "Resolution accepted! Thank you for your feedback."
           : "Case re-opened and flagged to department supervisor.",
       );
-    } catch (err) {
-      toast.error(err.message || "Failed to update status");
+    } catch {
+      toast.error("Failed to update status");
     }
   };
 
@@ -186,8 +188,8 @@ export const TrackComplaint = () => {
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     Submitted on{" "}
-                    {complaint?.submittedAt &&
-                      new Date(complaint.submittedAt).toLocaleDateString()}
+                    {complaint?.createdAt &&
+                      new Date(complaint.createdAt).toLocaleDateString()}
                   </span>
                   <Badge variant="outline" className="w-fit ml-2">
                     {complaint?.department}
@@ -294,7 +296,7 @@ export const TrackComplaint = () => {
                         </p>
                         {complaint?.resolutionNote && (
                           <p className="text-xs italic text-foreground/80 mt-1.5 border-l-2 border-primary/50 pl-2">
-                            "{complaint.resolutionNote}"
+                            {complaint.resolutionNote}
                           </p>
                         )}
                       </div>
@@ -331,9 +333,9 @@ export const TrackComplaint = () => {
                   </h4>
 
                   <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-                    {complaint?.timeline &&
-                      complaint.timeline.map((item, idx) => {
-                        const isLatest = idx === complaint.timeline.length - 1;
+                    {complaint?.updates &&
+                      complaint.updates.map((item, idx) => {
+                        const isLatest = idx === complaint.updates.length - 1;
                         return (
                           <div
                             key={idx}
@@ -350,9 +352,9 @@ export const TrackComplaint = () => {
                             </div>
                             <div className="flex-1 rounded-lg bg-muted/40 p-3 border text-xs space-y-1">
                               <div className="flex items-center justify-between font-semibold text-foreground">
-                                <span>Status: {item.status}</span>
+                                <span>Status: {item.newStatus}</span>
                                 <span className="text-[11px] font-normal text-muted-foreground">
-                                  {new Date(item.timestamp).toLocaleString()}
+                                  {new Date(item.createdAt).toLocaleString()}
                                 </span>
                               </div>
                               {item.note ? (
@@ -399,36 +401,13 @@ export const TrackComplaint = () => {
             </div>
           </div>
 
-          <Dialog
-            open={!!viewingImage}
-            onOpenChange={(open) => {
-              if (!open) setViewingImage(null);
-            }}
-          >
-            <DialogContent className="max-w-5xl w-full border-2 border-primary/30 shadow-2xl bg-card/95 backdrop-blur-xl p-4 sm:p-6 flex flex-col items-center justify-center z-[100]">
-              <DialogHeader className="w-full border-b pb-3 mb-2 flex flex-row items-center justify-between">
-                <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-primary" />
-                  <span>{viewingImage?.title || "Photo Evidence"}</span>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-xl bg-black/90 border p-2">
-                {viewingImage?.url?.startsWith("data:video") ? (
-                  <video
-                    src={viewingImage?.url}
-                    controls
-                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                  />
-                ) : (
-                  <img
-                    src={viewingImage?.url}
-                    alt="Full View"
-                    className="max-w-full max-h-[70vh] object-contain rounded-lg"
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <PhotoViewerModal
+            isOpen={!!viewingImage}
+            onClose={() => setViewingImage(null)}
+            photoUrl={viewingImage?.url}
+            title={viewingImage?.title}
+            description="Submitted image evidence."
+          />
         </DialogContent>
       </Dialog>
     </div>
