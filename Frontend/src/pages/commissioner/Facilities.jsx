@@ -281,7 +281,7 @@ export const CommissionerFacilities = () => {
             variant={mainTab === "facilities" ? "default" : "outline"}
             size="sm"
             onClick={() => setMainTab("facilities")}
-            className="font-semibold text-xs"
+            className="rounded-full px-5 font-semibold shadow-sm transition-all hover:scale-105"
           >
             <Building2 className="mr-1.5 h-4 w-4" /> Manage Venues
           </Button>
@@ -289,7 +289,7 @@ export const CommissionerFacilities = () => {
             variant={mainTab === "bookings" ? "default" : "outline"}
             size="sm"
             onClick={() => setMainTab("bookings")}
-            className="font-semibold text-xs"
+            className="rounded-full px-5 font-semibold shadow-sm transition-all hover:scale-105"
           >
             <CalendarIcon className="mr-1.5 h-4 w-4" /> All Reservations
           </Button>
@@ -299,15 +299,15 @@ export const CommissionerFacilities = () => {
       {mainTab === "facilities" ? (
         <>
           <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-            <Card className="bg-card/80 border shadow-sm flex-1">
+            <Card className="bg-card/80 border shadow-sm flex-1 transition-all duration-300 hover:shadow-lg">
               <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="relative group">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                   <Input
                     placeholder="Search facilities by name, type or address..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 text-xs h-9"
+                  className="pl-10 h-10 rounded-xl border-muted bg-background/60 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary hover:border-primary/40"
                   />
                 </div>
 
@@ -366,10 +366,10 @@ export const CommissionerFacilities = () => {
           {filtered.map((fac) => (
             <Card
               key={fac.id}
-              className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between bg-card"
+              className="border bg-card shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-primary/40"
             >
               <div>
-                <CardHeader className="pb-3 border-b bg-muted/20">
+                <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <Badge
