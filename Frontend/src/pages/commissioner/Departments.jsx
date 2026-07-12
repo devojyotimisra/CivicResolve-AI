@@ -107,7 +107,7 @@ export const CommissionerDepartments = () => {
             Manage the city departments responsible for resolving civic reports.
           </p>
         </div>
-        <Button onClick={openNew} className="font-bold shadow-md shrink-0">
+        <Button onClick={openNew} className="rounded-xl px-5 shadow-md transition hover:scale-105 shrink-0">
           <Plus className="w-4 h-4 mr-2" /> Add Department
         </Button>
       </div>
@@ -129,7 +129,7 @@ export const CommissionerDepartments = () => {
           {departments.map((dept) => (
             <Card
               key={dept.id}
-              className="border shadow-sm hover:shadow-md transition-all"
+              className="group overflow-hidden rounded-xl border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
@@ -140,7 +140,7 @@ export const CommissionerDepartments = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
                       onClick={() => openEdit(dept)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -148,7 +148,7 @@ export const CommissionerDepartments = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setDeletingDept(dept)}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
