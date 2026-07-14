@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { billService } from "@/services/billService";
 import { facilityService } from "@/services/facilityService";
 import { StatsCard } from "@/components/common/StatsCard";
-import { Receipt, Calendar } from "lucide-react";
+import { IndianRupee, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 export const CitizenDashboard = () => {
@@ -44,7 +44,7 @@ export const CitizenDashboard = () => {
       <div className="bg-muted/40 flex flex-col md:flex-row md:items-center justify-between gap-4 py-12 sm:py-16 px-8 sm:px-12 rounded-3xl border shadow-sm">
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-            Welcome back, {user?.name} to CivicResolve AI
+            Welcome back, {user?.name} to CivicResolve AI Citizen Portal!
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Here's what's happening with your account today.
@@ -56,7 +56,7 @@ export const CitizenDashboard = () => {
         <StatsCard
           title="Pending Utility Bills"
           value={`₹${pendingBillsAmount.toLocaleString("en-IN")}`}
-          icon={Receipt}
+          icon={IndianRupee}
           description={`${pendingBillsCount} bills awaiting online settlement`}
           color="primary"
           trend={pendingBillsCount > 0 ? "Action Required" : "All Clear"}
