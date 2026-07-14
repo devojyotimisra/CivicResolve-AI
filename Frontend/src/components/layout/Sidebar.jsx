@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  IndianRupee,
 } from "lucide-react";
 
 export const getCitizenLinks = () => [
@@ -46,7 +47,7 @@ export const getCommissionerLinks = () => [
     path: "/dash/commissioner/facilities",
     icon: Building2,
   },
-  { label: "Bills", path: "/dash/commissioner/bills", icon: Receipt },
+  { label: "Bills", path: "/dash/commissioner/bills", icon: IndianRupee },
   { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
   { label: "Bill Types", path: "/dash/commissioner/bill-types", icon: Tags },
   { label: "Profile", path: "/dash/commissioner/profile", icon: User },

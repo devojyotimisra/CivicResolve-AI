@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, ShieldAlert } from "lucide-react";
+import { Search, UserPlus, ShieldAlert,ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 export const CommissionerComplaints = () => {
@@ -114,8 +114,8 @@ export const CommissionerComplaints = () => {
   return (
     <div className="space-y-6 pb-10">
       <div className="border-b pb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          City-Wide Master Complaints Log
+        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ClipboardList className="w-6 h-6 text-primary" /> City-Wide Master Complaints Log
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
           Executive supervisory view across all departments. Monitor progress
