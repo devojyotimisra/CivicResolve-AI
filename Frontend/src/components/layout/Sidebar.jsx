@@ -11,8 +11,7 @@ import {
   Tags,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight,
-  IndianRupee,
+  ChevronRight
 } from "lucide-react";
 
 export const getCitizenLinks = () => [
