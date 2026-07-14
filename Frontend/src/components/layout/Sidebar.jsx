@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   FileText,
   Receipt,
+  IndianRupee,
   Building2,
   User,
   Tags,
@@ -16,7 +17,7 @@ import {
 
 export const getCitizenLinks = () => [
   { label: "Dashboard", path: "/dash/citizen", icon: LayoutDashboard },
-  { label: "Utility Bills", path: "/dash/citizen/bills", icon: Receipt },
+  { label: "Utility Bills", path: "/dash/citizen/bills", icon: IndianRupee },
   {
     label: "Civic Facilities",
     path: "/dash/citizen/facilities",
