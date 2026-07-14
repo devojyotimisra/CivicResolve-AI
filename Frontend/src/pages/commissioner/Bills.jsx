@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Receipt,IndianRupee, Plus, Search, Send } from "lucide-react";
+import { Receipt, Plus, Search, Send, IndianRupee } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
