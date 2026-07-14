@@ -47,7 +47,7 @@ export const CitizenDashboard = () => {
             Welcome back, {user?.name} to CivicResolve AI
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Here's what's hap pening with your account today.
+            Here's what's happening with your account today.
           </p>
         </div>
       </div>
