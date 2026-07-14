@@ -327,7 +327,7 @@ export const CitizenFacilities = () => {
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-muted-foreground text-sm">
+            <div className="rounded-2xl border bg-muted/20 p-16 text-center text-muted-foreground">
               Loading civic facilities...
             </div>
           ) : filteredFacilities.length === 0 ? (
@@ -341,10 +341,10 @@ export const CitizenFacilities = () => {
               {filteredFacilities.map((fac) => (
                 <Card
                   key={fac.id}
-                  className="flex flex-col justify-between overflow-hidden border shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-300 bg-card"
+                  className="flex flex-col justify-between overflow-hidden rounded-2xl border bg-card shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
                 >
                   <div>
-                    <CardHeader className="pb-3 border-b bg-muted/20">
+                    <CardHeader className="pb-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <Badge
@@ -382,7 +382,7 @@ export const CitizenFacilities = () => {
                         {fac.description}
                       </p>
 
-                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-muted/50 border text-xs">
+                      <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-muted/30 border shadow-sm">
                         <div className="flex items-center gap-2">
                           <div className="p-2 rounded-lg bg-primary/10 text-primary">
                             <Users className="w-4 h-4 shrink-0" />
@@ -463,7 +463,7 @@ export const CitizenFacilities = () => {
                 placeholder="Search by reference code, venue name, date, purpose, amount, or status..."
                 value={reservationQuery}
                 onChange={(e) => setReservationQuery(e.target.value)}
-                className="pl-9 h-9 text-xs sm:text-sm bg-card w-full"
+                className="pl-10 h-11 rounded-xl border-2 bg-background shadow-sm focus-visible:ring-2 focus-visible:ring-primary/40"
               />
             </div>
             <div className="flex gap-2 shrink-0 overflow-x-auto pb-1 sm:pb-0">
@@ -543,7 +543,7 @@ export const CitizenFacilities = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredBookings.map((bkg) => (
-                        <TableRow key={bkg.id} className="hover:bg-muted/50">
+                        <TableRow key={bkg.id} className="transition-colors hover:bg-primary/5">
                           <TableCell className="font-mono font-bold text-xs text-primary">
                             {bkg.bookingReference}
                           </TableCell>
@@ -593,7 +593,7 @@ export const CitizenFacilities = () => {
         open={!!selectedFacility}
         onOpenChange={(open) => !open && setSelectedFacility(null)}
       >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl rounded-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
               <Building2 className="w-5 h-5 text-primary" />
@@ -673,7 +673,7 @@ export const CitizenFacilities = () => {
                 </div>
 
                 <div className="flex-1 space-y-4 w-full">
-                  <div className="p-3 rounded-xl bg-card border space-y-2">
+                  <div className="rounded-2xl border bg-gradient-to-br from-background to-muted/30 p-5 shadow-sm space-y-3">
                     <span className="text-xs font-semibold text-muted-foreground block">
                       Booking Summary
                     </span>
