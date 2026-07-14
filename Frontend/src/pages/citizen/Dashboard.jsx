@@ -44,8 +44,11 @@ export const CitizenDashboard = () => {
       <div className="bg-muted/40 flex flex-col md:flex-row md:items-center justify-between gap-4 py-12 sm:py-16 px-8 sm:px-12 rounded-3xl border shadow-sm">
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-            Welcome back, {user?.name}
+            Welcome back, {user?.name} to CivicResolve AI
           </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Here's what's hap pening with your account today.
+          </p>
         </div>
       </div>
 
