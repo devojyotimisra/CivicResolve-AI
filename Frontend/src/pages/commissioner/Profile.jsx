@@ -64,10 +64,10 @@ export const CommissionerProfile = () => {
     <div className="space-y-8 pb-10 max-w-3xl mx-auto">
       <div className="border-b pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Commissioner Credentials
+          Commissioner's Profile
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Commissioner Profile.
+          Update your profile and contact details, as well as your security password
         </p>
       </div>
 
