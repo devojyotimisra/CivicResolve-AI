@@ -146,10 +146,10 @@ export const CommissionerOfficers = () => {
   });
 
   return (
-    <div className="space-y-8 pb-10 px-1">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-border/60 pb-6">
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
             <span>Field Officers</span>
           </h1>
@@ -158,15 +158,12 @@ export const CommissionerOfficers = () => {
             caseloads.
           </p>
         </div>
-        <Button
-  onClick={openNew}
-  className="font-semibold rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 shrink-0"
->
+        <Button onClick={openNew} className="font-bold shadow-md shrink-0">
           <Plus className="w-4 h-4 mr-2" /> Add Field Officer
         </Button>
       </div>
 
-      <Card className="bg-card/90 border rounded-2xl shadow-md">
+      <Card className="bg-card/80 border shadow-sm">
         <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="relative md:col-span-2">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -174,12 +171,12 @@ export const CommissionerOfficers = () => {
               placeholder="Search by officer name or badge ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10 rounded-xl text-sm"
+              className="pl-9 text-xs h-9"
             />
           </div>
 
           <Select value={deptFilter} onValueChange={setDeptFilter}>
-            <SelectTrigger className="rounded-xl h-10 text-sm">
+            <SelectTrigger className="text-xs h-9">
               <SelectValue placeholder="Filter by Department" />
             </SelectTrigger>
             <SelectContent>

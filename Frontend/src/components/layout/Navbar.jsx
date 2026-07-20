@@ -46,9 +46,9 @@ export const Navbar = () => {
   };
 
   const navLinks = [
-    { label: "Dashboard", path: "/complaint/anonymous", alwaysShow: true },
+    { label: "Report Issue", path: "/complaint/anonymous", alwaysShow: true },
     { label: "Track Token", path: "/complaint/track", alwaysShow: true },
-    { label: "Report Issue", path: `/dash/${role}`, authOnly: true },
+    { label: "Dashboard", path: `/dash/${role}`, authOnly: true },
   ];
 
   return (

@@ -59,14 +59,9 @@ export const CommissionerDashboard = () => {
 
   if (loading || !stats) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-      <div className="rounded-xl border bg-card px-8 py-6 shadow-sm text-center">
-        <p className="text-lg font-medium">Loading Dashboard...</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Please wait while we fetch the latest analytics.
-        </p>
+      <div className="p-12 text-center text-muted-foreground">
+        Loading commissioner dashboard metrics...
       </div>
-    </div>
     );
   }
 
@@ -91,19 +86,16 @@ export const CommissionerDashboard = () => {
   const formatCurrency = (value) => `₹${value.toLocaleString("en-IN")}`;
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 p-8 shadow-lg">
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-muted/40 border shadow-sm">
         <div className="space-y-1">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-           <p className="text-sm text-muted-foreground">
-            City analytics overview and performance insights
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
             Commissioner Dashboard: {user?.name}
           </h1>
         </div>
       </div>
 
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Civic Reports"
           value={stats.totalComplaints ?? 0}
@@ -135,8 +127,8 @@ export const CommissionerDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="rounded-2xl border bg-card shadow-sm hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="pb-4 border-b bg-muted/30 rounded-t-2xl">
+        <Card className="border shadow-md">
+          <CardHeader className="pb-2 border-b">
             <CardTitle className="text-base font-bold">
               Tickets by Department
             </CardTitle>

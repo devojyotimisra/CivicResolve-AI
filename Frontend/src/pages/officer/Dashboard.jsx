@@ -222,14 +222,8 @@ export const OfficerDashboard = () => {
     <div className="space-y-8 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-muted/40 border shadow-sm">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Field Officer Dashboard
+          Field Officer Dashboard: {user?.name}
         </h1>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <h2 className="text-sm sm:text-base text-muted-foreground">
-          Welcome, {user?.name}! Here are your assigned field
-          tickets and resolution history.
-          </h2>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

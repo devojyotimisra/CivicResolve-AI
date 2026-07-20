@@ -5,18 +5,17 @@ import {
   LayoutDashboard,
   FileText,
   Receipt,
-  IndianRupee,
   Building2,
   User,
   Tags,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 
 export const getCitizenLinks = () => [
   { label: "Dashboard", path: "/dash/citizen", icon: LayoutDashboard },
-  { label: "Utility Bills", path: "/dash/citizen/bills", icon: IndianRupee },
+  { label: "Utility Bills", path: "/dash/citizen/bills", icon: Receipt },
   {
     label: "Civic Facilities",
     path: "/dash/citizen/facilities",
@@ -47,7 +46,7 @@ export const getCommissionerLinks = () => [
     path: "/dash/commissioner/facilities",
     icon: Building2,
   },
-  { label: "Bills", path: "/dash/commissioner/bills", icon: IndianRupee },
+  { label: "Bills", path: "/dash/commissioner/bills", icon: Receipt },
   { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
   { label: "Bill Types", path: "/dash/commissioner/bill-types", icon: Tags },
   { label: "Profile", path: "/dash/commissioner/profile", icon: User },
