@@ -79,8 +79,6 @@ export const CommissionerFacilities = () => {
   const [toggling, setToggling] = useState(null);
   const [deletingFacility, setDeletingFacility] = useState(null);
   const [isDeletingFacility, setIsDeletingFacility] = useState(false);
-  const [deletingBooking, setDeletingBooking] = useState(null);
-  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -248,21 +246,6 @@ export const CommissionerFacilities = () => {
     }
   };
 
-  const handleDeleteBooking = async () => {
-    if (!deletingBooking) return;
-    setIsDeletingBooking(true);
-    try {
-      await facilityService.deleteBooking(deletingBooking.id);
-      toast.success(`Reservation "${deletingBooking.bookingReference}" deleted!`);
-      setDeletingBooking(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || "Failed to delete reservation");
-    } finally {
-      setIsDeletingBooking(false);
-    }
-  };
-
   return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -281,7 +264,7 @@ export const CommissionerFacilities = () => {
             variant={mainTab === "facilities" ? "default" : "outline"}
             size="sm"
             onClick={() => setMainTab("facilities")}
-            className="rounded-full px-5 font-semibold shadow-sm transition-all hover:scale-105"
+            className="font-semibold text-xs"
           >
             <Building2 className="mr-1.5 h-4 w-4" /> Manage Venues
           </Button>
@@ -289,7 +272,7 @@ export const CommissionerFacilities = () => {
             variant={mainTab === "bookings" ? "default" : "outline"}
             size="sm"
             onClick={() => setMainTab("bookings")}
-            className="rounded-full px-5 font-semibold shadow-sm transition-all hover:scale-105"
+            className="font-semibold text-xs"
           >
             <CalendarIcon className="mr-1.5 h-4 w-4" /> All Reservations
           </Button>
@@ -299,15 +282,15 @@ export const CommissionerFacilities = () => {
       {mainTab === "facilities" ? (
         <>
           <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-            <Card className="bg-card/80 border shadow-sm flex-1 transition-all duration-300 hover:shadow-lg">
+            <Card className="bg-card/80 border shadow-sm flex-1">
               <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="relative group">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search facilities by name, type or address..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 rounded-xl border-muted bg-background/60 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary hover:border-primary/40"
+                    className="pl-9 text-xs h-9"
                   />
                 </div>
 
@@ -366,10 +349,10 @@ export const CommissionerFacilities = () => {
           {filtered.map((fac) => (
             <Card
               key={fac.id}
-              className="border bg-card shadow-sm overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-primary/40"
+              className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between bg-card"
             >
               <div>
-                <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+                <CardHeader className="pb-3 border-b bg-muted/20">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <Badge
@@ -541,7 +524,6 @@ export const CommissionerFacilities = () => {
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount Paid</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -572,17 +554,6 @@ export const CommissionerFacilities = () => {
                             >
                               {bkg.status}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeletingBooking(bkg)}
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                              title="Delete Reservation"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -766,17 +737,6 @@ export const CommissionerFacilities = () => {
         description={`Are you sure you want to permanently delete "${deletingFacility?.name}"? All related data and future reservation records for this venue will be affected.`}
         confirmText="Delete Facility"
         isLoading={isDeletingFacility}
-        variant="destructive"
-      />
-
-      <ConfirmationModal
-        isOpen={!!deletingBooking}
-        onClose={() => setDeletingBooking(null)}
-        onConfirm={handleDeleteBooking}
-        title="Delete Reservation?"
-        description={`Are you sure you want to permanently remove reservation #${deletingBooking?.bookingReference} (${deletingBooking?.citizenName} at ${deletingBooking?.facilityName})?`}
-        confirmText="Delete Reservation"
-        isLoading={isDeletingBooking}
         variant="destructive"
       />
     </div>

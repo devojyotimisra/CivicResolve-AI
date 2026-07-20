@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Receipt, Plus, Search, Send, IndianRupee } from "lucide-react";
+import { Receipt, Plus, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
@@ -121,7 +121,7 @@ export const CommissionerBills = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <IndianRupee className="w-6 h-6 text-primary" /> Generate & Manage Bills
+            <Receipt className="w-6 h-6 text-primary" /> Generate & Manage Bills
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Issue utility and tax bills to citizens. View all billing records

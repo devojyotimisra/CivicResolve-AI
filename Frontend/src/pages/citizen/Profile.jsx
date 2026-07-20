@@ -102,7 +102,7 @@ export const CitizenProfile = () => {
     <div className="space-y-8 pb-10 max-w-4xl mx-auto">
       <div className="border-b pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          My Profile
+          My Citizen Profile & Security
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
           Manage your contact credentials, residential address, and linked

@@ -45,7 +45,7 @@ export const OfficerProfile = () => {
           Field Officer Credentials
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          View your details and update your security password.
+          View your credentials and update your security password.
         </p>
       </div>
 
