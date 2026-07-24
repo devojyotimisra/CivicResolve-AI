@@ -1,0 +1,83 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from application.extensions.db_extn import get_db
+from application.helpers.models import User, Complaint, Department, UtilityBill, FacilityBooking
+from application.middlewares.init_jwt import get_current_user_id
+
+router = APIRouter()
+
+
+@router.get("/commissioner/dash")
+def commissioner_dashboard(
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).get(current_user_id)
+    if not user or not user.has_role('commissioner'):
+        raise HTTPException(status_code=403, detail="Commissioner access required")
+
+    total_complaints = db.query(Complaint).count()
+
+    # Title Case status values matching DB storage
+    pending_complaints = db.query(Complaint).filter(
+        Complaint.status.in_(['Submitted', 'Assigned', 'En Route', 'On Site', 'In Progress'])
+    ).count()
+    resolved_complaints = db.query(Complaint).filter_by(status='Resolved').count()
+    closed_complaints = db.query(Complaint).filter_by(status='Closed').count()
+
+    # Critical complaints: Submitted with severity Critical
+    critical_complaints = db.query(Complaint).filter(
+        Complaint.severity == 'Critical'
+    ).count()
+
+    total_officers = db.query(User).filter(User.roles.any(name='field_officer')).count()
+    total_citizens = db.query(User).filter(User.roles.any(name='citizen')).count()
+
+    # Revenue from paid utility bills (Title Case 'Paid')
+    bill_revenue = db.query(func.sum(UtilityBill.amount)).filter_by(status='Paid').scalar() or 0
+    # Revenue from confirmed facility bookings (Title Case 'Confirmed')
+    booking_revenue = db.query(func.sum(FacilityBooking.amount_paid)).filter_by(status='Confirmed').scalar() or 0
+    total_revenue = bill_revenue + booking_revenue
+
+    by_category = db.query(
+        Department.name,
+        func.count(Complaint.id)
+    ).join(Complaint, Complaint.department_id == Department.id).group_by(Department.name).all()
+
+    category_data = [{"name": name, "count": count} for name, count in by_category]
+
+    by_status = db.query(
+        Complaint.status,
+        func.count(Complaint.id)
+    ).group_by(Complaint.status).all()
+
+    status_data = [{"status": status, "count": count} for status, count in by_status]
+
+    return {
+        "totalComplaints": total_complaints,
+        "pendingComplaints": pending_complaints,
+        "resolvedComplaints": resolved_complaints,
+        "closedComplaints": closed_complaints,
+        "criticalComplaints": critical_complaints,
+        "totalOfficers": total_officers,
+        "totalCitizens": total_citizens,
+        "totalRevenue": total_revenue,
+        "billRevenue": bill_revenue,
+        "bookingRevenue": booking_revenue,
+        "complaintsByCategory": category_data,
+        "complaintsByStatus": status_data,
+        # Dual-compatibility aliases for legacy snake_case readers
+        "total_complaints": total_complaints,
+        "pending_complaints": pending_complaints,
+        "resolved_complaints": resolved_complaints,
+        "closed_complaints": closed_complaints,
+        "critical_complaints": critical_complaints,
+        "total_officers": total_officers,
+        "total_citizens": total_citizens,
+        "total_revenue": total_revenue,
+        "bill_revenue": bill_revenue,
+        "booking_revenue": booking_revenue,
+        "complaints_by_category": category_data,
+        "complaints_by_status": status_data,
+    }

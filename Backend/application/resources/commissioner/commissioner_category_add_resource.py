@@ -1,0 +1,49 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from application.extensions.db_extn import get_db
+from application.helpers.models import User, Department
+from application.middlewares.init_jwt import get_current_user_id
+
+router = APIRouter()
+
+
+@router.post("/commissioner/category")
+def commissioner_add_category(
+    data: dict,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).get(current_user_id)
+    if not user or not user.has_role('commissioner'):
+        raise HTTPException(status_code=403, detail="Commissioner access required")
+
+    name = data.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Category name is required")
+
+    category_id = data.get("id")
+
+    existing = db.query(Department).filter_by(name=name).first()
+
+    if category_id:
+        # Edit mode: if the name conflict is with the same record, it's fine (no-op rename)
+        if existing and existing.id != int(category_id):
+            raise HTTPException(status_code=409, detail="Category already exists")
+
+        # Update existing category
+        category = db.query(Department).get(int(category_id))
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        category.name = name
+        db.commit()
+        return {"message": f"Category '{name}' updated successfully"}
+    else:
+        # Create mode: reject if name already exists
+        if existing:
+            raise HTTPException(status_code=409, detail="Category already exists")
+
+        category = Department(name=name)
+        db.add(category)
+        db.commit()
+        return {"message": f"Category '{name}' created successfully"}
