@@ -1,0 +1,54 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import datetime
+from application.extensions.db_extn import get_db
+from application.helpers.models import User, Complaint, ComplaintUpdate, IST
+from application.middlewares.init_jwt import get_current_user_id
+
+router = APIRouter()
+
+
+@router.post("/officer/ticket/{complaint_id}/resolve")
+def officer_resolve_ticket(
+    complaint_id: int,
+    data: dict,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).get(current_user_id)
+    if not user or not user.has_role('field_officer'):
+        raise HTTPException(status_code=403, detail="Officer access required")
+
+    complaint = db.query(Complaint).get(complaint_id)
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    if complaint.assigned_officer_id != current_user_id:
+        raise HTTPException(status_code=403, detail="This ticket is not assigned to you")
+
+    # Title Case status check matching DB storage
+    if complaint.status not in ['In Progress', 'On Site']:
+        raise HTTPException(status_code=400, detail="Ticket must be in progress or on site to resolve")
+
+    resolution_note = data.get("resolution_note", "").strip() if data.get("resolution_note") else None
+    resolution_photo_url = data.get("resolution_photo_url", "").strip() if data.get("resolution_photo_url") else None
+
+    old_status = complaint.status
+    complaint.status = 'Resolved'
+    complaint.resolution_photo = resolution_photo_url
+    complaint.resolution_note = resolution_note
+    complaint.resolved_at = datetime.now(IST)
+    complaint.updated_at = datetime.now(IST)
+
+    update = ComplaintUpdate(
+        complaint_id=complaint.id,
+        updated_by_id=current_user_id,
+        old_status=old_status,
+        new_status='Resolved',
+        note=resolution_note or 'Issue resolved by field officer'
+    )
+
+    db.add(update)
+    db.commit()
+
+    return {"message": "Ticket resolved successfully"}

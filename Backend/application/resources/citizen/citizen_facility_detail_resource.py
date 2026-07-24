@@ -1,0 +1,51 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from datetime import date, timedelta
+from application.extensions.db_extn import get_db
+from application.helpers.models import User, Facility, FacilityBooking
+from application.middlewares.init_jwt import get_current_user_id
+
+router = APIRouter()
+
+
+@router.get("/citizen/facility/{facility_id}")
+def citizen_facility_detail(
+    facility_id: int,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).get(current_user_id)
+    if not user or not user.has_role('citizen'):
+        return {"error": "Citizen access required"}, 403
+
+    facility = db.query(Facility).get(facility_id)
+    if not facility or not facility.is_active:
+        return {"error": "Facility not found"}, 404
+
+    today = date.today()
+    end_date = today + timedelta(days=90)
+
+    bookings = db.query(FacilityBooking).filter(
+        FacilityBooking.facility_id == facility_id,
+        FacilityBooking.status == 'confirmed',
+        FacilityBooking.date >= today,
+        FacilityBooking.date <= end_date
+    ).all()
+
+    booked_dates = [b.date.isoformat() for b in bookings]
+
+    my_bookings = [b.date.isoformat() for b in bookings if b.user_id == current_user_id]
+
+    return {
+        "facility": {
+            "id": facility.id,
+            "name": facility.name,
+            "facility_type": facility.facility_type,
+            "address": facility.address,
+            "pincode": facility.pincode,
+            "price_per_day": facility.price_per_day,
+            "description": facility.description,
+        },
+        "booked_dates": booked_dates,
+        "my_booked_dates": my_bookings
+    }
