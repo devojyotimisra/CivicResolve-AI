@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, Department
@@ -15,7 +15,7 @@ def citizen_complaints_list(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
     query = db.query(Complaint).filter_by(user_id=current_user_id)
 

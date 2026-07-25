@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from application.extensions.db_extn import get_db
@@ -16,25 +16,27 @@ def citizen_facility_detail(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
     facility = db.query(Facility).get(facility_id)
     if not facility or not facility.is_active:
-        return {"error": "Facility not found"}, 404
+        raise HTTPException(status_code=404, detail="Facility not found")
 
     today = date.today()
     end_date = today + timedelta(days=90)
 
+    # RC-1: booked_date instead of date
+    # RC-2: 'Confirmed' (Title-Case) to match DB storage
     bookings = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
-        FacilityBooking.status == 'confirmed',
-        FacilityBooking.date >= today,
-        FacilityBooking.date <= end_date
+        FacilityBooking.status == 'Confirmed',
+        FacilityBooking.booked_date >= today,
+        FacilityBooking.booked_date <= end_date
     ).all()
 
-    booked_dates = [b.date.isoformat() for b in bookings]
+    booked_dates = [b.booked_date.isoformat() for b in bookings]
 
-    my_bookings = [b.date.isoformat() for b in bookings if b.user_id == current_user_id]
+    my_bookings = [b.booked_date.isoformat() for b in bookings if b.user_id == current_user_id]
 
     return {
         "facility": {

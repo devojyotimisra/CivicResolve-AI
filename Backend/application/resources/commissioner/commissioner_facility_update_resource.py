@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Facility
@@ -16,11 +16,11 @@ def commissioner_update_facility(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('commissioner'):
-        return {"error": "Commissioner access required"}, 403
+        raise HTTPException(status_code=403, detail="Commissioner access required")
 
     facility = db.query(Facility).get(facility_id)
     if not facility:
-        return {"error": "Facility not found"}, 404
+        raise HTTPException(status_code=404, detail="Facility not found")
 
     if data.get("name"):
         facility.name = data["name"].strip()
@@ -33,7 +33,7 @@ def commissioner_update_facility(
     if data.get("price_per_day"):
         is_valid, result = validate_price(data["price_per_day"])
         if not is_valid:
-            return {"error": result}, 400
+            raise HTTPException(status_code=400, detail=result)
         facility.price_per_day = result
     if data.get("description") is not None:
         facility.description = data["description"].strip()
