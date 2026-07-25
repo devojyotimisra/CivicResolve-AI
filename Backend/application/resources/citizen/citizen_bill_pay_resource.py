@@ -35,15 +35,11 @@ def citizen_pay_bill(
 
     return {
         "message": "Payment successful",
-        "receipt": {
+      "receipt": {
             "billNumber": bill.bill_number,
-            "bill_number": bill.bill_number,
             "billType": bill.bill_type,
-            "bill_type": bill.bill_type,
             "amount": bill.amount,
             "paidAt": bill.paid_at.isoformat(),
-            "paid_at": bill.paid_at.isoformat(),
             "transactionId": f"TXN-{bill.id:06d}",
-            "transaction_id": f"TXN-{bill.id:06d}"
         }
     }
