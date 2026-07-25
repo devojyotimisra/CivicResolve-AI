@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, UtilityBill, FacilityBooking
@@ -12,21 +12,24 @@ router = APIRouter()
 def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
-    pending_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='pending').count()
-    overdue_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='overdue').count()
+    # RC-2: DB stores Title-Case statuses ('Pending', 'Overdue')
+    pending_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='Pending').count()
+    overdue_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='Overdue').count()
     total_bills_due = pending_bills + overdue_bills
 
+    # RC-1: FacilityBooking column is booked_date, not date
+    # RC-2: DB stores 'Confirmed' (Title-Case)
     upcoming_bookings = db.query(FacilityBooking).filter(
         FacilityBooking.user_id == current_user_id,
-        FacilityBooking.status == 'confirmed',
-        FacilityBooking.date >= date.today()
+        FacilityBooking.status == 'Confirmed',
+        FacilityBooking.booked_date >= date.today()
     ).count()
 
     pending_bills_list = db.query(UtilityBill).filter(
         UtilityBill.user_id == current_user_id,
-        UtilityBill.status.in_(['pending', 'overdue'])
+        UtilityBill.status.in_(['Pending', 'Overdue'])
     ).order_by(UtilityBill.due_date.asc()).limit(5).all()
 
     bills_data = []
@@ -40,18 +43,19 @@ def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: S
             "status": bill.status,
         })
 
+    # RC-1: booked_date used throughout
     upcoming_bookings_list = db.query(FacilityBooking).filter(
         FacilityBooking.user_id == current_user_id,
-        FacilityBooking.status == 'confirmed',
-        FacilityBooking.date >= date.today()
-    ).order_by(FacilityBooking.date.asc()).limit(5).all()
+        FacilityBooking.status == 'Confirmed',
+        FacilityBooking.booked_date >= date.today()
+    ).order_by(FacilityBooking.booked_date.asc()).limit(5).all()
 
     bookings_data = []
     for booking in upcoming_bookings_list:
         bookings_data.append({
             "id": booking.id,
             "facility_name": booking.facility.name if booking.facility else "N/A",
-            "date": booking.date.isoformat(),
+            "date": booking.booked_date.isoformat(),
             "booking_reference": booking.booking_reference,
             "amount_paid": booking.amount_paid,
             "status": booking.status,

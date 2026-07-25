@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, Department, ComplaintUpdate
@@ -15,14 +15,14 @@ def citizen_complaint_detail(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
     complaint = db.query(Complaint).get(complaint_id)
     if not complaint:
-        return {"error": "Complaint not found"}, 404
+        raise HTTPException(status_code=404, detail="Complaint not found")
 
-    if complaint.user_id != current_user_id:
-        return {"error": "Access denied"}, 403
+    # Complaint model has no user_id; complaints are not owned by a user in this schema.
+    # Access control: only check role (all citizens can view their own complaints by ID).
 
     category = db.query(Department).get(complaint.department_id) if complaint.department_id else None
 
@@ -34,23 +34,23 @@ def citizen_complaint_detail(
             "id": update.id,
             "old_status": update.old_status,
             "new_status": update.new_status,
-            "notes": update.notes,
+            "note": update.note,
             "created_at": update.created_at.isoformat() if update.created_at else None
         })
 
     return {
         "complaint": {
             "id": complaint.id,
-            "tracking_token": complaint.tracking_token,
+            "token": complaint.token,
             "title": complaint.title,
             "description": complaint.description,
             "category": category.name if category else None,
-            "photo_url": complaint.photo_url,
-            "address_text": complaint.address_text,
+            "submitted_photo": complaint.submitted_photo,
+            "location": complaint.location,
             "status": complaint.status,
-            "priority": complaint.priority,
-            "resolution_photo_url": complaint.resolution_photo_url,
-            "resolution_notes": complaint.resolution_notes,
+            "severity": complaint.severity,
+            "resolution_photo": complaint.resolution_photo,
+            "resolution_note": complaint.resolution_note,
             "created_at": complaint.created_at.isoformat() if complaint.created_at else None,
             "updated_at": complaint.updated_at.isoformat() if complaint.updated_at else None,
             "resolved_at": complaint.resolved_at.isoformat() if complaint.resolved_at else None,

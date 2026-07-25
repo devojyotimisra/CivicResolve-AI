@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from application.extensions.db_extn import get_db
@@ -16,7 +16,7 @@ def citizen_search(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
     query_str = data.get("query", "").strip()
     if not query_str:

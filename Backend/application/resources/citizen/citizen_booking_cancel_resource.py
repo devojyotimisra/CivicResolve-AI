@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, FacilityBooking
@@ -15,23 +15,26 @@ def citizen_cancel_booking(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('citizen'):
-        return {"error": "Citizen access required"}, 403
+        raise HTTPException(status_code=403, detail="Citizen access required")
 
     booking = db.query(FacilityBooking).get(booking_id)
     if not booking:
-        return {"error": "Booking not found"}, 404
+        raise HTTPException(status_code=404, detail="Booking not found")
 
     if booking.user_id != current_user_id:
-        return {"error": "Access denied"}, 403
+        raise HTTPException(status_code=403, detail="Access denied")
 
-    if booking.status == 'cancelled':
-        return {"error": "Booking is already cancelled"}, 400
+    # RC-2: DB stores 'Cancelled' (Title-Case)
+    if booking.status == 'Cancelled':
+        raise HTTPException(status_code=400, detail="Booking is already cancelled")
 
     from datetime import date
-    if booking.date < date.today():
-        return {"error": "Cannot cancel a past booking"}, 400
+    # RC-1: model column is booked_date, not date
+    if booking.booked_date < date.today():
+        raise HTTPException(status_code=400, detail="Cannot cancel a past booking")
 
-    booking.status = 'cancelled'
+    # RC-2: set status with Title-Case to match canonical convention
+    booking.status = 'Cancelled'
     db.commit()
 
     return {"message": "Booking cancelled successfully"}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Department
@@ -14,7 +14,7 @@ def commissioner_categories_list(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('commissioner'):
-        return {"error": "Commissioner access required"}, 403
+        raise HTTPException(status_code=403, detail="Commissioner access required")
 
     categories = db.query(Department).order_by(Department.name.asc()).all()
 
