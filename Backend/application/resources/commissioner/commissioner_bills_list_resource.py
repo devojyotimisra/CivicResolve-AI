@@ -29,22 +29,15 @@ def commissioner_bills_list(
         bills_data.append({
             "id": bill.id,
             "billType": bill.bill_type,
-            "bill_type": bill.bill_type,
             "billNumber": bill.bill_number,
-            "bill_number": bill.bill_number,
             "amount": bill.amount,
             "dueDate": due_date_str,
-            "due_date": due_date_str,
             "period": bill.period,
             "status": bill.status,
             "citizenName": citizen_name_val,
-            "citizen_name": citizen_name_val,
             "citizenId": bill.user_id,
-            "citizen_id": bill.user_id,
             "paidAt": paid_at_str,
-            "paid_at": paid_at_str,
             "createdAt": created_at_str,
-            "created_at": created_at_str,
         })
 
     return {"bills": bills_data}
