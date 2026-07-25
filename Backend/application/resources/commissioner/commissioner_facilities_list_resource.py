@@ -15,7 +15,7 @@ def commissioner_facilities_list(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('commissioner'):
-        return {"error": "Commissioner access required"}, 403
+        raise HTTPException(status_code=403, detail="Commissioner access required")
 
     facilities = db.query(Facility).order_by(Facility.name.asc()).all()
 

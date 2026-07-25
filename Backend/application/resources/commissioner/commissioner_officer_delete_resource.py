@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User
@@ -15,11 +15,11 @@ def commissioner_delete_officer(
 ):
     user = db.query(User).get(current_user_id)
     if not user or not user.has_role('commissioner'):
-        return {"error": "Commissioner access required"}, 403
+        raise HTTPException(status_code=403, detail="Commissioner access required")
 
     officer = db.query(User).get(officer_id)
     if not officer or not officer.has_role('field_officer'):
-        return {"error": "Officer not found"}, 404
+        raise HTTPException(status_code=404, detail="Officer not found")
 
     officer.is_active = False
     db.commit()
