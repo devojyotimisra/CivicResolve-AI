@@ -80,13 +80,9 @@ def citizen_book_facility(
         "booking": {
             "id": booking.id,
             "bookingReference": booking_ref,
-            "booking_reference": booking_ref,
             "facilityName": facility.name,
-            "facility_name": facility.name,
             "bookedDate": booking_date.isoformat(),
-            "date": booking_date.isoformat(),
             "amountPaid": facility.price_per_day,
-            "amount_paid": facility.price_per_day,
             "purpose": purpose,
             "status": "Confirmed"
         }
