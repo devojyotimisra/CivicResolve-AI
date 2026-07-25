@@ -31,13 +31,10 @@ def commissioner_officers_list(
             "name": o.name,
             "phone": o.phone,
             "badgeId": o.badge_id,
-            "badge_id": o.badge_id,
             "active": o.is_active,
             "department": o.department,
             "jurisdictionZone": o.address,
-            "jurisdiction_zone": o.address,
             "createdAt": created_at_str,
-            "created_at": created_at_str,
         })
 
     return {"officers": officers_data}
