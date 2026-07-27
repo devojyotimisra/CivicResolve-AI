@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, Text, ForeignKey, Table, JSON
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from application.extensions.db_extn import Base
 
 
@@ -31,7 +32,7 @@ class User(Base):
     role = Column(String(50),  default='citizen', nullable=False, index=True)
     badge_id = Column(String(50), unique=True, nullable=True, index=True)
     department_id = Column(Integer, ForeignKey('departments.id', ondelete='SET NULL'), nullable=True, index=True)
-    department = Column(String(100), nullable=True, index=True)
+    _department = Column('department', String(100), nullable=True, index=True)
     phone = Column(String(50),  nullable=True)
     address = Column(String(500), nullable=True)
     pincode = Column(String(20),  nullable=True)
@@ -39,6 +40,20 @@ class User(Base):
 
     roles = relationship('Role', secondary=user_roles, backref='users')
     department_rel = relationship('Department', backref='users_in_dept')
+
+    @hybrid_property
+    def department(self):
+        if self.department_rel and self.department_rel.name:
+            return self.department_rel.name
+        return self._department
+
+    @department.setter
+    def department(self, value):
+        self._department = value
+
+    @department.expression
+    def department(cls):
+        return cls._department
 
     def has_role(self, role_name):
         return self.role == role_name or any(r.name == role_name for r in self.roles)

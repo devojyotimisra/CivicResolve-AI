@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role
+from application.helpers.models import User, Role, Department
 from application.helpers.validators import validate_email, validate_name
 from application.middlewares.init_jwt import get_current_user_id
 
@@ -32,9 +32,19 @@ def commissioner_add_officer(
     # badge_id: frontend sends as "badgeId"
     badge_id = (data.get("badgeId") or data.get("badge_id") or "").strip() or None
 
-    department = (data.get("department") or "").strip()
-    if not department:
+    department_raw = str(data.get("department") or data.get("department_id") or "").strip()
+    if not department_raw:
         raise HTTPException(status_code=400, detail="Department is required")
+
+    # Resolve Department record by ID (if numeric) or by name
+    dept_obj = None
+    if department_raw.isdigit():
+        dept_obj = db.query(Department).get(int(department_raw))
+    if not dept_obj:
+        dept_obj = db.query(Department).filter_by(name=department_raw).first()
+
+    if not dept_obj:
+        raise HTTPException(status_code=400, detail="Invalid department")
 
     # jurisdiction_zone: optional, frontend does not send it
     jurisdiction_zone = (data.get("jurisdiction_zone") or "").strip()
@@ -57,9 +67,10 @@ def commissioner_add_officer(
         password=hash_password(password_raw),
         name=name,
         phone=data.get("phone"),
-        address=data.get("address") or jurisdiction_zone or department,
+        address=data.get("address") or jurisdiction_zone or dept_obj.name,
         pincode=data.get("pincode"),
-        department=department,
+        department_id=dept_obj.id,
+        department=dept_obj.name,
         badge_id=badge_id,
         role='field_officer',
         is_active=True
