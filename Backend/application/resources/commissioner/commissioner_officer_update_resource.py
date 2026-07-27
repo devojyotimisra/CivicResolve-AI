@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User
+from application.helpers.models import User, Department
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -28,8 +28,22 @@ def commissioner_update_officer(
         officer.phone = data["phone"].strip()
     if "active" in data:
         officer.is_active = bool(data["active"])
-    if data.get("department"):
-        officer.department = data["department"].strip()
+
+    dept_input = data.get("department") or data.get("department_id")
+    if dept_input is not None and str(dept_input).strip():
+        dept_raw = str(dept_input).strip()
+        dept_obj = None
+        if dept_raw.isdigit():
+            dept_obj = db.query(Department).get(int(dept_raw))
+        if not dept_obj:
+            dept_obj = db.query(Department).filter_by(name=dept_raw).first()
+
+        if not dept_obj:
+            raise HTTPException(status_code=400, detail="Invalid department")
+
+        officer.department_id = dept_obj.id
+        officer.department = dept_obj.name
+
     if data.get("jurisdiction_zone"):
         officer.address = data["jurisdiction_zone"].strip()
     # Support badgeId (camelCase) and badge_id (snake_case)
