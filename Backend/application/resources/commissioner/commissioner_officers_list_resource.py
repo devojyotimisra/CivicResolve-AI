@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from application.extensions.db_extn import get_db
 from application.helpers.models import User
@@ -17,7 +17,7 @@ def commissioner_officers_list(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    officers = db.query(User).filter(
+    officers = db.query(User).options(joinedload(User.department_rel)).filter(
         or_(User.role == 'field_officer', User.roles.any(name='field_officer'))
     ).order_by(User.name.asc()).all()
 
