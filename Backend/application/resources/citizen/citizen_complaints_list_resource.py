@@ -17,7 +17,7 @@ def citizen_complaints_list(
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    query = db.query(Complaint).filter_by(user_id=current_user_id)
+    query = db.query(Complaint)
 
     if status:
         query = query.filter_by(status=status)
@@ -29,11 +29,13 @@ def citizen_complaints_list(
         category = db.query(Department).get(c.department_id) if c.department_id else None
         complaints_data.append({
             "id": c.id,
-            "tracking_token": c.tracking_token,
+            "token": c.token,
+            "tracking_token": c.token,
             "title": c.title,
             "category": category.name if category else None,
             "status": c.status,
-            "priority": c.priority,
+            "severity": c.severity,
+            "priority": c.severity,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "updated_at": c.updated_at.isoformat() if c.updated_at else None,
         })
