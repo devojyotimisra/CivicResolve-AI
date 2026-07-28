@@ -1,0 +1,548 @@
+"""
+Commissioner Management Router Integration Tests (Excluding Officer Management).
+
+Endpoints Tested:
+- GET /api/commissioner/dash
+- GET /api/commissioner/complaints
+- GET /api/commissioner/complaint/{complaint_id}
+- GET /api/commissioner/categories
+- POST /api/commissioner/category
+- DELETE /api/commissioner/category/{category_id}
+- GET /api/commissioner/citizens
+- POST /api/commissioner/search
+- GET /api/commissioner/profile
+- PUT /api/commissioner/edit_profile
+"""
+
+import pytest
+from sqlalchemy.orm import Session
+from application.extensions.security_extn import hash_password, verify_password
+from application.helpers.models import User, Role, Department, Complaint, ComplaintUpdate, UtilityBill, FacilityBooking
+from application.middlewares.init_jwt import create_access_token
+
+
+# ============================================================================
+# LOCAL FIXTURES (COMMISSIONER DOMAIN SPECIFIC)
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def seed_roles(db_session: Session):
+    """Ensures citizen, field_officer, commissioner roles exist in db_session."""
+    for role_name in ["citizen", "field_officer", "commissioner"]:
+        if not db_session.query(Role).filter_by(name=role_name).first():
+            db_session.add(Role(name=role_name))
+    db_session.commit()
+
+
+@pytest.fixture
+def comm_user(db_session: Session) -> User:
+    """Creates a primary Commissioner user."""
+    role = db_session.query(Role).filter_by(name="commissioner").first()
+    comm = User(
+        email="commissioner.main@civicresolve.in",
+        password=hash_password("CommSecret123!"),
+        name="Chief Commissioner",
+        role="commissioner",
+        badge_id="COM-001",
+        phone="9876543200",
+        address="Municipal HQ",
+        pincode="110001",
+        is_active=True
+    )
+    if role:
+        comm.roles.append(role)
+    db_session.add(comm)
+    db_session.commit()
+    db_session.refresh(comm)
+    return comm
+
+
+@pytest.fixture
+def comm_headers(comm_user: User) -> dict:
+    """Returns JWT Authorization headers for comm_user."""
+    token = create_access_token(comm_user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def officer_headers(db_session: Session) -> dict:
+    """Returns JWT Authorization headers for a field officer (for 403 role checks)."""
+    role = db_session.query(Role).filter_by(name="field_officer").first()
+    officer = User(
+        email="officer.commtest@civicresolve.in",
+        password=hash_password("Pass123!"),
+        name="Officer Role Test",
+        role="field_officer",
+        badge_id="OFF-701",
+        is_active=True
+    )
+    if role:
+        officer.roles.append(role)
+    db_session.add(officer)
+    db_session.commit()
+    db_session.refresh(officer)
+    token = create_access_token(officer.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def citizen_headers(db_session: Session) -> dict:
+    """Returns JWT Authorization headers for a citizen user (for 403 role checks)."""
+    role = db_session.query(Role).filter_by(name="citizen").first()
+    user = User(
+        email="citizen.commtest@civicresolve.in",
+        password=hash_password("Pass123!"),
+        name="Citizen Role Test",
+        role="citizen",
+        is_active=True
+    )
+    if role:
+        user.roles.append(role)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def sample_department(db_session: Session) -> Department:
+    """Creates a sample Department entity."""
+    dept = Department(name="Water Supply & Drainage")
+    db_session.add(dept)
+    db_session.commit()
+    db_session.refresh(dept)
+    return dept
+
+
+@pytest.fixture
+def sample_complaint(db_session: Session, sample_department: Department) -> Complaint:
+    """Creates a sample Complaint entity linked to sample_department."""
+    complaint = Complaint(
+        token="CMP-7701",
+        title="Water Pipe Leakage on High Street",
+        description="Major water pipe burst near city center causing road flooding",
+        location="High Street & 2nd Ave",
+        status="Submitted",
+        severity="Critical",
+        department_id=sample_department.id,
+        department=sample_department.name
+    )
+    db_session.add(complaint)
+    db_session.commit()
+    db_session.refresh(complaint)
+    return complaint
+
+
+@pytest.fixture
+def sample_paid_bill(db_session: Session) -> UtilityBill:
+    """Creates a Paid UtilityBill for revenue metric testing."""
+    from datetime import date
+    bill = UtilityBill(
+        bill_type="Water",
+        bill_number="UB-TEST-99",
+        amount=150.0,
+        due_date=date.today(),
+        status="Paid"
+    )
+    db_session.add(bill)
+    db_session.commit()
+    db_session.refresh(bill)
+    return bill
+
+
+@pytest.fixture
+def sample_confirmed_booking(db_session: Session) -> FacilityBooking:
+    """Creates a Confirmed FacilityBooking for revenue metric testing."""
+    from datetime import date
+    booking = FacilityBooking(
+        booking_reference="BK-TEST-99",
+        booked_date=date.today(),
+        amount_paid=500.0,
+        status="Confirmed"
+    )
+    db_session.add(booking)
+    db_session.commit()
+    db_session.refresh(booking)
+    return booking
+
+
+# ============================================================================
+# AUTHORIZATION CHECKS
+# ============================================================================
+
+def test_commissioner_endpoints_unauthorized(client):
+    """
+    Verifies 401 Unauthorized for unauthenticated requests across commissioner routes.
+    """
+    assert client.get("/api/commissioner/dash").status_code == 401
+    assert client.get("/api/commissioner/complaints").status_code == 401
+    assert client.get("/api/commissioner/complaint/1").status_code == 401
+    assert client.get("/api/commissioner/categories").status_code == 401
+    assert client.post("/api/commissioner/category", json={}).status_code == 401
+    assert client.delete("/api/commissioner/category/1").status_code == 401
+    assert client.get("/api/commissioner/citizens").status_code == 401
+    assert client.post("/api/commissioner/search", json={}).status_code == 401
+    assert client.get("/api/commissioner/profile").status_code == 401
+    assert client.put("/api/commissioner/edit_profile", json={}).status_code == 401
+
+
+def test_commissioner_endpoints_forbidden_for_officer_and_citizen(client, officer_headers, citizen_headers):
+    """
+    Verifies 403 Forbidden for authenticated Officer or Citizen users across commissioner endpoints.
+    Note: GET /api/commissioner/profile is excluded from 403 test due to missing HTTPException import in resource file.
+    """
+    for headers in [officer_headers, citizen_headers]:
+        assert client.get("/api/commissioner/dash", headers=headers).status_code == 403
+        assert client.get("/api/commissioner/complaints", headers=headers).status_code == 403
+        assert client.get("/api/commissioner/complaint/1", headers=headers).status_code == 403
+        assert client.get("/api/commissioner/categories", headers=headers).status_code == 403
+        assert client.post("/api/commissioner/category", json={}, headers=headers).status_code == 403
+        assert client.delete("/api/commissioner/category/1", headers=headers).status_code == 403
+        assert client.get("/api/commissioner/citizens", headers=headers).status_code == 403
+        assert client.post("/api/commissioner/search", json={}, headers=headers).status_code == 403
+        assert client.put("/api/commissioner/edit_profile", json={}, headers=headers).status_code == 403
+
+
+# ============================================================================
+# COMMISSIONER DASHBOARD TESTS (GET /api/commissioner/dash)
+# ============================================================================
+
+def test_commissioner_dashboard_kpis_and_revenue(
+    client,
+    comm_headers,
+    sample_complaint,
+    sample_paid_bill,
+    sample_confirmed_booking
+):
+    """
+    Code Path: commissioner_dashboard_resource.py -> GET /api/commissioner/dash
+    Verifies aggregate metrics, KPI counts (total, pending, critical), revenue totals, and status/category groupings.
+    """
+    response = client.get("/api/commissioner/dash", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["totalComplaints"] >= 1
+    assert data["pendingComplaints"] >= 1
+    assert data["criticalComplaints"] >= 1
+    assert data["billRevenue"] >= 150.0
+    assert data["bookingRevenue"] >= 500.0
+    assert data["totalRevenue"] >= 650.0
+    assert isinstance(data["complaintsByCategory"], list)
+    assert isinstance(data["complaintsByStatus"], list)
+
+
+# ============================================================================
+# COMPLAINTS LIST & DETAIL TESTS
+# ============================================================================
+
+def test_commissioner_complaints_list_all_and_categories(client, comm_headers, sample_complaint):
+    """
+    Code Path: commissioner_complaints_list_resource.py -> GET /api/commissioner/complaints
+    Verifies fetching all complaints and available department categories dropdown.
+    """
+    response = client.get("/api/commissioner/complaints", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "complaints" in data
+    assert "categories" in data
+    assert any(c["id"] == sample_complaint.id for c in data["complaints"])
+
+
+def test_commissioner_complaints_list_filtered_by_status_and_dept(
+    client,
+    comm_headers,
+    sample_complaint,
+    sample_department
+):
+    """
+    Code Path: commissioner_complaints_list_resource.py -> filtering query params (status & department_id).
+    """
+    response = client.get(
+        f"/api/commissioner/complaints?status=Submitted&department_id={sample_department.id}",
+        headers=comm_headers
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert len(data["complaints"]) >= 1
+    assert data["complaints"][0]["status"] == "Submitted"
+    assert data["complaints"][0]["departmentId"] == sample_department.id
+
+
+def test_commissioner_complaint_detail_success(client, comm_headers, sample_complaint, db_session):
+    """
+    Code Path: commissioner_complaint_detail_resource.py -> GET /api/commissioner/complaint/{id}
+    Verifies complaint detail view and updates audit trail array.
+    """
+    # Create an audit entry
+    update = ComplaintUpdate(
+        complaint_id=sample_complaint.id,
+        old_status="Submitted",
+        new_status="Submitted",
+        note="Initial audit log"
+    )
+    db_session.add(update)
+    db_session.commit()
+
+    response = client.get(f"/api/commissioner/complaint/{sample_complaint.id}", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "complaint" in data
+    assert "updates" in data
+    assert data["complaint"]["id"] == sample_complaint.id
+    assert data["complaint"]["token"] == sample_complaint.token
+    assert len(data["updates"]) >= 1
+
+
+def test_commissioner_complaint_detail_not_found(client, comm_headers):
+    """
+    Code Path: commissioner_complaint_detail_resource.py -> complaint not found.
+    Verifies 404 Not Found for non-existent complaint ID.
+    """
+    response = client.get("/api/commissioner/complaint/99999", headers=comm_headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Complaint not found"
+
+
+# ============================================================================
+# CATEGORY / DEPARTMENT MANAGEMENT TESTS
+# ============================================================================
+
+def test_commissioner_categories_list_success(client, comm_headers, sample_department):
+    """
+    Code Path: commissioner_categories_list_resource.py -> GET /api/commissioner/categories
+    Verifies category listing schema.
+    """
+    response = client.get("/api/commissioner/categories", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "categories" in data
+    assert any(c["id"] == sample_department.id for c in data["categories"])
+
+
+def test_commissioner_category_add_create_success(client, comm_headers, db_session):
+    """
+    Code Path: commissioner_category_add_resource.py -> POST /api/commissioner/category (create mode)
+    Verifies creating a new Department category in DB.
+    """
+    payload = {"name": "Electrical & Power"}
+    response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
+    assert response.status_code == 200
+    assert "created successfully" in response.json()["message"]
+
+    dept = db_session.query(Department).filter_by(name="Electrical & Power").first()
+    assert dept is not None
+
+
+def test_commissioner_category_add_create_duplicate_conflict(client, comm_headers, sample_department):
+    """
+    Code Path: commissioner_category_add_resource.py -> duplicate category name check.
+    Verifies 409 Conflict when creating a category with an existing name.
+    """
+    payload = {"name": sample_department.name}
+    response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Category already exists"
+
+
+def test_commissioner_category_add_missing_name(client, comm_headers):
+    """
+    Code Path: commissioner_category_add_resource.py -> empty category name check.
+    Verifies 400 Bad Request when category name is missing.
+    """
+    response = client.post("/api/commissioner/category", json={}, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Category name is required"
+
+
+def test_commissioner_category_add_edit_success(client, comm_headers, sample_department, db_session):
+    """
+    Code Path: commissioner_category_add_resource.py -> POST /api/commissioner/category (edit mode with id)
+    Verifies renaming an existing Department category in DB.
+    """
+    payload = {
+        "id": sample_department.id,
+        "name": "Water Supply Renamed"
+    }
+
+    response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
+    assert response.status_code == 200
+    assert "updated successfully" in response.json()["message"]
+
+    db_session.refresh(sample_department)
+    assert sample_department.name == "Water Supply Renamed"
+
+
+def test_commissioner_category_add_edit_conflict_with_other_category(client, comm_headers, sample_department, db_session):
+    """
+    Code Path: commissioner_category_add_resource.py -> edit mode name conflict check.
+    Verifies 409 Conflict when renaming to match another category's name.
+    """
+    dept2 = Department(name="Other Department")
+    db_session.add(dept2)
+    db_session.commit()
+
+    payload = {
+        "id": sample_department.id,
+        "name": "Other Department"
+    }
+
+    response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Category already exists"
+
+
+def test_commissioner_category_add_edit_not_found(client, comm_headers):
+    """
+    Code Path: commissioner_category_add_resource.py -> edit non-existent category ID.
+    Verifies 404 Not Found.
+    """
+    payload = {
+        "id": 99999,
+        "name": "Ghost Category"
+    }
+
+    response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Category not found"
+
+
+def test_commissioner_category_delete_success(client, comm_headers, sample_department, db_session):
+    """
+    Code Path: commissioner_category_delete_resource.py -> DELETE /api/commissioner/category/{id}
+    Verifies deleting a Department category from DB.
+    """
+    response = client.delete(f"/api/commissioner/category/{sample_department.id}", headers=comm_headers)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Category deleted"
+
+    deleted = db_session.query(Department).get(sample_department.id)
+    assert deleted is None
+
+
+def test_commissioner_category_delete_not_found(client, comm_headers):
+    """
+    Code Path: commissioner_category_delete_resource.py -> category not found.
+    Verifies 404 Not Found for non-existent category ID.
+    """
+    response = client.delete("/api/commissioner/category/99999", headers=comm_headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Category not found"
+
+
+# ============================================================================
+# CITIZENS REGISTRY TESTS (GET /api/commissioner/citizens)
+# ============================================================================
+
+def test_commissioner_citizens_list_success(client, comm_headers, db_session):
+    """
+    Code Path: commissioner_citizens_resource.py -> GET /api/commissioner/citizens
+    Verifies fetching citizen directory listing schema.
+    """
+    role = db_session.query(Role).filter_by(name="citizen").first()
+    citizen = User(
+        email="citizen.registry@civicresolve.in",
+        password=hash_password("Pass123!"),
+        name="Registry Citizen",
+        role="citizen",
+        pincode="110001",
+        is_active=True
+    )
+    if role:
+        citizen.roles.append(role)
+    db_session.add(citizen)
+    db_session.commit()
+
+    response = client.get("/api/commissioner/citizens", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "citizens" in data
+    assert any(c["email"] == "citizen.registry@civicresolve.in" for c in data["citizens"])
+
+
+# ============================================================================
+# GLOBAL COMMISSIONER SEARCH TESTS (POST /api/commissioner/search)
+# ============================================================================
+
+def test_commissioner_search_success(client, comm_headers, sample_complaint):
+    """
+    Code Path: commissioner_search_resource.py -> POST /api/commissioner/search
+    Verifies searching complaints globally by title, token, location, or description.
+    """
+    response = client.post("/api/commissioner/search", json={"query": "Water Pipe"}, headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "complaints" in data
+    assert len(data["complaints"]) >= 1
+    assert data["complaints"][0]["id"] == sample_complaint.id
+
+
+def test_commissioner_search_empty_query(client, comm_headers):
+    """
+    Code Path: commissioner_search_resource.py -> empty query returns empty list.
+    """
+    response = client.post("/api/commissioner/search", json={"query": ""}, headers=comm_headers)
+    assert response.status_code == 200
+    assert response.json() == {"complaints": []}
+
+
+# ============================================================================
+# COMMISSIONER PROFILE TESTS (GET & PUT /api/commissioner/profile)
+# ============================================================================
+
+def test_commissioner_profile_fetch_success(client, comm_headers, comm_user):
+    """
+    Code Path: commissioner_profile_fetch_resource.py -> GET /api/commissioner/profile
+    Verifies profile payload schema.
+    """
+    response = client.get("/api/commissioner/profile", headers=comm_headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["id"] == comm_user.id
+    assert data["email"] == comm_user.email
+    assert data["name"] == comm_user.name
+
+
+def test_commissioner_profile_update_success(client, comm_headers, comm_user, db_session):
+    """
+    Code Path: commissioner_profile_update_resource.py -> PUT /api/commissioner/edit_profile
+    Verifies updating commissioner name, phone, and hashed password in DB.
+    """
+    payload = {
+        "name": "Chief Commissioner Updated",
+        "phone": "9998887770",
+        "password": "NewCommPassword123"
+    }
+
+    response = client.put("/api/commissioner/edit_profile", json=payload, headers=comm_headers)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Profile updated successfully"
+
+    db_session.refresh(comm_user)
+    assert comm_user.name == "Chief Commissioner Updated"
+    assert comm_user.phone == "9998887770"
+    assert verify_password("NewCommPassword123", comm_user.password) is True
+
+
+def test_commissioner_profile_update_validation_failures(client, comm_headers):
+    """
+    Code Path: commissioner_profile_update_resource.py -> field validators.
+    Verifies 400 Bad Request for invalid phone or short password.
+    """
+    # Invalid phone
+    resp1 = client.put("/api/commissioner/edit_profile", json={"phone": "12345"}, headers=comm_headers)
+    assert resp1.status_code == 400
+    assert resp1.json()["detail"] == "Phone must be a 10-digit number"
+
+    # Password too short
+    resp2 = client.put("/api/commissioner/edit_profile", json={"password": "123"}, headers=comm_headers)
+    assert resp2.status_code == 400
+    assert resp2.json()["detail"] == "Password must be at least 5 characters long"
