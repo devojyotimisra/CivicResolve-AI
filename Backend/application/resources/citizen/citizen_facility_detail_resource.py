@@ -14,11 +14,11 @@ def citizen_facility_detail(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    facility = db.query(Facility).get(facility_id)
+    facility = db.get(Facility, facility_id)
     if not facility or not facility.is_active:
         raise HTTPException(status_code=404, detail="Facility not found")
 

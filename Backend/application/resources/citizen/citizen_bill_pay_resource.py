@@ -14,11 +14,11 @@ def citizen_pay_bill(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    bill = db.query(UtilityBill).get(bill_id)
+    bill = db.get(UtilityBill, bill_id)
 
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
@@ -35,7 +35,7 @@ def citizen_pay_bill(
 
     return {
         "message": "Payment successful",
-      "receipt": {
+        "receipt": {
             "billNumber": bill.bill_number,
             "billType": bill.bill_type,
             "amount": bill.amount,

@@ -14,11 +14,11 @@ def commissioner_update_officer(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    officer = db.query(User).get(officer_id)
+    officer = db.get(User, officer_id)
     if not officer or not officer.has_role('field_officer'):
         raise HTTPException(status_code=404, detail="Officer not found")
 
@@ -34,7 +34,7 @@ def commissioner_update_officer(
         dept_raw = str(dept_input).strip()
         dept_obj = None
         if dept_raw.isdigit():
-            dept_obj = db.query(Department).get(int(dept_raw))
+            dept_obj = db.get(Department, int(dept_raw))
         if not dept_obj:
             dept_obj = db.query(Department).filter_by(name=dept_raw).first()
 

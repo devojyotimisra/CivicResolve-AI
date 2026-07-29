@@ -6,7 +6,7 @@ from application.helpers.models import User
 def citizen_required(fn):
     @wraps(fn)
     def wrapper(*args, current_user_id: int = None, db=None, **kwargs):
-        user = db.query(User).get(current_user_id)
+        user = db.get(User, current_user_id)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -21,7 +21,7 @@ def citizen_required(fn):
 def officer_required(fn):
     @wraps(fn)
     def wrapper(*args, current_user_id: int = None, db=None, **kwargs):
-        user = db.query(User).get(current_user_id)
+        user = db.get(User, current_user_id)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -36,7 +36,7 @@ def officer_required(fn):
 def commissioner_required(fn):
     @wraps(fn)
     def wrapper(*args, current_user_id: int = None, db=None, **kwargs):
-        user = db.query(User).get(current_user_id)
+        user = db.get(User, current_user_id)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")

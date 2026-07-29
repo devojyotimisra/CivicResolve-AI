@@ -41,7 +41,7 @@ async def file_anonymous_complaint(
     description = result
 
     if category_id:
-        category = db.query(Department).get(category_id)
+        category = db.get(Department, category_id)
         if not category:
             raise HTTPException(status_code=400, detail="Invalid category")
 

@@ -12,7 +12,7 @@ def commissioner_bills_list(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
@@ -20,7 +20,7 @@ def commissioner_bills_list(
 
     bills_data = []
     for bill in bills:
-        citizen = db.query(User).get(bill.user_id) if bill.user_id else None
+        citizen = db.get(User, bill.user_id) if bill.user_id else None
         citizen_name_val = citizen.name if citizen else (bill.citizen_name or "N/A")
         due_date_str = bill.due_date.isoformat() if bill.due_date else None
         paid_at_str = bill.paid_at.isoformat() if bill.paid_at else None

@@ -78,3 +78,90 @@ def client(app: FastAPI, db_session: Session) -> Generator[TestClient, None, Non
     app.dependency_overrides[get_db] = lambda: db_session
     with TestClient(app) as test_client:
         yield test_client
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """
+    pytest hook to append module-wise summary and overall regression summary
+    to the terminal output.
+    """
+    stats = terminalreporter.stats
+    stats_by_file = {}
+
+    for outcome in ("passed", "failed", "skipped", "error"):
+        for rep in stats.get(outcome, []):
+            path_part = rep.nodeid.split("::")[0]
+            filename = os.path.basename(path_part)
+            if filename not in stats_by_file:
+                stats_by_file[filename] = {"passed": 0, "failed": 0, "skipped": 0, "total": 0}
+            
+            cat = "failed" if outcome == "error" else outcome
+            stats_by_file[filename][cat] += 1
+            stats_by_file[filename]["total"] += 1
+
+    if not stats_by_file:
+        return
+
+    preferred_order = [
+        ("test_auth.py", "Authentication"),
+        ("test_commissioner.py", "Commissioner"),
+        ("test_commissioner_officer.py", "Commissioner Officer"),
+        ("test_officer.py", "Officer"),
+        ("test_facilities.py", "Facilities"),
+        ("test_bills.py", "Bills"),
+        ("test_citizen.py", "Citizen"),
+        ("test_public.py", "Public"),
+    ]
+
+    ordered_modules = []
+    known_files = set()
+
+    for fname, title in preferred_order:
+        if fname in stats_by_file:
+            ordered_modules.append((fname, title))
+            known_files.add(fname)
+
+    for fname in sorted(stats_by_file.keys()):
+        if fname not in known_files:
+            title = fname.removesuffix(".py")
+            if title.startswith("test_"):
+                title = title[5:]
+            title = title.replace("_", " ").title()
+            ordered_modules.append((fname, title))
+
+    tr = terminalreporter
+    tr.ensure_newline()
+    tr.write_line("=" * 50)
+    tr.write_line("Module Summary")
+    tr.write_line("=" * 50)
+    tr.write_line("")
+
+    overall_total = 0
+    overall_passed = 0
+    overall_failed = 0
+    overall_skipped = 0
+
+    for fname, title in ordered_modules:
+        counts = stats_by_file[fname]
+        tr.write_line(title)
+        tr.write_line(f"File: {fname}")
+        tr.write_line(f"Total : {counts['total']}")
+        tr.write_line(f"Passed: {counts['passed']}")
+        tr.write_line(f"Failed: {counts['failed']}")
+        tr.write_line(f"Skipped: {counts['skipped']}")
+        tr.write_line("")
+
+        overall_total += counts["total"]
+        overall_passed += counts["passed"]
+        overall_failed += counts["failed"]
+        overall_skipped += counts["skipped"]
+
+    tr.write_line("=" * 50)
+    tr.write_line("Overall Regression Summary")
+    tr.write_line("=" * 50)
+    tr.write_line("")
+    tr.write_line(f"Total Tests : {overall_total}")
+    tr.write_line(f"Passed      : {overall_passed}")
+    tr.write_line(f"Failed      : {overall_failed}")
+    tr.write_line(f"Skipped     : {overall_skipped}")
+

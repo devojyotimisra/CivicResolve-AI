@@ -13,16 +13,16 @@ def commissioner_complaint_detail(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    complaint = db.query(Complaint).get(complaint_id)
+    complaint = db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
-    category = db.query(Department).get(complaint.department_id) if complaint.department_id else None
-    officer = db.query(User).get(complaint.assigned_officer_id) if complaint.assigned_officer_id else None
+    category = db.get(Department, complaint.department_id) if complaint.department_id else None
+    officer = db.get(User, complaint.assigned_officer_id) if complaint.assigned_officer_id else None
 
     updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
     updates_data = [

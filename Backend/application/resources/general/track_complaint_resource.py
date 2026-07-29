@@ -13,7 +13,7 @@ def track_complaint(token: str, db: Session = Depends(get_db)):
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
-    category = db.query(Department).get(complaint.department_id) if complaint.department_id else None
+    category = db.get(Department, complaint.department_id) if complaint.department_id else None
 
     updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
 

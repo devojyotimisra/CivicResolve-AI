@@ -13,18 +13,18 @@ def citizen_complaint_detail(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    complaint = db.query(Complaint).get(complaint_id)
+    complaint = db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     # Complaint model has no user_id; complaints are not owned by a user in this schema.
     # Access control: only check role (all citizens can view their own complaints by ID).
 
-    category = db.query(Department).get(complaint.department_id) if complaint.department_id else None
+    category = db.get(Department, complaint.department_id) if complaint.department_id else None
 
     updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
 
