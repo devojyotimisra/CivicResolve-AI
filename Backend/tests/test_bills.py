@@ -331,7 +331,7 @@ def test_commissioner_delete_bill_type_success(client, comm_headers, sample_bill
     assert response.status_code == 200
     assert "deleted successfully" in response.json()["message"]
 
-    deleted = db_session.query(BillType).get(sample_bill_type.id)
+    deleted = db_session.get(BillType, sample_bill_type.id)
     assert deleted is None
 
 

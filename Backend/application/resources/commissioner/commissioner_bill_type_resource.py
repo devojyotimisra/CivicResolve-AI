@@ -13,7 +13,7 @@ def commissioner_create_bill_type(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
@@ -39,11 +39,11 @@ def commissioner_update_bill_type(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    bill_type = db.query(BillType).get(bill_type_id)
+    bill_type = db.get(BillType, bill_type_id)
     if not bill_type:
         raise HTTPException(status_code=404, detail="Bill type not found")
 
@@ -68,11 +68,11 @@ def commissioner_delete_bill_type(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    bill_type = db.query(BillType).get(bill_type_id)
+    bill_type = db.get(BillType, bill_type_id)
     if not bill_type:
         raise HTTPException(status_code=404, detail="Bill type not found")
 

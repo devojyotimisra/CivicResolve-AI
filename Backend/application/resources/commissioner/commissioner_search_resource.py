@@ -14,7 +14,7 @@ def commissioner_search(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
@@ -35,8 +35,8 @@ def commissioner_search(
 
     complaints_data = []
     for c in complaints:
-        category = db.query(Department).get(c.department_id) if c.department_id else None
-        officer = db.query(User).get(c.assigned_officer_id) if c.assigned_officer_id else None
+        category = db.get(Department, c.department_id) if c.department_id else None
+        officer = db.get(User, c.assigned_officer_id) if c.assigned_officer_id else None
         complaints_data.append({
             "id": c.id,
             "token": c.token,

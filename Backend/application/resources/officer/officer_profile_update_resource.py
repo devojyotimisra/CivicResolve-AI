@@ -15,7 +15,7 @@ def officer_profile_update(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('field_officer'):
         raise HTTPException(status_code=403, detail="Officer access required")
 

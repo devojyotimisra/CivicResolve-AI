@@ -15,11 +15,11 @@ def commissioner_assign_officer(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    complaint = db.query(Complaint).get(complaint_id)
+    complaint = db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
@@ -27,7 +27,7 @@ def commissioner_assign_officer(
     if not officer_id:
         raise HTTPException(status_code=400, detail="Officer ID is required")
 
-    officer = db.query(User).get(officer_id)
+    officer = db.get(User, officer_id)
     if not officer or not officer.has_role('field_officer'):
         raise HTTPException(status_code=400, detail="Invalid officer")
 

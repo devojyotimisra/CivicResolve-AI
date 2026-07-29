@@ -13,18 +13,18 @@ def officer_ticket_detail(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).get(current_user_id)
+    user = db.get(User, current_user_id)
     if not user or not user.has_role('field_officer'):
         raise HTTPException(status_code=403, detail="Officer access required")
 
-    complaint = db.query(Complaint).get(complaint_id)
+    complaint = db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     if complaint.assigned_officer_id != current_user_id:
         raise HTTPException(status_code=403, detail="This ticket is not assigned to you")
 
-    category = db.query(Department).get(complaint.department_id) if complaint.department_id else None
+    category = db.get(Department, complaint.department_id) if complaint.department_id else None
 
     updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
     updates_data = [

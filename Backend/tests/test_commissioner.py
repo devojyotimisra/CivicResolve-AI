@@ -421,7 +421,7 @@ def test_commissioner_category_delete_success(client, comm_headers, sample_depar
     assert response.status_code == 200
     assert response.json()["message"] == "Category deleted"
 
-    deleted = db_session.query(Department).get(sample_department.id)
+    deleted = db_session.get(Department, sample_department.id)
     assert deleted is None
 
 
