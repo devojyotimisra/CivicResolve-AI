@@ -1,35 +1,34 @@
 openapi: 3.1.0
 info:
   title: CivicResolve AI API
-  description: Verified OpenAPI 3.1.0 specification for CivicResolveAI backend endpoints, audited against FastAPI implementation and pytest regression suite.
+  description: Verified OpenAPI 3.1.0 specification for CivicResolveAI backend endpoints,
+    audited against FastAPI implementation and pytest regression suite.
   version: 0.1.0
 tags:
-  - name: auth
-    description: Authentication and user registration endpoints
-  - name: public
-    description: Publicly accessible endpoints for anonymous complaints and tracking
-  - name: citizen
-    description: Citizen role operations including complaints, utility bills, facility bookings, and profile management
-  - name: officer
-    description: Field officer role operations for ticket management, status updates, resolution, and history
-  - name: commissioner
-    description: Municipal commissioner administrative operations for system management, user administration, facilities, categories, and analytics
-
-
-
+- name: auth
+  description: Authentication and user registration endpoints
+- name: public
+  description: Publicly accessible endpoints for anonymous complaints and tracking
+- name: citizen
+  description: Citizen role operations including complaints, utility bills, facility
+    bookings, and profile management
+- name: officer
+  description: Field officer role operations for ticket management, status updates,
+    resolution, and history
+- name: commissioner
+  description: Municipal commissioner administrative operations for system management,
+    user administration, facilities, categories, and analytics
 servers:
-  - url: http://localhost:8000
-    description: Local development server
-    
-
-    
+- url: http://localhost:8000
+  description: Local development server
 paths:
   /api/login:
     post:
       tags:
-        - auth
+      - auth
       summary: User login
-      description: Authenticate user with email (or badge ID) and password. Returns JWT access token and user details.
+      description: Authenticate user with email (or badge ID) and password. Returns
+        JWT access token and user details.
       operationId: login_api_login_post
       requestBody:
         required: true
@@ -47,6 +46,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+              example:
+                message: Login successful
+                token: jwt-token
+                user:
+                  id: 1
+                  email: citizen@civicresolve.gov
+                  name: Jane Doe
+                  role: citizen
+                  badgeId: null
+                  phone: '9876543210'
+                  department: null
         '400':
           description: Missing or invalid credentials
           content:
@@ -65,13 +75,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/signup:
     post:
       tags:
-        - auth
+      - auth
       summary: Citizen registration
-      description: Register a new citizen account. Returns JWT access token and user info upon success.
+      description: Register a new citizen account. Returns JWT access token and user
+        info upon success.
       operationId: signup_api_signup_post
       requestBody:
         required: true
@@ -93,6 +103,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignupResponse'
+              example:
+                message: Account created successfully
+                token: jwt-token
+                user:
+                  id: 2
+                  email: newcitizen@example.com
+                  name: Jane Doe
+                  role: citizen
         '400':
           description: Invalid input format or validation failure
           content:
@@ -111,13 +129,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/complaint/anonymous:
     post:
       tags:
-        - public
+      - public
       summary: File anonymous complaint
-      description: Submit a complaint anonymously with optional image upload and category assignment.
+      description: Submit a complaint anonymously with optional image upload and category
+        assignment.
       operationId: file_anonymous_complaint_api_complaint_anonymous_post
       requestBody:
         required: true
@@ -125,6 +143,14 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/AnonymousComplaintRequest'
+            example:
+              title: Broken streetlight
+              description: The streetlight near the park is not working.
+              category_id: 1
+              address_text: Main Road, Sector 7
+              latitude: 12.9716
+              longitude: 77.5946
+              photo: binary-file
       responses:
         '200':
           description: Complaint filed successfully
@@ -132,8 +158,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnonymousComplaintResponse'
+              example:
+                message: Complaint filed successfully
+                tracking_token: CRA-ABC12345
+                trackingToken: CRA-ABC12345
+                complaint_id: 101
+                complaintId: 101
         '400':
-          description: Invalid title, description, category, file extension, MIME type, or file size > 10 MB
+          description: Invalid title, description, category, file extension, MIME
+            type, or file size > 10 MB
           content:
             application/json:
               schema:
@@ -144,21 +177,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/complaint/track/{token}:
     get:
       tags:
-        - public
+      - public
       summary: Track complaint status
-      description: Retrieve public complaint status and update history timeline using unique tracking token.
+      description: Retrieve public complaint status and update history timeline using
+        unique tracking token.
       operationId: track_complaint_api_complaint_track__token__get
       parameters:
-        - name: token
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Tracking token (e.g. CRA-ABC12345)
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tracking token (e.g. CRA-ABC12345)
       responses:
         '200':
           description: Complaint track details
@@ -166,6 +199,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrackComplaintResponse'
+              example:
+                complaint:
+                  id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  category: Streetlight
+                  submitted_photo: null
+                  location: Main Road, Sector 7
+                  status: Submitted
+                  severity: Normal
+                  resolution_photo: null
+                  resolution_note: null
+                  created_at: '2026-08-01T10:00:00Z'
+                  updated_at: '2026-08-01T10:00:00Z'
+                  resolved_at: null
+                  closed_at: null
+                updates:
+                - id: 1
+                  old_status: null
+                  new_status: Submitted
+                  note: Complaint filed
+                  created_at: '2026-08-01T10:00:00Z'
         '404':
           description: Complaint not found
           content:
@@ -178,16 +234,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/dash:
     get:
       tags:
-        - citizen
+      - citizen
       summary: Citizen dashboard overview
-      description: Fetch citizen dashboard metrics including total bills due, upcoming bookings count, and top 5 lists. Restricts access to citizen role.
+      description: Fetch citizen dashboard metrics including total bills due, upcoming
+        bookings count, and top 5 lists. Restricts access to citizen role.
       operationId: citizen_dashboard_api_citizen_dash_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Dashboard data
@@ -195,6 +251,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CitizenDashboardResponse'
+              example:
+                user_name: Jane Doe
+                total_bills_due: 2
+                upcoming_bookings_count: 1
+                pending_bills:
+                - id: 1
+                  bill_type: Water
+                  bill_number: B-1001
+                  amount: 250.0
+                  due_date: '2026-08-15'
+                  status: Pending
+                upcoming_bookings:
+                - id: 1
+                  facility_name: Community Hall
+                  date: '2026-08-10'
+                  booking_reference: BK-001
+                  amount_paid: 500.0
+                  status: Confirmed
         '401':
           description: Unauthorized (missing or invalid token)
           content:
@@ -213,100 +287,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/citizen/complaints:
-    get:
-      tags:
-        - citizen
-      summary: List citizen complaints
-      description: Retrieve complaints with optional status filtering. Restricts access to citizen role.
-      operationId: citizen_complaints_list_api_citizen_complaints_get
-      security:
-        - HTTPBearer: []
-      parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter by status (e.g. Submitted, Resolved)
-      responses:
-        '200':
-          description: List of complaints
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  complaints:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ComplaintSummary'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Citizen access required
-        '404':
-          description: User not found
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-
-  /api/citizen/complaint/{complaint_id}:
-    get:
-      tags:
-        - citizen
-      summary: Get complaint details
-      description: Retrieve full details and update timeline for a specific complaint by ID. Restricts access to citizen role.
-      operationId: citizen_complaint_detail_api_citizen_complaint__complaint_id__get
-      security:
-        - HTTPBearer: []
-      parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ID
-      responses:
-        '200':
-          description: Complaint detail and updates
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrackComplaintResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Citizen access required
-        '404':
-          description: Complaint or User not found
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/bills:
     get:
       tags:
-        - citizen
+      - citizen
       summary: List citizen utility bills
-      description: Retrieve utility bills for the citizen with optional status filtering. Restricts access to citizen role.
+      description: Retrieve utility bills for the citizen with optional status filtering.
+        Restricts access to citizen role.
       operationId: citizen_bills_list_api_citizen_bills_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter by status (e.g. Pending, Paid)
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by status (e.g. Pending, Paid)
       responses:
         '200':
           description: List of utility bills
@@ -319,6 +316,22 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/UtilityBill'
+              example:
+                bills:
+                - id: 1
+                  bill_type: Water
+                  billType: Water
+                  bill_number: B-1001
+                  billNumber: B-1001
+                  amount: 250.0
+                  due_date: '2026-08-15'
+                  dueDate: '2026-08-15'
+                  period: 2026-08
+                  status: Pending
+                  citizenName: Jane Doe
+                  citizenId: 1
+                  paidAt: null
+                  createdAt: '2026-08-01T09:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -331,23 +344,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/pay_bill/{bill_id}:
     post:
       tags:
-        - citizen
+      - citizen
       summary: Pay utility bill
-      description: Process payment for a pending or overdue utility bill owned by citizen. Restricts access to citizen role.
+      description: Process payment for a pending or overdue utility bill owned by
+        citizen. Restricts access to citizen role.
       operationId: citizen_pay_bill_api_citizen_pay_bill__bill_id__post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: bill_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Utility bill ID
+      - name: bill_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Utility bill ID
       responses:
         '200':
           description: Payment successful with receipt
@@ -355,6 +368,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PayBillResponse'
+              example:
+                message: Payment successful
+                receipt:
+                  billNumber: B-1001
+                  billType: Water
+                  amount: 250.0
+                  paidAt: '2026-08-01T10:30:00Z'
+                  transactionId: TXN-001
         '400':
           description: Bill is already paid
           content:
@@ -373,16 +394,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/facilities:
     get:
       tags:
-        - citizen
+      - citizen
       summary: List available public facilities
-      description: Retrieve list of active public facilities available for booking. Restricts access to citizen role.
+      description: Retrieve list of active public facilities available for booking.
+        Restricts access to citizen role.
       operationId: citizen_facilities_list_api_citizen_facilities_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: List of active facilities
@@ -395,29 +416,46 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Facility'
+              example:
+                facilities:
+                - id: 1
+                  name: Community Hall
+                  facilityType: Event
+                  facility_type: Event
+                  address: 123 Civic Way
+                  pincode: '560001'
+                  pricePerDay: 500.0
+                  price_per_day: 500.0
+                  capacity: 100
+                  description: Multi-purpose community facility
+                  amenities:
+                    parking: true
+                    wifi: true
+                  isActive: true
         '401':
           description: Unauthorized
         '403':
           description: Citizen access required
         '404':
           description: User not found
-
   /api/citizen/facility/{facility_id}:
     get:
       tags:
-        - citizen
+      - citizen
       summary: Get facility details and booked dates
-      description: Retrieve facility information, along with all booked dates and citizen's own booked dates for the next 90 days. Restricts access to citizen role.
+      description: Retrieve facility information, along with all booked dates and
+        citizen's own booked dates for the next 90 days. Restricts access to citizen
+        role.
       operationId: citizen_facility_detail_api_citizen_facility__facility_id__get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: facility_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Facility ID
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Facility ID
       responses:
         '200':
           description: Facility detail and availability
@@ -425,6 +463,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FacilityDetailResponse'
+              example:
+                facility:
+                  id: 1
+                  name: Community Hall
+                  facilityType: Event
+                  facility_type: Event
+                  address: 123 Civic Way
+                  pincode: '560001'
+                  pricePerDay: 500.0
+                  price_per_day: 500.0
+                  capacity: 100
+                  description: Multi-purpose community facility
+                  amenities:
+                    parking: true
+                    wifi: true
+                  isActive: true
+                booked_dates:
+                - '2026-08-10'
+                my_booked_dates:
+                - '2026-08-10'
         '401':
           description: Unauthorized
         '403':
@@ -437,29 +495,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/book_facility/{facility_id}:
     post:
       tags:
-        - citizen
+      - citizen
       summary: Book a facility
-      description: Book an active public facility for a specified future date (up to 90 days in advance). Restricts access to citizen role.
+      description: Book an active public facility for a specified future date (up
+        to 90 days in advance). Restricts access to citizen role.
       operationId: citizen_book_facility_api_citizen_book_facility__facility_id__post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: facility_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Facility ID
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Facility ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/BookFacilityRequest'
+            example:
+              booked_date: '2026-08-10'
+              bookedDate: '2026-08-10'
+              date: '2026-08-10'
+              purpose: Meeting
       responses:
         '200':
           description: Booking confirmed
@@ -467,8 +530,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BookFacilityResponse'
+              example:
+                message: Booking confirmed
+                booking:
+                  id: 1
+                  bookingReference: BK-001
+                  facilityName: Community Hall
+                  bookedDate: '2026-08-10'
+                  amountPaid: 500.0
+                  purpose: Meeting
+                  status: Confirmed
         '400':
-          description: Invalid date, past date, date > 90 days ahead, or date already booked
+          description: Invalid date, past date, date > 90 days ahead, or date already
+            booked
           content:
             application/json:
               schema:
@@ -485,16 +559,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/bookings:
     get:
       tags:
-        - citizen
+      - citizen
       summary: List citizen facility bookings
-      description: Retrieve history of facility bookings for authenticated citizen. Restricts access to citizen role.
+      description: Retrieve history of facility bookings for authenticated citizen.
+        Restricts access to citizen role.
       operationId: citizen_bookings_list_api_citizen_bookings_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: List of bookings
@@ -507,29 +581,45 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/FacilityBooking'
+              example:
+                bookings:
+                - id: 1
+                  facility_name: Community Hall
+                  facilityName: Community Hall
+                  facilityType: Event
+                  booked_date: '2026-08-10'
+                  bookedDate: '2026-08-10'
+                  date: '2026-08-10'
+                  booking_reference: BK-001
+                  bookingReference: BK-001
+                  amount_paid: 500.0
+                  amountPaid: 500.0
+                  purpose: Meeting
+                  status: Confirmed
+                  createdAt: '2026-08-01T09:00:00Z'
         '401':
           description: Unauthorized
         '403':
           description: Citizen access required
         '404':
           description: User not found
-
   /api/citizen/cancel_booking/{booking_id}:
     post:
       tags:
-        - citizen
+      - citizen
       summary: Cancel facility booking
-      description: Cancel an upcoming active facility booking owned by citizen. Restricts access to citizen role.
+      description: Cancel an upcoming active facility booking owned by citizen. Restricts
+        access to citizen role.
       operationId: citizen_cancel_booking_api_citizen_cancel_booking__booking_id__post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: booking_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Booking ID
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Booking ID
       responses:
         '200':
           description: Booking cancelled successfully
@@ -537,6 +627,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Booking cancelled successfully
         '400':
           description: Booking already cancelled or booking date in past
           content:
@@ -555,22 +647,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/search:
     post:
       tags:
-        - citizen
+      - citizen
       summary: Search active facilities
-      description: Search facilities by name, address, facility type, or pincode. Restricts access to citizen role.
+      description: Search facilities by name, address, facility type, or pincode.
+        Restricts access to citizen role.
       operationId: citizen_search_api_citizen_search_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SearchQueryRequest'
+            example:
+              query: community hall
       responses:
         '200':
           description: Matching facilities
@@ -583,6 +677,22 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Facility'
+              example:
+                facilities:
+                - id: 1
+                  name: Community Hall
+                  facilityType: Event
+                  facility_type: Event
+                  address: 123 Civic Way
+                  pincode: '560001'
+                  pricePerDay: 500.0
+                  price_per_day: 500.0
+                  capacity: 100
+                  description: Multi-purpose community facility
+                  amenities:
+                    parking: true
+                    wifi: true
+                  isActive: true
         '401':
           description: Unauthorized
         '403':
@@ -595,16 +705,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/citizen/profile:
     get:
       tags:
-        - citizen
+      - citizen
       summary: Fetch citizen profile
-      description: Retrieve profile details for authenticated citizen. Restricts access to citizen role.
+      description: Retrieve profile details for authenticated citizen. Restricts access
+        to citizen role.
       operationId: citizen_profile_fetch_api_citizen_profile_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Citizen profile details
@@ -612,28 +722,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CitizenProfile'
+              example:
+                id: 1
+                email: citizen@civicresolve.gov
+                name: Jane Doe
+                phone: '9876543210'
+                address: 123 Civic Way
+                pincode: '560001'
         '401':
           description: Unauthorized
         '403':
           description: Citizen access required
         '404':
           description: User not found
-
   /api/citizen/edit_profile:
     put:
       tags:
-        - citizen
+      - citizen
       summary: Update citizen profile
-      description: Update profile fields such as email, name, address, pincode, phone, or password. Restricts access to citizen role.
+      description: Update profile fields such as email, name, address, pincode, phone,
+        or password. Restricts access to citizen role.
       operationId: citizen_profile_update_api_citizen_edit_profile_put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CitizenProfileUpdate'
+            example:
+              email: citizen@civicresolve.gov
+              name: Jane Doe
+              address: 123 Civic Way
+              pincode: '560001'
+              phone: '9876543210'
+              password: newpassword123
       responses:
         '200':
           description: Profile updated successfully
@@ -641,6 +765,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Profile updated successfully
         '400':
           description: Invalid field format or length
           content:
@@ -665,16 +791,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/officer/dash:
     get:
       tags:
-        - officer
+      - officer
       summary: Field officer dashboard
-      description: Retrieve officer info and active assigned ticket complaints. Restricts access to field_officer role.
+      description: Retrieve officer info and active assigned ticket complaints. Restricts
+        access to field_officer role.
       operationId: officer_dashboard_api_officer_dash_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Officer dashboard data
@@ -682,29 +808,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OfficerDashboardResponse'
+              example:
+                officer_name: Officer Singh
+                department: Public Works
+                jurisdiction_zone: Zone A
+                assigned_tickets:
+                - id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  department: Public Works
+                  location: Main Road, Sector 7
+                  status: Assigned
+                  severity: Normal
+                  submittedPhoto: null
+                  resolutionPhoto: null
+                  resolutionNote: null
+                  resolvedAt: null
+                  createdAt: '2026-08-01T10:00:00Z'
+                total_assigned: 1
         '401':
           description: Unauthorized
         '403':
           description: Officer access required
         '404':
           description: User not found
-
   /api/officer/ticket/{complaint_id}:
     get:
       tags:
-        - officer
+      - officer
       summary: Get assigned ticket detail
-      description: Retrieve details and timeline for a complaint assigned to the authenticated officer. Restricts access to field_officer role.
+      description: Retrieve details and timeline for a complaint assigned to the authenticated
+        officer. Restricts access to field_officer role.
       operationId: officer_ticket_detail_api_officer_ticket__complaint_id__get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ticket ID
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Complaint ticket ID
       responses:
         '200':
           description: Ticket detail and updates
@@ -712,6 +857,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OfficerTicketDetailResponse'
+              example:
+                complaint:
+                  id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  category: Streetlight
+                  department: Public Works
+                  departmentId: 2
+                  submitted_photo: null
+                  submittedPhoto: null
+                  location: Main Road, Sector 7
+                  status: Assigned
+                  severity: Normal
+                  assignedOfficer: Officer Singh
+                  assignedOfficerId: 10
+                  resolution_photo: null
+                  resolutionPhoto: null
+                  resolution_note: null
+                  resolutionNote: null
+                  created_at: '2026-08-01T10:00:00Z'
+                  createdAt: '2026-08-01T10:00:00Z'
+                  updated_at: '2026-08-01T10:00:00Z'
+                  updatedAt: '2026-08-01T10:00:00Z'
+                  resolved_at: null
+                  resolvedAt: null
+                  closed_at: null
+                  closedAt: null
+                updates:
+                - id: 1
+                  old_status: null
+                  oldStatus: null
+                  new_status: Assigned
+                  newStatus: Assigned
+                  note: Assigned to officer
+                  updatedBy: Commissioner
+                  created_at: '2026-08-01T10:00:00Z'
+                  createdAt: '2026-08-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -724,29 +907,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/officer/ticket/{complaint_id}/status:
     put:
       tags:
-        - officer
+      - officer
       summary: Update ticket status
-      description: Advance ticket status following strict lifecycle rules (Assigned -> En Route -> On Site -> In Progress -> Resolved). Restricts access to field_officer role.
+      description: Advance ticket status following strict lifecycle rules (Assigned
+        -> En Route -> On Site -> In Progress -> Resolved). Restricts access to field_officer
+        role.
       operationId: officer_update_ticket_status_api_officer_ticket__complaint_id__status_put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ticket ID
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Complaint ticket ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateTicketStatusRequest'
+            example:
+              status: In Progress
+              note: On site inspection completed
       responses:
         '200':
           description: Status updated successfully
@@ -754,6 +941,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Status updated successfully
         '400':
           description: Missing status or invalid transition
           content:
@@ -772,29 +961,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/officer/ticket/{complaint_id}/resolve:
     post:
       tags:
-        - officer
+      - officer
       summary: Resolve ticket
-      description: Mark ticket status as Resolved with optional resolution note and photo URL. Must be in progress or on site. Restricts access to field_officer role.
+      description: Mark ticket status as Resolved with optional resolution note and
+        photo URL. Must be in progress or on site. Restricts access to field_officer
+        role.
       operationId: officer_resolve_ticket_api_officer_ticket__complaint_id__resolve_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ticket ID
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Complaint ticket ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ResolveTicketRequest'
+            example:
+              resolution_note: Streetlight repaired
+              resolution_photo_url: https://example.com/resolution.jpg
       responses:
         '200':
           description: Ticket resolved successfully
@@ -802,6 +995,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Ticket resolved successfully
         '400':
           description: Ticket must be in progress or on site to resolve
           content:
@@ -820,16 +1015,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/officer/history:
     get:
       tags:
-        - officer
+      - officer
       summary: Officer ticket history
-      description: Retrieve history of all tickets assigned to the field officer (active and resolved). Restricts access to field_officer role.
+      description: Retrieve history of all tickets assigned to the field officer (active
+        and resolved). Restricts access to field_officer role.
       operationId: officer_history_api_officer_history_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: History ticket list
@@ -842,28 +1037,45 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/OfficerTicketItem'
+              example:
+                history:
+                - id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  department: Public Works
+                  location: Main Road, Sector 7
+                  status: Resolved
+                  severity: Normal
+                  submittedPhoto: null
+                  resolutionPhoto: null
+                  resolutionNote: Streetlight repaired
+                  resolvedAt: '2026-08-02T12:00:00Z'
+                  createdAt: '2026-08-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
           description: Officer access required
         '404':
           description: User not found
-
   /api/officer/search:
     post:
       tags:
-        - officer
+      - officer
       summary: Search officer tickets
-      description: Search officer's assigned tickets by title, token, location, or description. Restricts access to field_officer role.
+      description: Search officer's assigned tickets by title, token, location, or
+        description. Restricts access to field_officer role.
       operationId: officer_search_api_officer_search_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SearchQueryRequest'
+            example:
+              query: streetlight
       responses:
         '200':
           description: Matching tickets
@@ -876,6 +1088,21 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/OfficerTicketItem'
+              example:
+                tickets:
+                - id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  department: Public Works
+                  location: Main Road, Sector 7
+                  status: Assigned
+                  severity: Normal
+                  submittedPhoto: null
+                  resolutionPhoto: null
+                  resolutionNote: null
+                  resolvedAt: null
+                  createdAt: '2026-08-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -888,16 +1115,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/officer/profile:
     get:
       tags:
-        - officer
+      - officer
       summary: Fetch officer profile
-      description: Retrieve profile info of authenticated field officer. Restricts access to field_officer role.
+      description: Retrieve profile info of authenticated field officer. Restricts
+        access to field_officer role.
       operationId: officer_profile_fetch_api_officer_profile_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Officer profile details
@@ -905,28 +1132,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OfficerProfile'
+              example:
+                id: 10
+                email: officer@civicresolve.gov
+                name: Officer Singh
+                phone: '9999999999'
+                address: 456 Service Lane
+                pincode: '560001'
+                department: Public Works
+                jurisdiction_zone: Zone A
         '401':
           description: Unauthorized
         '403':
           description: Officer access required
         '404':
           description: User not found
-
   /api/officer/edit_profile:
     put:
       tags:
-        - officer
+      - officer
       summary: Update officer profile
-      description: Update profile fields such as name, phone, or password. Restricts access to field_officer role.
+      description: Update profile fields such as name, phone, or password. Restricts
+        access to field_officer role.
       operationId: officer_profile_update_api_officer_edit_profile_put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/OfficerProfileUpdate'
+            example:
+              name: Officer Singh
+              phone: '9999999999'
+              password: newpassword123
       responses:
         '200':
           description: Profile updated successfully
@@ -934,6 +1174,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Profile updated successfully
         '400':
           description: Validation failure
         '401':
@@ -948,16 +1190,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/dash:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: Commissioner dashboard
-      description: Retrieve municipal analytics overview (total, pending, resolved, closed, critical complaints, officer/citizen counts, total revenue). Restricts access to commissioner role.
+      description: Retrieve municipal analytics overview (total, pending, resolved,
+        closed, critical complaints, officer/citizen counts, total revenue). Restricts
+        access to commissioner role.
       operationId: commissioner_dashboard_api_commissioner_dash_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Commissioner dashboard data
@@ -965,35 +1208,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommissionerDashboardResponse'
+              example:
+                total_complaints: 50
+                pending_complaints: 15
+                resolved_complaints: 30
+                closed_complaints: 5
+                critical_complaints: 2
+                total_officers: 10
+                total_citizens: 120
+                total_revenue: 15000.0
+                bill_revenue: 10000.0
+                booking_revenue: 5000.0
+                complaints_by_category:
+                - category: Water
+                  count: 10
+                complaints_by_status:
+                - status: Submitted
+                  count: 15
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/complaints:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List all complaints
-      description: Retrieve system-wide complaints with optional status and department filters. Restricts access to commissioner role.
+      description: Retrieve system-wide complaints with optional status and department
+        filters. Restricts access to commissioner role.
       operationId: commissioner_complaints_list_api_commissioner_complaints_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter by status
-        - name: department_id
-          in: query
-          required: false
-          schema:
-            type: integer
-          description: Filter by department ID
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by status
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Filter by department ID
       responses:
         '200':
           description: List of complaints and category options
@@ -1001,6 +1261,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommissionerComplaintsListResponse'
+              example:
+                complaints:
+                - id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  location: Main Road, Sector 7
+                  department: Public Works
+                  departmentId: 2
+                  status: Submitted
+                  severity: Normal
+                  assignedOfficer: null
+                  assignedOfficerName: null
+                  assignedOfficerId: null
+                  createdAt: '2026-08-01T10:00:00Z'
+                  updatedAt: '2026-08-01T10:00:00Z'
+                categories:
+                - id: 1
+                  name: Streetlight
         '401':
           description: Unauthorized
         '403':
@@ -1013,23 +1292,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/complaint/{complaint_id}:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: Get complaint detail
-      description: Retrieve complete details and update history for any complaint ticket. Restricts access to commissioner role.
+      description: Retrieve complete details and update history for any complaint
+        ticket. Restricts access to commissioner role.
       operationId: commissioner_complaint_detail_api_commissioner_complaint__complaint_id__get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ID
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Complaint ID
       responses:
         '200':
           description: Detailed complaint and update history
@@ -1037,6 +1316,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommissionerComplaintDetailResponse'
+              example:
+                complaint:
+                  id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  category: Streetlight
+                  submitted_photo: null
+                  location: Main Road, Sector 7
+                  status: Submitted
+                  severity: Normal
+                  resolution_photo: null
+                  resolution_note: null
+                  created_at: '2026-08-01T10:00:00Z'
+                  updated_at: '2026-08-01T10:00:00Z'
+                  resolved_at: null
+                  closed_at: null
+                updates:
+                - id: 1
+                  old_status: null
+                  new_status: Submitted
+                  note: Complaint filed
+                  created_at: '2026-08-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -1049,29 +1351,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/assign/{complaint_id}:
     put:
       tags:
-        - commissioner
+      - commissioner
       summary: Assign officer to complaint
-      description: Assign a field officer to a complaint and optionally update its severity level. Restricts access to commissioner role.
+      description: Assign a field officer to a complaint and optionally update its
+        severity level. Restricts access to commissioner role.
       operationId: commissioner_assign_officer_api_commissioner_assign__complaint_id__put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: complaint_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Complaint ID
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Complaint ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AssignOfficerRequest'
+            example:
+              officer_id: 10
+              severity: High
       responses:
         '200':
           description: Officer assigned successfully
@@ -1079,6 +1384,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Officer assigned successfully
         '400':
           description: Officer ID required, invalid officer, or officer deactivated
           content:
@@ -1097,16 +1404,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/officers:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List all field officers
-      description: Retrieve list of all field officers in the municipality. Restricts access to commissioner role.
+      description: Retrieve list of all field officers in the municipality. Restricts
+        access to commissioner role.
       operationId: commissioner_officers_list_api_commissioner_officers_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Field officers list
@@ -1119,28 +1426,50 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/OfficerListItem'
+              example:
+                officers:
+                - id: 10
+                  email: officer@civicresolve.gov
+                  name: Officer Singh
+                  phone: '9999999999'
+                  badgeId: BDG-1001
+                  active: true
+                  department: Public Works
+                  jurisdictionZone: Zone A
+                  createdAt: '2026-08-01T09:00:00Z'
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/officer:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Add field officer
-      description: Create a new field officer account with department and badge credentials. Restricts access to commissioner role.
+      description: Create a new field officer account with department and badge credentials.
+        Restricts access to commissioner role.
       operationId: commissioner_add_officer_api_commissioner_officer_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateOfficerRequest'
+            example:
+              email: officer2@civicresolve.gov
+              name: Officer Khan
+              badgeId: BDG-1002
+              department: Public Works
+              department_id: 2
+              jurisdiction_zone: Zone B
+              password: password123
+              phone: '9888888888'
+              address: 78 Service Road
+              pincode: '560002'
       responses:
         '200':
           description: Officer created successfully
@@ -1148,6 +1477,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Officer created successfully
         '400':
           description: Missing email, name, or invalid department
           content:
@@ -1172,29 +1503,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/officer/{officer_id}:
     put:
       tags:
-        - commissioner
+      - commissioner
       summary: Update field officer
-      description: Update details of an existing field officer. Restricts access to commissioner role.
+      description: Update details of an existing field officer. Restricts access to
+        commissioner role.
       operationId: commissioner_update_officer_api_commissioner_officer__officer_id__put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: officer_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Officer ID
+      - name: officer_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Officer ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateOfficerRequest'
+            example:
+              name: Officer Khan
+              phone: '9888888888'
+              active: true
+              department: Public Works
+              department_id: 2
+              jurisdiction_zone: Zone B
+              badgeId: BDG-1002
+              badge_id: BDG-1002
       responses:
         '200':
           description: Officer updated successfully
@@ -1202,6 +1542,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Officer updated successfully
         '400':
           description: Invalid department
           content:
@@ -1220,22 +1562,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
     delete:
       tags:
-        - commissioner
+      - commissioner
       summary: Deactivate field officer
-      description: Soft-delete (deactivate) a field officer account. Restricts access to commissioner role.
+      description: Soft-delete (deactivate) a field officer account. Restricts access
+        to commissioner role.
       operationId: commissioner_delete_officer_api_commissioner_officer__officer_id__delete
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: officer_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Officer ID
+      - name: officer_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Officer ID
       responses:
         '200':
           description: Officer deactivated successfully
@@ -1255,16 +1597,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/facilities:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List all facilities
-      description: Retrieve list of all municipal facilities (both active and inactive). Restricts access to commissioner role.
+      description: Retrieve list of all municipal facilities (both active and inactive).
+        Restricts access to commissioner role.
       operationId: commissioner_facilities_list_api_commissioner_facilities_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: List of facilities
@@ -1277,28 +1619,53 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Facility'
+              example:
+                facilities:
+                - id: 1
+                  name: Community Hall
+                  facilityType: Event
+                  facility_type: Event
+                  address: 123 Civic Way
+                  pincode: '560001'
+                  pricePerDay: 500.0
+                  price_per_day: 500.0
+                  capacity: 100
+                  description: Multi-purpose community facility
+                  amenities:
+                    parking: true
+                    wifi: true
+                  isActive: true
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/facility:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Create facility
-      description: Add a new municipal facility available for public booking. Restricts access to commissioner role.
+      description: Add a new municipal facility available for public booking. Restricts
+        access to commissioner role.
       operationId: commissioner_add_facility_api_commissioner_facility_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFacilityRequest'
+            example:
+              name: Community Hall
+              facilityType: Event
+              facility_type: Event
+              address: 123 Civic Way
+              pincode: '560001'
+              pricePerDay: 500.0
+              price_per_day: 500.0
+              description: Multi-purpose community facility
       responses:
         '200':
           description: Facility created successfully
@@ -1306,8 +1673,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Facility created successfully
         '400':
-          description: Missing or invalid fields (name, address, pincode, price_per_day, facility_type)
+          description: Missing or invalid fields (name, address, pincode, price_per_day,
+            facility_type)
           content:
             application/json:
               schema:
@@ -1324,29 +1694,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/facility/{facility_id}:
     put:
       tags:
-        - commissioner
+      - commissioner
       summary: Update facility
-      description: Modify details of an existing facility. Restricts access to commissioner role.
+      description: Modify details of an existing facility. Restricts access to commissioner
+        role.
       operationId: commissioner_update_facility_api_commissioner_facility__facility_id__put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: facility_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Facility ID
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Facility ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFacilityRequest'
+            example:
+              name: Community Hall
+              facility_type: Event
+              address: 123 Civic Way
+              pincode: '560001'
+              price_per_day: 500.0
+              description: Updated community facility
+              is_active: true
       responses:
         '200':
           description: Facility updated successfully
@@ -1354,6 +1732,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Facility updated successfully
         '400':
           description: Invalid price format
           content:
@@ -1372,22 +1752,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
     delete:
       tags:
-        - commissioner
+      - commissioner
       summary: Deactivate facility
-      description: Soft-delete (deactivate) a facility. Restricts access to commissioner role.
+      description: Soft-delete (deactivate) a facility. Restricts access to commissioner
+        role.
       operationId: commissioner_delete_facility_api_commissioner_facility__facility_id__delete
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: facility_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Facility ID
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Facility ID
       responses:
         '200':
           description: Facility deactivated
@@ -1407,16 +1787,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/categories:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List complaint categories
-      description: Retrieve list of department/category entries. Restricts access to commissioner role.
+      description: Retrieve list of department/category entries. Restricts access
+        to commissioner role.
       operationId: commissioner_categories_list_api_commissioner_categories_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Category list
@@ -1429,28 +1809,34 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Category'
+              example:
+                categories:
+                - id: 1
+                  name: Streetlight
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/category:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Add or edit category
-      description: Create a new complaint category or update an existing one if ID is provided. Restricts access to commissioner role.
+      description: Create a new complaint category or update an existing one if ID
+        is provided. Restricts access to commissioner role.
       operationId: commissioner_add_category_api_commissioner_category_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AddCategoryRequest'
+            example:
+              name: Streetlight
       responses:
         '200':
           description: Category created or updated
@@ -1458,6 +1844,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Category created or updated
         '400':
           description: Category name is required
           content:
@@ -1482,23 +1870,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/category/{category_id}:
     delete:
       tags:
-        - commissioner
+      - commissioner
       summary: Delete category
-      description: Delete a complaint category/department entry by ID. Restricts access to commissioner role.
+      description: Delete a complaint category/department entry by ID. Restricts access
+        to commissioner role.
       operationId: commissioner_delete_category_api_commissioner_category__category_id__delete
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: category_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Category ID
+      - name: category_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Category ID
       responses:
         '200':
           description: Category deleted
@@ -1506,6 +1894,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Category deleted
         '401':
           description: Unauthorized
         '403':
@@ -1518,16 +1908,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/bills:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List all utility bills
-      description: Retrieve list of all utility bills issued in the system. Restricts access to commissioner role.
+      description: Retrieve list of all utility bills issued in the system. Restricts
+        access to commissioner role.
       operationId: commissioner_bills_list_api_commissioner_bills_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Utility bills list
@@ -1540,28 +1930,54 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/UtilityBill'
+              example:
+                bills:
+                - id: 1
+                  bill_type: Water
+                  billType: Water
+                  bill_number: B-1001
+                  billNumber: B-1001
+                  amount: 250.0
+                  due_date: '2026-08-15'
+                  dueDate: '2026-08-15'
+                  period: 2026-08
+                  status: Pending
+                  citizenName: Jane Doe
+                  citizenId: 1
+                  paidAt: null
+                  createdAt: '2026-08-01T09:00:00Z'
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/bill:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Issue utility bill
-      description: Issue a new utility bill to a registered citizen. Restricts access to commissioner role.
+      description: Issue a new utility bill to a registered citizen. Restricts access
+        to commissioner role.
       operationId: commissioner_issue_bill_api_commissioner_bill_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IssueBillRequest'
+            example:
+              userId: 1
+              citizenId: 1
+              citizen_id: 1
+              billType: Water
+              bill_type: Water
+              amount: 250.0
+              dueDate: '2026-08-15'
+              due_date: '2026-08-15'
+              period: 2026-08
       responses:
         '200':
           description: Bill issued successfully
@@ -1569,8 +1985,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Bill issued successfully
         '400':
-          description: Missing citizen ID, invalid citizen, or invalid billType, amount, or dueDate
+          description: Missing citizen ID, invalid citizen, or invalid billType, amount,
+            or dueDate
           content:
             application/json:
               schema:
@@ -1587,16 +2006,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/bill_types:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List bill types
-      description: Fetch list of configured bill types. Restricts access to commissioner role.
+      description: Fetch list of configured bill types. Restricts access to commissioner
+        role.
       operationId: commissioner_bill_types_list_api_commissioner_bill_types_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Bill types list
@@ -1606,28 +2025,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+              example:
+              - id: 1
+                name: Water
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/bill_type:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Create bill type
       description: Add a new utility bill type. Restricts access to commissioner role.
       operationId: commissioner_create_bill_type_api_commissioner_bill_type_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateBillTypeRequest'
+            example:
+              name: Water
       responses:
         '200':
           description: Bill type created successfully
@@ -1635,6 +2058,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateBillTypeResponse'
+              example:
+                message: Bill type created successfully
+                id: 1
+                name: Water
         '400':
           description: Bill type name is required
           content:
@@ -1659,29 +2086,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/bill_type/{bill_type_id}:
     put:
       tags:
-        - commissioner
+      - commissioner
       summary: Update bill type
-      description: Rename an existing bill type. Restricts access to commissioner role.
+      description: Rename an existing bill type. Restricts access to commissioner
+        role.
       operationId: commissioner_update_bill_type_api_commissioner_bill_type__bill_type_id__put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: bill_type_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Bill type ID
+      - name: bill_type_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Bill type ID
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateBillTypeRequest'
+            example:
+              name: Water
       responses:
         '200':
           description: Bill type updated successfully
@@ -1689,6 +2118,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateBillTypeResponse'
+              example:
+                message: Bill type updated successfully
+                id: 1
+                name: Water
         '400':
           description: Bill type name is required
           content:
@@ -1713,22 +2146,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
     delete:
       tags:
-        - commissioner
+      - commissioner
       summary: Delete bill type
       description: Delete a bill type by ID. Restricts access to commissioner role.
       operationId: commissioner_delete_bill_type_api_commissioner_bill_type__bill_type_id__delete
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       parameters:
-        - name: bill_type_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Bill type ID
+      - name: bill_type_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Bill type ID
       responses:
         '200':
           description: Bill type deleted successfully
@@ -1736,6 +2168,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Bill type deleted successfully
         '401':
           description: Unauthorized
         '403':
@@ -1748,16 +2182,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/citizens:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: List registered citizens
-      description: Retrieve list of all registered citizens in the system. Restricts access to commissioner role.
+      description: Retrieve list of all registered citizens in the system. Restricts
+        access to commissioner role.
       operationId: commissioner_citizens_list_api_commissioner_citizens_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Registered citizens list
@@ -1770,28 +2204,40 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/CitizenListItem'
+              example:
+                citizens:
+                - id: 1
+                  email: citizen@civicresolve.gov
+                  name: Jane Doe
+                  phone: '9876543210'
+                  pincode: '560001'
+                  active: true
+                  createdAt: '2026-08-01T09:00:00Z'
+                  created_at: '2026-08-01T09:00:00Z'
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/search:
     post:
       tags:
-        - commissioner
+      - commissioner
       summary: Search all complaints
-      description: System-wide search across complaints by title, token, location, or description. Restricts access to commissioner role.
+      description: System-wide search across complaints by title, token, location,
+        or description. Restricts access to commissioner role.
       operationId: commissioner_search_api_commissioner_search_post
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SearchQueryRequest'
+            example:
+              query: streetlight
       responses:
         '200':
           description: Matching complaints list
@@ -1804,6 +2250,18 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/CommissionerSearchComplaint'
+              example:
+                complaints:
+                - id: 101
+                  token: CRA-ABC12345
+                  title: Broken streetlight
+                  description: The streetlight near the park is not working.
+                  department: Public Works
+                  location: Main Road, Sector 7
+                  status: Submitted
+                  severity: Normal
+                  assignedOfficer: null
+                  createdAt: '2026-08-01T10:00:00Z'
         '401':
           description: Unauthorized
         '403':
@@ -1816,16 +2274,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
   /api/commissioner/profile:
     get:
       tags:
-        - commissioner
+      - commissioner
       summary: Fetch commissioner profile
-      description: Retrieve profile info of authenticated commissioner. Restricts access to commissioner role.
+      description: Retrieve profile info of authenticated commissioner. Restricts
+        access to commissioner role.
       operationId: commissioner_profile_fetch_api_commissioner_profile_get
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       responses:
         '200':
           description: Commissioner profile details
@@ -1833,28 +2291,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommissionerProfile'
+              example:
+                id: 99
+                email: commissioner@civicresolve.gov
+                name: Commissioner Rao
+                phone: '7777777777'
+                address: Municipal Office
+                pincode: '560001'
         '401':
           description: Unauthorized
         '403':
           description: Commissioner access required
         '404':
           description: User not found
-
   /api/commissioner/edit_profile:
     put:
       tags:
-        - commissioner
+      - commissioner
       summary: Update commissioner profile
-      description: Update commissioner profile fields (name, phone, password). Restricts access to commissioner role.
+      description: Update commissioner profile fields (name, phone, password). Restricts
+        access to commissioner role.
       operationId: commissioner_profile_update_api_commissioner_edit_profile_put
       security:
-        - HTTPBearer: []
+      - HTTPBearer: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CommissionerProfileUpdate'
+            example:
+              name: Commissioner Rao
+              phone: '7777777777'
+              password: newpassword123
       responses:
         '200':
           description: Profile updated successfully
@@ -1862,6 +2331,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Profile updated successfully
         '400':
           description: Invalid input format
         '401':
@@ -1876,27 +2347,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
 components:
   securitySchemes:
     HTTPBearer:
       type: http
       scheme: bearer
-      description: JSON Web Token (JWT) Bearer authentication header. Format `Bearer <token>`
-
+      description: JSON Web Token (JWT) Bearer authentication header. Format `Bearer
+        <token>`
   schemas:
     LoginRequest:
       type: object
       required:
-        - email
-        - password
+      - email
+      - password
       properties:
         email:
           type: string
           description: User email or officer badge ID
         password:
           type: string
-
     LoginResponse:
       type: object
       properties:
@@ -1915,7 +2384,10 @@ components:
               type: string
             role:
               type: string
-              enum: [citizen, officer, commissioner]
+              enum:
+              - citizen
+              - officer
+              - commissioner
             badgeId:
               type: string
               nullable: true
@@ -1925,15 +2397,14 @@ components:
             department:
               type: string
               nullable: true
-
     SignupRequest:
       type: object
       required:
-        - email
-        - password
-        - name
-        - address
-        - pincode
+      - email
+      - password
+      - name
+      - address
+      - pincode
       properties:
         email:
           type: string
@@ -1948,7 +2419,6 @@ components:
         phone:
           type: string
           nullable: true
-
     SignupResponse:
       type: object
       properties:
@@ -1968,12 +2438,11 @@ components:
             role:
               type: string
               example: citizen
-
     AnonymousComplaintRequest:
       type: object
       required:
-        - title
-        - description
+      - title
+      - description
       properties:
         title:
           type: string
@@ -1995,21 +2464,33 @@ components:
           type: string
           format: binary
           nullable: true
-
     AnonymousComplaintResponse:
       type: object
       properties:
         message:
           type: string
+          example: Complaint filed successfully
         tracking_token:
           type: string
+          example: CRA-ABC12345
         trackingToken:
           type: string
+          example: CRA-ABC12345
         complaint_id:
           type: integer
+          example: 101
         complaintId:
           type: integer
-
+          example: 101
+      description: Response containing complaint creation confirmation and generated
+        tracking tokens. Intentionally returns both snake_case and camelCase field
+        names for backward compatibility.
+      required:
+      - message
+      - tracking_token
+      - trackingToken
+      - complaint_id
+      - complaintId
     TrackComplaintResponse:
       type: object
       properties:
@@ -2019,209 +2500,220 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ComplaintUpdateItem'
-
     CitizenDashboardResponse:
       type: object
       properties:
         user_name:
           type: string
+          example: Jane Doe
         total_bills_due:
           type: integer
+          example: 2
         upcoming_bookings_count:
           type: integer
+          example: 1
         pending_bills:
           type: array
           items:
-            $ref: '#/components/schemas/UtilityBill'
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              bill_type:
+                type: string
+                example: Water
+              bill_number:
+                type: string
+                example: B-1001
+              amount:
+                type: number
+                example: 250.0
+              due_date:
+                type: string
+                example: '2026-08-15'
+              status:
+                type: string
+                example: Pending
+            required:
+            - id
+            - bill_type
+            - bill_number
+            - amount
+            - due_date
+            - status
         upcoming_bookings:
           type: array
           items:
-            $ref: '#/components/schemas/FacilityBooking'
-
-    ComplaintSummary:
-      type: object
-      properties:
-        id:
-          type: integer
-        token:
-          type: string
-        tracking_token:
-          type: string
-        title:
-          type: string
-        category:
-          type: string
-          nullable: true
-        status:
-          type: string
-        severity:
-          type: string
-        priority:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              facility_name:
+                type: string
+                example: Community Hall
+              date:
+                type: string
+                example: '2026-08-10'
+              booking_reference:
+                type: string
+                example: BK-001
+              amount_paid:
+                type: number
+                example: 500.0
+              status:
+                type: string
+                example: Confirmed
+            required:
+            - id
+            - facility_name
+            - date
+            - booking_reference
+            - amount_paid
+            - status
+      required:
+      - user_name
+      - total_bills_due
+      - upcoming_bookings_count
+      - pending_bills
+      - upcoming_bookings
     ComplaintDetail:
       type: object
       properties:
         id:
           type: integer
+          example: 101
         token:
           type: string
+          example: CRA-ABC12345
         title:
           type: string
+          example: Broken streetlight
         description:
           type: string
+          example: The streetlight near the park is not working.
         category:
           type: string
           nullable: true
-        department:
-          type: string
-          nullable: true
-        departmentId:
-          type: integer
-          nullable: true
+          example: Streetlight
         submitted_photo:
           type: string
           nullable: true
-        submittedPhoto:
-          type: string
-          nullable: true
+          example: null
         location:
           type: string
           nullable: true
+          example: Main Road, Sector 7
         status:
           type: string
+          example: Submitted
         severity:
           type: string
-        assignedOfficer:
-          type: string
-          nullable: true
-        assignedOfficerId:
-          type: integer
-          nullable: true
+          example: Normal
         resolution_photo:
           type: string
           nullable: true
-        resolutionPhoto:
-          type: string
-          nullable: true
+          example: null
         resolution_note:
           type: string
           nullable: true
-        resolutionNote:
-          type: string
-          nullable: true
+          example: null
         created_at:
           type: string
-          format: date-time
           nullable: true
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
+          example: '2026-08-01T10:00:00Z'
         updated_at:
           type: string
-          format: date-time
           nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
+          example: '2026-08-01T10:00:00Z'
         resolved_at:
           type: string
-          format: date-time
           nullable: true
-        resolvedAt:
-          type: string
-          format: date-time
-          nullable: true
+          example: null
         closed_at:
           type: string
-          format: date-time
           nullable: true
-        closedAt:
-          type: string
-          format: date-time
-          nullable: true
-
+          example: null
+      required:
+      - id
+      - token
+      - title
+      - description
+      - status
+      - severity
     ComplaintUpdateItem:
       type: object
       properties:
         id:
           type: integer
+          example: 1
         old_status:
           type: string
           nullable: true
-        oldStatus:
-          type: string
-          nullable: true
+          example: null
         new_status:
           type: string
-        newStatus:
-          type: string
+          example: Submitted
         note:
           type: string
           nullable: true
-        updatedBy:
-          type: string
-          nullable: true
+          example: Complaint filed
         created_at:
           type: string
-          format: date-time
           nullable: true
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
-
+          example: '2026-08-01T10:00:00Z'
+      required:
+      - id
+      - new_status
     UtilityBill:
       type: object
       properties:
         id:
           type: integer
+          example: 1
+        citizen_name:
+          type: string
+          nullable: true
+          example: Jane Doe
         bill_type:
           type: string
-        billType:
-          type: string
+          example: Water
         bill_number:
           type: string
-        billNumber:
-          type: string
+          example: B-1001
         amount:
           type: number
+          example: 250.0
         due_date:
           type: string
-          format: date
-        dueDate:
-          type: string
-          format: date
+          example: '2026-08-15'
         period:
           type: string
           nullable: true
+          example: 2026-08
         status:
           type: string
-        citizenName:
+          example: Pending
+        generated_at:
           type: string
           nullable: true
-        citizenId:
-          type: integer
-          nullable: true
-        paidAt:
+          example: '2026-08-01'
+        paid_at:
           type: string
-          format: date-time
           nullable: true
-        createdAt:
+          example: null
+        payment_ref:
           type: string
-          format: date-time
           nullable: true
-
+          example: null
+      required:
+      - id
+      - bill_type
+      - bill_number
+      - amount
+      - due_date
+      - status
     PayBillResponse:
       type: object
       properties:
@@ -2241,38 +2733,51 @@ components:
               format: date-time
             transactionId:
               type: string
-
     Facility:
       type: object
       properties:
         id:
           type: integer
+          example: 1
         name:
           type: string
-        facilityType:
-          type: string
+          example: Town Hall
         facility_type:
           type: string
+          example: Auditorium
         address:
           type: string
+          example: Main Street
         pincode:
           type: string
-        pricePerDay:
-          type: number
+          example: '560001'
         price_per_day:
           type: number
+          example: 500.0
         capacity:
           type: integer
           nullable: true
+          example: 200
         description:
           type: string
           nullable: true
+          example: Community hall
         amenities:
           type: object
           nullable: true
-        isActive:
+          example:
+            ac: true
+        is_active:
           type: boolean
-
+          example: true
+      required:
+      - id
+      - name
+      - facility_type
+      - address
+      - pincode
+      - price_per_day
+      - is_active
     FacilityDetailResponse:
       type: object
       properties:
@@ -2288,7 +2793,6 @@ components:
           items:
             type: string
             format: date
-
     BookFacilityRequest:
       type: object
       properties:
@@ -2305,7 +2809,8 @@ components:
         purpose:
           type: string
           nullable: true
-
+      description: Request payload to book a facility. Backend accepts booked_date,
+        bookedDate, or date in request payload.
     BookFacilityResponse:
       type: object
       properties:
@@ -2329,52 +2834,47 @@ components:
               type: string
             status:
               type: string
-
     FacilityBooking:
       type: object
       properties:
         id:
           type: integer
+          example: 1
         facility_name:
           type: string
-        facilityName:
-          type: string
-        facilityType:
-          type: string
           nullable: true
-        booked_date:
-          type: string
-          format: date
-        bookedDate:
-          type: string
-          format: date
-        date:
-          type: string
-          format: date
+          example: Town Hall
         booking_reference:
           type: string
-        bookingReference:
+          example: BKG-12345678
+        booked_date:
           type: string
+          example: '2026-08-10'
         amount_paid:
           type: number
-        amountPaid:
-          type: number
+          example: 500.0
         purpose:
           type: string
           nullable: true
+          example: Meeting
         status:
           type: string
-        createdAt:
+          example: Confirmed
+        created_at:
           type: string
-          format: date-time
           nullable: true
-
+          example: '2026-08-01T10:00:00Z'
+      required:
+      - id
+      - booking_reference
+      - booked_date
+      - amount_paid
+      - status
     SearchQueryRequest:
       type: object
       properties:
         query:
           type: string
-
     CitizenProfile:
       type: object
       properties:
@@ -2393,7 +2893,6 @@ components:
         pincode:
           type: string
           nullable: true
-
     CitizenProfileUpdate:
       type: object
       properties:
@@ -2409,7 +2908,6 @@ components:
           type: string
         password:
           type: string
-
     OfficerDashboardResponse:
       type: object
       properties:
@@ -2427,7 +2925,6 @@ components:
             $ref: '#/components/schemas/OfficerTicketItem'
         total_assigned:
           type: integer
-
     OfficerTicketDetailResponse:
       type: object
       properties:
@@ -2437,18 +2934,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ComplaintUpdateItem'
-
     UpdateTicketStatusRequest:
       type: object
       required:
-        - status
+      - status
       properties:
         status:
           type: string
-          enum: [En Route, On Site, In Progress, Resolved]
+          enum:
+          - En Route
+          - On Site
+          - In Progress
+          - Resolved
         note:
           type: string
-
     ResolveTicketRequest:
       type: object
       properties:
@@ -2456,7 +2955,6 @@ components:
           type: string
         resolution_photo_url:
           type: string
-
     OfficerTicketItem:
       type: object
       properties:
@@ -2495,7 +2993,6 @@ components:
           type: string
           format: date-time
           nullable: true
-
     OfficerProfile:
       type: object
       properties:
@@ -2520,7 +3017,6 @@ components:
         jurisdiction_zone:
           type: string
           nullable: true
-
     OfficerProfileUpdate:
       type: object
       properties:
@@ -2530,77 +3026,50 @@ components:
           type: string
         password:
           type: string
-
     CommissionerDashboardResponse:
       type: object
       properties:
-        totalComplaints:
-          type: integer
-        pendingComplaints:
-          type: integer
-        resolvedComplaints:
-          type: integer
-        closedComplaints:
-          type: integer
-        criticalComplaints:
-          type: integer
-        totalOfficers:
-          type: integer
-        totalCitizens:
-          type: integer
-        totalRevenue:
-          type: number
-        billRevenue:
-          type: number
-        bookingRevenue:
-          type: number
-        complaintsByCategory:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              count:
-                type: integer
-        complaintsByStatus:
-          type: array
-          items:
-            type: object
-            properties:
-              status:
-                type: string
-              count:
-                type: integer
         total_complaints:
           type: integer
+          example: 50
         pending_complaints:
           type: integer
+          example: 15
         resolved_complaints:
           type: integer
+          example: 30
         closed_complaints:
           type: integer
+          example: 5
         critical_complaints:
           type: integer
+          example: 2
         total_officers:
           type: integer
+          example: 10
         total_citizens:
           type: integer
+          example: 120
         total_revenue:
           type: number
+          example: 15000.0
         bill_revenue:
           type: number
+          example: 10000.0
         booking_revenue:
           type: number
+          example: 5000.0
         complaints_by_category:
           type: array
           items:
             type: object
             properties:
-              name:
+              category:
                 type: string
+                example: Water
               count:
                 type: integer
+                example: 10
         complaints_by_status:
           type: array
           items:
@@ -2608,9 +3077,22 @@ components:
             properties:
               status:
                 type: string
+                example: Submitted
               count:
                 type: integer
-
+                example: 15
+      required:
+      - total_complaints
+      - pending_complaints
+      - resolved_complaints
+      - closed_complaints
+      - total_officers
+      - total_citizens
+      - total_revenue
+      - bill_revenue
+      - booking_revenue
+      - complaints_by_category
+      - complaints_by_status
     CommissionerComplaintsListResponse:
       type: object
       properties:
@@ -2622,49 +3104,58 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Category'
-
     CommissionerComplaintItem:
       type: object
       properties:
         id:
           type: integer
+          example: 101
         token:
           type: string
+          example: CRA-ABC12345
         title:
           type: string
-        description:
-          type: string
-        location:
-          type: string
-          nullable: true
+          example: Water Leakage
         department:
           type: string
           nullable: true
-        departmentId:
+          example: Water Supply
+        department_id:
           type: integer
           nullable: true
+          example: 1
+        location:
+          type: string
+          nullable: true
+          example: Sector 4
         status:
           type: string
+          example: Submitted
         severity:
           type: string
-        assignedOfficer:
+          example: Normal
+        assigned_officer:
           type: string
           nullable: true
-        assignedOfficerName:
-          type: string
-          nullable: true
-        assignedOfficerId:
+          example: Officer John
+        assigned_officer_id:
           type: integer
           nullable: true
-        createdAt:
+          example: 5
+        created_at:
           type: string
-          format: date-time
           nullable: true
-        updatedAt:
+          example: '2026-08-01T10:00:00Z'
+        updated_at:
           type: string
-          format: date-time
           nullable: true
-
+          example: '2026-08-01T10:00:00Z'
+      required:
+      - id
+      - token
+      - title
+      - status
+      - severity
     CommissionerComplaintDetailResponse:
       type: object
       properties:
@@ -2674,18 +3165,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ComplaintUpdateItem'
-
     AssignOfficerRequest:
       type: object
       required:
-        - officer_id
+      - officer_id
       properties:
         officer_id:
           type: integer
         severity:
           type: string
-          enum: [Low, Normal, High, Critical]
-
+          enum:
+          - Low
+          - Normal
+          - High
+          - Critical
     OfficerListItem:
       type: object
       properties:
@@ -2713,13 +3206,12 @@ components:
           type: string
           format: date-time
           nullable: true
-
     CreateOfficerRequest:
       type: object
       required:
-        - email
-        - name
-        - department
+      - email
+      - name
+      - department
       properties:
         email:
           type: string
@@ -2752,7 +3244,8 @@ components:
         pincode:
           type: string
           nullable: true
-
+      description: Request payload to create an officer account. Backend accepts either
+        badge_id or badgeId.
     UpdateOfficerRequest:
       type: object
       properties:
@@ -2772,15 +3265,16 @@ components:
           type: string
         badge_id:
           type: string
-
+      description: Request payload to update an officer account. Backend accepts either
+        badge_id or badgeId.
     CreateFacilityRequest:
       type: object
       required:
-        - name
-        - address
-        - pincode
-        - pricePerDay
-        - facilityType
+      - name
+      - address
+      - pincode
+      - pricePerDay
+      - facilityType
       properties:
         name:
           type: string
@@ -2799,7 +3293,9 @@ components:
         description:
           type: string
           nullable: true
-
+      description: Request payload to create a new facility. Backend accepts either
+        snake_case (facility_type, price_per_day) or camelCase (facilityType, pricePerDay)
+        field names.
     UpdateFacilityRequest:
       type: object
       properties:
@@ -2817,7 +3313,6 @@ components:
           type: string
         is_active:
           type: boolean
-
     Category:
       type: object
       properties:
@@ -2825,25 +3320,23 @@ components:
           type: integer
         name:
           type: string
-
     AddCategoryRequest:
       type: object
       required:
-        - name
+      - name
       properties:
         name:
           type: string
         id:
           type: integer
           description: Category ID when updating existing entry
-
     IssueBillRequest:
       type: object
       required:
-        - userId
-        - billType
-        - amount
-        - dueDate
+      - userId
+      - billType
+      - amount
+      - dueDate
       properties:
         userId:
           type: integer
@@ -2867,15 +3360,16 @@ components:
         period:
           type: string
           nullable: true
-
+      description: Request payload to issue a utility bill to a citizen. Backend accepts
+        either snake_case (citizen_id, bill_type, due_date) or camelCase (citizenId,
+        billType, dueDate) field names.
     CreateBillTypeRequest:
       type: object
       required:
-        - name
+      - name
       properties:
         name:
           type: string
-
     CreateBillTypeResponse:
       type: object
       properties:
@@ -2885,33 +3379,38 @@ components:
           type: integer
         name:
           type: string
-
     CitizenListItem:
       type: object
       properties:
         id:
           type: integer
-        email:
-          type: string
+          example: 1
         name:
           type: string
+          example: Jane Doe
+        email:
+          type: string
+          example: citizen@example.com
         phone:
           type: string
           nullable: true
+          example: '9876543210'
+        address:
+          type: string
+          nullable: true
+          example: Sector 4
         pincode:
           type: string
           nullable: true
-        active:
+          example: '560001'
+        is_active:
           type: boolean
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-
+          example: true
+      required:
+      - id
+      - name
+      - email
+      - is_active
     CommissionerSearchComplaint:
       type: object
       properties:
@@ -2940,7 +3439,6 @@ components:
           type: string
           format: date-time
           nullable: true
-
     CommissionerProfile:
       type: object
       properties:
@@ -2959,7 +3457,6 @@ components:
         pincode:
           type: string
           nullable: true
-
     CommissionerProfileUpdate:
       type: object
       properties:
@@ -2969,40 +3466,36 @@ components:
           type: string
         password:
           type: string
-
     MessageResponse:
       type: object
       properties:
         message:
           type: string
-
     ErrorResponse:
       type: object
       properties:
         detail:
           oneOf:
-            - type: string
-            - type: array
-              items:
-                $ref: '#/components/schemas/ValidationError'
-
+          - type: string
+          - type: array
+            items:
+              $ref: '#/components/schemas/ValidationError'
     ValidationError:
       type: object
       required:
-        - loc
-        - msg
-        - type
+      - loc
+      - msg
+      - type
       properties:
         loc:
           type: array
           items:
             oneOf:
-              - type: string
-              - type: integer
+            - type: string
+            - type: integer
         msg:
           type: string
         type: string
-
     HTTPValidationError:
       type: object
       properties:
