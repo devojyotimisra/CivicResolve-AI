@@ -21,9 +21,6 @@ def citizen_complaint_detail(
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
-    # Complaint model has no user_id; complaints are not owned by a user in this schema.
-    # Access control: only check role (all citizens can view their own complaints by ID).
-
     category = db.get(Department, complaint.department_id) if complaint.department_id else None
 
     updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()

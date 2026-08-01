@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.extensions.security_extn import hash_password
 from application.helpers.models import User
-from application.helpers.validators import validate_name, validate_password, validate_phone
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -26,4 +24,3 @@ def commissioner_profile_fetch(
         "address": user.address,
         "pincode": user.pincode,
     }
-

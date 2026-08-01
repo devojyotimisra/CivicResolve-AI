@@ -1,6 +1,6 @@
 from application.extensions.db_extn import Base, init_engine
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Department, Facility
+from application.helpers.models import User, Role
 
 
 def initialize_database(app):
@@ -38,7 +38,6 @@ def initialize_database(app):
             db.add(commissioner)
             db.commit()
         else:
-            # Populate badge_id and role on existing commissioner if missing
             updated = False
             if not existing_commissioner.badge_id:
                 existing_commissioner.badge_id = 'COM-001'
@@ -48,6 +47,6 @@ def initialize_database(app):
                 updated = True
             if updated:
                 db.commit()
-            
+
     finally:
         db.close()

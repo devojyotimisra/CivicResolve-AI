@@ -7,7 +7,6 @@ from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
-# Title Case status values matching DB storage
 VALID_TRANSITIONS = {
     'Assigned': ['En Route'],
     'En Route': ['On Site'],

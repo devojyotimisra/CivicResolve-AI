@@ -19,7 +19,6 @@ def commissioner_issue_bill(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    # Accept userId (sent by Bills.jsx), citizenId (camelCase), or citizen_id (snake_case)
     citizen_id = data.get("userId") or data.get("citizenId") or data.get("citizen_id")
     if not citizen_id:
         raise HTTPException(status_code=400, detail="Citizen ID is required")
@@ -28,7 +27,6 @@ def commissioner_issue_bill(
     if not citizen or not citizen.has_role('citizen'):
         raise HTTPException(status_code=400, detail="Invalid citizen")
 
-    # Accept both camelCase (billType) and snake_case (bill_type)
     bill_type = (data.get("billType") or data.get("bill_type", "")).strip()
     if not bill_type:
         raise HTTPException(status_code=400, detail="Bill type is required")
@@ -38,7 +36,6 @@ def commissioner_issue_bill(
         raise HTTPException(status_code=400, detail=result)
     amount = result
 
-    # Accept both camelCase (dueDate) and snake_case (due_date)
     due_date_str = data.get("dueDate") or data.get("due_date")
     if not due_date_str:
         raise HTTPException(status_code=400, detail="Due date is required")
@@ -63,7 +60,7 @@ def commissioner_issue_bill(
         amount=amount,
         due_date=due_date,
         period=period_val,
-        status='Pending'  # Title Case matching DB default
+        status='Pending'
     )
 
     db.add(bill)

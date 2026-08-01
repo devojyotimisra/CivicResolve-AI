@@ -28,7 +28,6 @@ def citizen_book_facility(
     if not facility or not facility.is_active:
         raise HTTPException(status_code=404, detail="Facility not found")
 
-    # Support date, booked_date (snake_case), and bookedDate (camelCase)
     booking_date_str = data.get("booked_date") or data.get("bookedDate") or data.get("date")
     if not booking_date_str:
         raise HTTPException(status_code=400, detail="Date is required")
@@ -45,7 +44,6 @@ def citizen_book_facility(
     if booking_date > today + timedelta(days=90):
         raise HTTPException(status_code=400, detail="Cannot book more than 90 days in advance")
 
-    # Check for existing confirmed booking using valid model column booked_date
     existing = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
         FacilityBooking.booked_date == booking_date,

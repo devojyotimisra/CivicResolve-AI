@@ -32,14 +32,12 @@ def commissioner_add_facility(
         raise HTTPException(status_code=400, detail=result)
     pincode = result
 
-    # Accept both camelCase (pricePerDay) and snake_case (price_per_day)
     price_raw = data.get("pricePerDay") or data.get("price_per_day")
     is_valid, result = validate_price(price_raw)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     price_per_day = result
 
-    # Accept both camelCase (facilityType) and snake_case (facility_type)
     facility_type = (data.get("facilityType") or data.get("facility_type", "")).strip()
     if not facility_type:
         raise HTTPException(status_code=400, detail="Facility type is required")

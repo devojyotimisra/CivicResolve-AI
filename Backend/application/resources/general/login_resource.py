@@ -22,7 +22,6 @@ def login(data: dict, db: Session = Depends(get_db)):
 
     password = result
 
-    # Determine if identifier is an email or badge ID
     is_email = bool(re.match(r'^[^@ \t\r\n]+@[^@ \t\r\n]+$', identifier))
 
     if is_email:

@@ -19,14 +19,12 @@ def commissioner_dashboard(
 
     total_complaints = db.query(Complaint).count()
 
-    # Title Case status values matching DB storage
     pending_complaints = db.query(Complaint).filter(
         Complaint.status.in_(['Submitted', 'Assigned', 'En Route', 'On Site', 'In Progress'])
     ).count()
     resolved_complaints = db.query(Complaint).filter_by(status='Resolved').count()
     closed_complaints = db.query(Complaint).filter_by(status='Closed').count()
 
-    # Critical complaints: Submitted with severity Critical
     critical_complaints = db.query(Complaint).filter(
         Complaint.severity == 'Critical'
     ).count()
@@ -34,9 +32,7 @@ def commissioner_dashboard(
     total_officers = db.query(User).filter(User.roles.any(name='field_officer')).count()
     total_citizens = db.query(User).filter(User.roles.any(name='citizen')).count()
 
-    # Revenue from paid utility bills (Title Case 'Paid')
     bill_revenue = db.query(func.sum(UtilityBill.amount)).filter_by(status='Paid').scalar() or 0
-    # Revenue from confirmed facility bookings (Title Case 'Confirmed')
     booking_revenue = db.query(func.sum(FacilityBooking.amount_paid)).filter_by(status='Confirmed').scalar() or 0
     total_revenue = bill_revenue + booking_revenue
 
@@ -67,7 +63,6 @@ def commissioner_dashboard(
         "bookingRevenue": booking_revenue,
         "complaintsByCategory": category_data,
         "complaintsByStatus": status_data,
-        # Dual-compatibility aliases for legacy snake_case readers
         "total_complaints": total_complaints,
         "pending_complaints": pending_complaints,
         "resolved_complaints": resolved_complaints,
