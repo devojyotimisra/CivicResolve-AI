@@ -14,8 +14,6 @@ from application.resources.general.anonymous_complaint_resource import router as
 from application.resources.general.track_complaint_resource import router as track_complaint_router
 
 from application.resources.citizen.citizen_dashboard_resource import router as citizen_dash_router
-from application.resources.citizen.citizen_complaints_list_resource import router as citizen_complaints_router
-from application.resources.citizen.citizen_complaint_detail_resource import router as citizen_complaint_detail_router
 from application.resources.citizen.citizen_bills_list_resource import router as citizen_bills_router
 from application.resources.citizen.citizen_bill_pay_resource import router as citizen_bill_pay_router
 from application.resources.citizen.citizen_facilities_list_resource import router as citizen_facilities_router
@@ -91,8 +89,6 @@ def create_app():
     app.include_router(track_complaint_router, prefix=prefix, tags=["public"])
 
     app.include_router(citizen_dash_router, prefix=prefix, tags=["citizen"])
-    app.include_router(citizen_complaints_router, prefix=prefix, tags=["citizen"])
-    app.include_router(citizen_complaint_detail_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bills_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bill_pay_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_facilities_router, prefix=prefix, tags=["citizen"])
