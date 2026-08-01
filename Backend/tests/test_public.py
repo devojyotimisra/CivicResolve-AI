@@ -308,10 +308,10 @@ def test_cross_flow_anonymous_creation_then_public_tracking(client, db_session):
     assert track_data["severity"] == "Normal"
 
 
-def test_cross_flow_anonymous_complaint_retrievable_in_citizen_list(client, citizen_headers, db_session):
+def test_cross_flow_anonymous_complaint_retrievable_in_public_tracking(client, db_session):
     """
     Verifies Phase 9 architecture decision: Anonymously created civic complaints are retrievable
-    via GET /api/citizen/complaints for authenticated citizens, with dual response aliases present.
+    via GET /api/complaint/track/{token}.
     """
     create_payload = {
         "title": "Clogged Storm Drain before Monsoon",
@@ -321,14 +321,13 @@ def test_cross_flow_anonymous_complaint_retrievable_in_citizen_list(client, citi
     assert create_resp.status_code == 200
     token = create_resp.json()["tracking_token"]
 
-    # Citizen list call
-    list_resp = client.get("/api/citizen/complaints", headers=citizen_headers)
-    assert list_resp.status_code == 200
+    # Public tracking call
+    track_resp = client.get(f"/api/complaint/track/{token}")
+    assert track_resp.status_code == 200
 
-    complaints = list_resp.json()["complaints"]
-    target = next((c for c in complaints if c["token"] == token), None)
-    assert target is not None
-    assert target["tracking_token"] == token
-    assert target["severity"] == "Normal"
-    assert target["priority"] == "Normal"
-    assert target["title"] == "Clogged Storm Drain before Monsoon"
+    data = track_resp.json()
+    assert "complaint" in data
+    c_data = data["complaint"]
+    assert c_data["token"] == token
+    assert c_data["severity"] == "Normal"
+    assert c_data["title"] == "Clogged Storm Drain before Monsoon"

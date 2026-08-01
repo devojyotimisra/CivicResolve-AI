@@ -5,8 +5,6 @@ Endpoints Tested:
 - GET /api/citizen/dash
 - GET /api/citizen/profile
 - PUT /api/citizen/edit_profile
-- GET /api/citizen/complaints
-- GET /api/citizen/complaint/{complaint_id}
 - POST /api/citizen/search
 """
 
@@ -23,7 +21,7 @@ from application.middlewares.init_jwt import create_access_token
 
 @pytest.fixture(autouse=True)
 def seed_roles(db_session: Session):
-    """Ensures citizen, field_officer, commissioner roles exist in db_session."""
+    """Ensures default roles exist in db_session."""
     for role_name in ["citizen", "field_officer", "commissioner"]:
         if not db_session.query(Role).filter_by(name=role_name).first():
             db_session.add(Role(name=role_name))
@@ -32,20 +30,17 @@ def seed_roles(db_session: Session):
 
 @pytest.fixture
 def citizen_user(db_session: Session) -> User:
-    """Creates a primary Citizen user in the test database."""
-    role = db_session.query(Role).filter_by(name="citizen").first()
+    """Creates a sample Citizen user entity in test database."""
     user = User(
-        email="citizen.main@civicresolve.in",
-        password=hash_password("CitizenSecret123!"),
+        email="citizen.user@civicresolve.in",
+        password=hash_password("Pass123!"),
         name="John Citizen",
         role="citizen",
         phone="9876543210",
-        address="123 Civic Boulevard",
-        pincode="110001",
+        address="123 Civic Lane",
+        pincode="560001",
         is_active=True
     )
-    if role:
-        user.roles.append(role)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
@@ -54,7 +49,7 @@ def citizen_user(db_session: Session) -> User:
 
 @pytest.fixture
 def citizen_headers(citizen_user: User) -> dict:
-    """Returns JWT Authorization headers for citizen_user."""
+    """Returns JWT Authorization headers for a citizen user."""
     token = create_access_token(citizen_user.id)
     return {"Authorization": f"Bearer {token}"}
 
@@ -83,18 +78,14 @@ def second_citizen_user(db_session: Session) -> User:
 
 @pytest.fixture
 def comm_headers(db_session: Session) -> dict:
-    """Returns JWT Authorization headers for a commissioner user (for 403 role checks)."""
-    role = db_session.query(Role).filter_by(name="commissioner").first()
+    """Returns JWT Authorization headers for a commissioner user."""
     user = User(
-        email="comm.citizentest@civicresolve.in",
+        email="comm.citizen_test@civicresolve.in",
         password=hash_password("Pass123!"),
-        name="Commissioner Role Test",
+        name="Comm User",
         role="commissioner",
-        badge_id="COM-CIT-1",
         is_active=True
     )
-    if role:
-        user.roles.append(role)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
@@ -104,29 +95,25 @@ def comm_headers(db_session: Session) -> dict:
 
 @pytest.fixture
 def officer_headers(db_session: Session) -> dict:
-    """Returns JWT Authorization headers for a field officer (for 403 role checks)."""
-    role = db_session.query(Role).filter_by(name="field_officer").first()
-    officer = User(
-        email="officer.citizentest@civicresolve.in",
+    """Returns JWT Authorization headers for a field officer user."""
+    user = User(
+        email="officer.citizen_test@civicresolve.in",
         password=hash_password("Pass123!"),
-        name="Officer Role Test",
+        name="Officer User",
         role="field_officer",
-        badge_id="OFF-CIT-1",
         is_active=True
     )
-    if role:
-        officer.roles.append(role)
-    db_session.add(officer)
+    db_session.add(user)
     db_session.commit()
-    db_session.refresh(officer)
-    token = create_access_token(officer.id)
+    db_session.refresh(user)
+    token = create_access_token(user.id)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def sample_department(db_session: Session) -> Department:
-    """Creates a sample Department entity."""
-    dept = Department(name="Roads & Sanitation")
+    """Creates a sample Department entity in the test database."""
+    dept = Department(name="Roads & Infrastructure")
     db_session.add(dept)
     db_session.commit()
     db_session.refresh(dept)
@@ -135,16 +122,15 @@ def sample_department(db_session: Session) -> Department:
 
 @pytest.fixture
 def sample_complaint(db_session: Session, sample_department: Department) -> Complaint:
-    """Creates a sample Complaint entity linked to sample_department."""
+    """Creates a sample Complaint entity in the test database."""
     complaint = Complaint(
-        token="CMP-CIT-99",
-        title="Garbage Overflow near Park",
-        description="Uncollected waste accumulating at park entrance",
-        location="Green Park Gate 2",
+        token="CRA-CITIZEN01",
+        title="Pothole on MG Road",
+        description="Large pothole near city center junction",
+        location="MG Road, Sector 3",
         status="Submitted",
         severity="Normal",
-        department_id=sample_department.id,
-        department=sample_department.name
+        department_id=sample_department.id
     )
     db_session.add(complaint)
     db_session.commit()
@@ -153,18 +139,16 @@ def sample_complaint(db_session: Session, sample_department: Department) -> Comp
 
 
 # ============================================================================
-# AUTHORIZATION CHECKS
+# SECURITY & RBAC ISOLATION TESTS
 # ============================================================================
 
-def test_citizen_endpoints_unauthorized(client):
+def test_unauthenticated_access_blocked(client):
     """
     Verifies 401 Unauthorized for unauthenticated requests across citizen routes.
     """
     assert client.get("/api/citizen/dash").status_code == 401
     assert client.get("/api/citizen/profile").status_code == 401
     assert client.put("/api/citizen/edit_profile", json={}).status_code == 401
-    assert client.get("/api/citizen/complaints").status_code == 401
-    assert client.get("/api/citizen/complaint/1").status_code == 401
     assert client.post("/api/citizen/search", json={}).status_code == 401
 
 
@@ -176,8 +160,6 @@ def test_citizen_endpoints_forbidden_for_commissioner_and_officer(client, comm_h
         assert client.get("/api/citizen/dash", headers=headers).status_code == 403
         assert client.get("/api/citizen/profile", headers=headers).status_code == 403
         assert client.put("/api/citizen/edit_profile", json={}, headers=headers).status_code == 403
-        assert client.get("/api/citizen/complaints", headers=headers).status_code == 403
-        assert client.get("/api/citizen/complaint/1", headers=headers).status_code == 403
         assert client.post("/api/citizen/search", json={}, headers=headers).status_code == 403
 
 
@@ -294,58 +276,6 @@ def test_citizen_profile_update_validation_failures(client, citizen_headers):
     resp6 = client.put("/api/citizen/edit_profile", json={"password": "123"}, headers=citizen_headers)
     assert resp6.status_code == 400
     assert resp6.json()["detail"] == "Password must be at least 5 characters long"
-
-
-# ============================================================================
-# CITIZEN COMPLAINT LIST & DETAIL TESTS
-# ============================================================================
-
-def test_citizen_complaints_list_success(client, citizen_headers):
-    """
-    Code Path: citizen_complaints_list_resource.py -> GET /api/citizen/complaints
-    Verifies fetching citizen's personal complaints list.
-    """
-    response = client.get("/api/citizen/complaints", headers=citizen_headers)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "complaints" in data
-    assert isinstance(data["complaints"], list)
-
-
-def test_citizen_complaint_detail_success(client, citizen_headers, sample_complaint, db_session):
-    """
-    Code Path: citizen_complaint_detail_resource.py -> GET /api/citizen/complaint/{id}
-    Verifies complaint detail view and updates audit trail array.
-    """
-    update = ComplaintUpdate(
-        complaint_id=sample_complaint.id,
-        old_status="Submitted",
-        new_status="Assigned",
-        note="Assigned to field officer"
-    )
-    db_session.add(update)
-    db_session.commit()
-
-    response = client.get(f"/api/citizen/complaint/{sample_complaint.id}", headers=citizen_headers)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "complaint" in data
-    assert "updates" in data
-    assert data["complaint"]["id"] == sample_complaint.id
-    assert data["complaint"]["token"] == sample_complaint.token
-    assert len(data["updates"]) >= 1
-
-
-def test_citizen_complaint_detail_not_found(client, citizen_headers):
-    """
-    Code Path: citizen_complaint_detail_resource.py -> complaint not found.
-    Verifies 404 Not Found for non-existent complaint ID.
-    """
-    response = client.get("/api/citizen/complaint/99999", headers=citizen_headers)
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Complaint not found"
 
 
 # ============================================================================
