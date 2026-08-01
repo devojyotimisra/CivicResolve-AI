@@ -25,8 +25,6 @@ def citizen_facility_detail(
     today = date.today()
     end_date = today + timedelta(days=90)
 
-    # RC-1: booked_date instead of date
-    # RC-2: 'Confirmed' (Title-Case) to match DB storage
     bookings = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
         FacilityBooking.status == 'Confirmed',

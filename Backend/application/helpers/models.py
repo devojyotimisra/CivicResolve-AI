@@ -4,7 +4,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from application.extensions.db_extn import Base
 
-
 IST = timezone(timedelta(hours=5, minutes=30))
 
 user_roles = Table(

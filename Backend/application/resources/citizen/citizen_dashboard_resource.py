@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, Complaint, UtilityBill, FacilityBooking
+from application.helpers.models import User, UtilityBill, FacilityBooking
 from application.middlewares.init_jwt import get_current_user_id
 from datetime import date
 
@@ -14,13 +14,10 @@ def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: S
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    # RC-2: DB stores Title-Case statuses ('Pending', 'Overdue')
     pending_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='Pending').count()
     overdue_bills = db.query(UtilityBill).filter_by(user_id=current_user_id, status='Overdue').count()
     total_bills_due = pending_bills + overdue_bills
 
-    # RC-1: FacilityBooking column is booked_date, not date
-    # RC-2: DB stores 'Confirmed' (Title-Case)
     upcoming_bookings = db.query(FacilityBooking).filter(
         FacilityBooking.user_id == current_user_id,
         FacilityBooking.status == 'Confirmed',
@@ -43,7 +40,6 @@ def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: S
             "status": bill.status,
         })
 
-    # RC-1: booked_date used throughout
     upcoming_bookings_list = db.query(FacilityBooking).filter(
         FacilityBooking.user_id == current_user_id,
         FacilityBooking.status == 'Confirmed',

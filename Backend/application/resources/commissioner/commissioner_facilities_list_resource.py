@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Facility
-from application.helpers.validators import validate_name, validate_address, validate_pincode, validate_price
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()

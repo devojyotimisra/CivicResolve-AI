@@ -46,7 +46,6 @@ def commissioner_update_officer(
 
     if data.get("jurisdiction_zone"):
         officer.address = data["jurisdiction_zone"].strip()
-    # Support badgeId (camelCase) and badge_id (snake_case)
     badge_id = data.get("badgeId") or data.get("badge_id")
     if badge_id is not None:
         officer.badge_id = badge_id.strip() if badge_id else None

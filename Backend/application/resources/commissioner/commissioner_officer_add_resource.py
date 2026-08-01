@@ -29,14 +29,12 @@ def commissioner_add_officer(
         raise HTTPException(status_code=400, detail=result)
     name = result
 
-    # badge_id: frontend sends as "badgeId"
     badge_id = (data.get("badgeId") or data.get("badge_id") or "").strip() or None
 
     department_raw = str(data.get("department") or data.get("department_id") or "").strip()
     if not department_raw:
         raise HTTPException(status_code=400, detail="Department is required")
 
-    # Resolve Department record by ID (if numeric) or by name
     dept_obj = None
     if department_raw.isdigit():
         dept_obj = db.get(Department, int(department_raw))
@@ -46,10 +44,8 @@ def commissioner_add_officer(
     if not dept_obj:
         raise HTTPException(status_code=400, detail="Invalid department")
 
-    # jurisdiction_zone: optional, frontend does not send it
     jurisdiction_zone = (data.get("jurisdiction_zone") or "").strip()
 
-    # password: optional — frontend does not send it; default to badge_id
     password_raw = (data.get("password") or "").strip()
     if not password_raw:
         password_raw = badge_id if badge_id else "officer123"

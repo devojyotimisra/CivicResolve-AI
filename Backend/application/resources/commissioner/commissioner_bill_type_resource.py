@@ -51,7 +51,6 @@ def commissioner_update_bill_type(
     if not name:
         raise HTTPException(status_code=400, detail="Bill type name is required")
 
-    # Check for duplicate name only if it belongs to a DIFFERENT record
     existing = db.query(BillType).filter_by(name=name).first()
     if existing and existing.id != bill_type_id:
         raise HTTPException(status_code=409, detail="Bill type name already in use")

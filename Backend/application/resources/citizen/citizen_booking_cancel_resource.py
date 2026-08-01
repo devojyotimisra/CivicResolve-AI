@@ -24,16 +24,13 @@ def citizen_cancel_booking(
     if booking.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # RC-2: DB stores 'Cancelled' (Title-Case)
     if booking.status == 'Cancelled':
         raise HTTPException(status_code=400, detail="Booking is already cancelled")
 
     from datetime import date
-    # RC-1: model column is booked_date, not date
     if booking.booked_date < date.today():
         raise HTTPException(status_code=400, detail="Cannot cancel a past booking")
 
-    # RC-2: set status with Title-Case to match canonical convention
     booking.status = 'Cancelled'
     db.commit()
 

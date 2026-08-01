@@ -16,7 +16,6 @@ def officer_history(
     if not user or not user.has_role('field_officer'):
         raise HTTPException(status_code=403, detail="Officer access required")
 
-    # Return ALL complaints assigned to the current officer (active + resolved)
     complaints = db.query(Complaint).filter(
         Complaint.assigned_officer_id == current_user_id
     ).order_by(Complaint.created_at.desc()).all()

@@ -26,11 +26,9 @@ def commissioner_add_category(
     existing = db.query(Department).filter_by(name=name).first()
 
     if category_id:
-        # Edit mode: if the name conflict is with the same record, it's fine (no-op rename)
         if existing and existing.id != int(category_id):
             raise HTTPException(status_code=409, detail="Category already exists")
 
-        # Update existing category
         category = db.get(Department, int(category_id))
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
@@ -39,7 +37,6 @@ def commissioner_add_category(
         db.commit()
         return {"message": f"Category '{name}' updated successfully"}
     else:
-        # Create mode: reject if name already exists
         if existing:
             raise HTTPException(status_code=409, detail="Category already exists")
 

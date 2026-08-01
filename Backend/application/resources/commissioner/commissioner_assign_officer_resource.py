@@ -39,13 +39,11 @@ def commissioner_assign_officer(
     complaint.assigned_officer_id = officer_id
     complaint.assigned_officer_name = officer.name
 
-    # Title Case status matching DB storage
     if complaint.status == 'Submitted':
         complaint.status = 'Assigned'
 
     complaint.updated_at = datetime.now(IST)
 
-    # Update severity (correct attribute name) if provided
     if data.get("severity"):
         if data["severity"] in ['Low', 'Normal', 'High', 'Critical']:
             complaint.severity = data["severity"]

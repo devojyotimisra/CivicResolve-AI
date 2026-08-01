@@ -1,4 +1,4 @@
-from fastapi import Request, Response
+from fastapi import Request
 from application.middlewares.init_jwt import create_access_token
 from jose import jwt, JWTError
 from application.helpers.config import Config

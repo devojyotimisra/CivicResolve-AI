@@ -16,7 +16,6 @@ def officer_dashboard(
     if not user or not user.has_role('field_officer'):
         raise HTTPException(status_code=403, detail="Officer access required")
 
-    # Use Title Case status values matching DB storage
     assigned_complaints = db.query(Complaint).filter(
         Complaint.assigned_officer_id == current_user_id,
         Complaint.status.notin_(['Resolved', 'Closed'])

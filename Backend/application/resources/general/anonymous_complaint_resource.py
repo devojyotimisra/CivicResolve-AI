@@ -9,10 +9,9 @@ from application.helpers.validators import validate_title, validate_description
 
 router = APIRouter()
 
-# Allowed image extensions and MIME types
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 ALLOWED_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/pjpeg"}
-MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB limit
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 
 def generate_tracking_token():
@@ -47,7 +46,6 @@ async def file_anonymous_complaint(
 
     photo_url = None
     if photo and photo.filename:
-        # Extract and sanitize extension
         ext = os.path.splitext(photo.filename)[1].lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(
@@ -55,7 +53,6 @@ async def file_anonymous_complaint(
                 detail=f"Invalid file type '{ext}'. Allowed extensions are: .png, .jpg, .jpeg"
             )
 
-        # Validate MIME type
         content_type = (photo.content_type or "").lower().strip()
         if content_type and content_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
@@ -63,7 +60,6 @@ async def file_anonymous_complaint(
                 detail=f"Invalid MIME type '{photo.content_type}'. Allowed types are: image/png, image/jpeg"
             )
 
-        # Read content and validate file size (max 10 MB)
         content = await photo.read()
         if len(content) > MAX_FILE_SIZE_BYTES:
             size_mb = round(len(content) / (1024 * 1024), 2)
