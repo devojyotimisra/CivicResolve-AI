@@ -23,6 +23,9 @@ def commissioner_assign_officer(
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
+    if complaint.severity != 'Critical':
+        raise HTTPException(status_code=400, detail="Officer assignment is only allowed for severe complaints")
+
     officer_id = data.get("officer_id")
     if not officer_id:
         raise HTTPException(status_code=400, detail="Officer ID is required")

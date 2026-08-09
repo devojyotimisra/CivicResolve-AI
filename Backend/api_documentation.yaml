@@ -603,50 +603,6 @@ paths:
           description: Citizen access required
         '404':
           description: User not found
-  /api/citizen/cancel_booking/{booking_id}:
-    post:
-      tags:
-      - citizen
-      summary: Cancel facility booking
-      description: Cancel an upcoming active facility booking owned by citizen. Restricts
-        access to citizen role.
-      operationId: citizen_cancel_booking_api_citizen_cancel_booking__booking_id__post
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: booking_id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: Booking ID
-      responses:
-        '200':
-          description: Booking cancelled successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResponse'
-              example:
-                message: Booking cancelled successfully
-        '400':
-          description: Booking already cancelled or booking date in past
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Access denied or citizen access required
-        '404':
-          description: Booking or User not found
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/citizen/search:
     post:
       tags:
@@ -1356,7 +1312,7 @@ paths:
       tags:
       - commissioner
       summary: Assign officer to complaint
-      description: Assign a field officer to a complaint and optionally update its
+      description: Assign a field officer to a severe complaint and optionally update its
         severity level. Restricts access to commissioner role.
       operationId: commissioner_assign_officer_api_commissioner_assign__complaint_id__put
       security:
@@ -1969,15 +1925,11 @@ paths:
             schema:
               $ref: '#/components/schemas/IssueBillRequest'
             example:
-              userId: 1
               citizenId: 1
-              citizen_id: 1
               billType: Water
-              bill_type: Water
               amount: 250.0
               dueDate: '2026-08-15'
-              due_date: '2026-08-15'
-              period: 2026-08
+              period: '2026-08'
       responses:
         '200':
           description: Bill issued successfully
@@ -3361,8 +3313,8 @@ components:
           type: string
           nullable: true
       description: Request payload to issue a utility bill to a citizen. Backend accepts
-        either snake_case (citizen_id, bill_type, due_date) or camelCase (citizenId,
-        billType, dueDate) field names.
+        citizen ID via userId, citizenId, or citizen_id, bill type via billType or bill_type,
+        and due date via dueDate or due_date.
     CreateBillTypeRequest:
       type: object
       required:
