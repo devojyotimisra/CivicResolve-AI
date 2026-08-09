@@ -430,11 +430,14 @@ def test_delete_non_existent_officer(client, comm_headers):
 def test_assign_officer_success(client, comm_headers, sample_complaint, existing_officer, db_session):
     """
     Code Path: commissioner_assign_officer_resource.py -> PUT /api/commissioner/assign/{complaint_id}
-    Verifies assigning an active officer to a complaint, status transition, and audit trail creation.
+    Verifies assigning an active officer to a severe complaint, status transition, and audit trail creation.
     """
+    sample_complaint.severity = "Critical"
+    db_session.commit()
+
     payload = {
         "officer_id": existing_officer.id,
-        "severity": "High"
+        "severity": "Critical"
     }
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
@@ -446,7 +449,7 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
     assert sample_complaint.assigned_officer_id == existing_officer.id
     assert sample_complaint.assigned_officer_name == existing_officer.name
     assert sample_complaint.status == "Assigned"
-    assert sample_complaint.severity == "High"
+    assert sample_complaint.severity == "Critical"
 
     # Verify ComplaintUpdate audit trail created
     audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=sample_complaint.id).first()
@@ -455,11 +458,93 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
     assert audit.new_status == "Assigned"
 
 
+def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
+    Verifies 400 Bad Request when attempting to assign an officer to a Normal severity complaint.
+    """
+    sample_complaint.severity = "Normal"
+    db_session.commit()
+
+    payload = {"officer_id": existing_officer.id}
+
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+
+    # Ensure complaint severity and assignment were not modified
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.severity == "Normal"
+    assert sample_complaint.assigned_officer_id is None
+
+
+def test_assign_officer_low_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
+    Verifies 400 Bad Request when attempting to assign an officer to a Low severity complaint.
+    """
+    sample_complaint.severity = "Low"
+    db_session.commit()
+
+    payload = {"officer_id": existing_officer.id}
+
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.severity == "Low"
+    assert sample_complaint.assigned_officer_id is None
+
+
+def test_assign_officer_high_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
+    Verifies 400 Bad Request when attempting to assign an officer to a High severity complaint.
+    """
+    sample_complaint.severity = "High"
+    db_session.commit()
+
+    payload = {"officer_id": existing_officer.id}
+
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.severity == "High"
+    assert sample_complaint.assigned_officer_id is None
+
+
+def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
+    Verifies 400 Bad Request when non-Critical complaint supplies {"severity": "Critical"} in request body.
+    Confirming that a non-Critical complaint cannot bypass the severity restriction.
+    """
+    sample_complaint.severity = "Normal"
+    db_session.commit()
+
+    payload = {
+        "officer_id": existing_officer.id,
+        "severity": "Critical"
+    }
+
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.severity == "Normal"
+    assert sample_complaint.assigned_officer_id is None
+
+
 def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
     """
     Code Path: commissioner_assign_officer_resource.py -> deactivated officer check.
     Verifies 400 Bad Request when assigning a deactivated officer.
     """
+    sample_complaint.severity = "Critical"
     existing_officer.is_active = False
     db_session.commit()
 
@@ -470,6 +555,21 @@ def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer account is deactivated"
+
+
+def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> invalid officer check.
+    Verifies 400 Bad Request when assigning a non-existent officer ID.
+    """
+    sample_complaint.severity = "Critical"
+    db_session.commit()
+
+    payload = {"officer_id": 99999}
+
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid officer"
 
 
 def test_assign_non_existent_complaint(client, comm_headers, existing_officer):
@@ -483,11 +583,16 @@ def test_assign_non_existent_complaint(client, comm_headers, existing_officer):
     assert response.json()["detail"] == "Complaint not found"
 
 
-def test_assign_missing_officer_id(client, comm_headers, sample_complaint):
+def test_assign_missing_officer_id(client, comm_headers, sample_complaint, db_session):
     """
     Code Path: commissioner_assign_officer_resource.py -> missing officer_id.
     Verifies 400 Bad Request when officer_id is omitted.
     """
+    sample_complaint.severity = "Critical"
+    db_session.commit()
+
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json={}, headers=comm_headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer ID is required"
+
+

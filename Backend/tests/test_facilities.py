@@ -8,12 +8,11 @@ Covers both sides of the Facility domain:
    - PUT /api/commissioner/facility/{facility_id}
    - DELETE /api/commissioner/facility/{facility_id}
 
-2. Citizen Facility Catalog, Booking & Cancellation:
+2. Citizen Facility Catalog & Booking:
    - GET /api/citizen/facilities
    - GET /api/citizen/facility/{facility_id}
    - POST /api/citizen/book_facility/{facility_id}
    - GET /api/citizen/bookings
-   - POST /api/citizen/cancel_booking/{booking_id}
 """
 
 import pytest
@@ -224,7 +223,6 @@ def test_citizen_facility_endpoints_unauthorized(client):
     assert client.get("/api/citizen/facility/1").status_code == 401
     assert client.post("/api/citizen/book_facility/1", json={}).status_code == 401
     assert client.get("/api/citizen/bookings").status_code == 401
-    assert client.post("/api/citizen/cancel_booking/1").status_code == 401
 
 
 def test_commissioner_facility_endpoints_forbidden_for_citizen_and_officer(client, citizen_headers, officer_headers):
@@ -250,7 +248,6 @@ def test_citizen_facility_endpoints_forbidden_for_commissioner_and_officer(clien
         assert client.get("/api/citizen/facility/1", headers=headers).status_code == 403
         assert client.post("/api/citizen/book_facility/1", json={}, headers=headers).status_code == 403
         assert client.get("/api/citizen/bookings", headers=headers).status_code == 403
-        assert client.post("/api/citizen/cancel_booking/1", headers=headers).status_code == 403
 
 
 # ============================================================================
@@ -575,62 +572,3 @@ def test_citizen_bookings_list_success(client, citizen_headers, sample_booking):
     assert matched["bookingReference"] == sample_booking.booking_reference
     assert matched["facilityName"] == sample_booking.facility.name
     assert matched["status"] == "Confirmed"
-
-
-def test_citizen_cancel_booking_success(client, citizen_headers, sample_booking, db_session):
-    """
-    Code Path: citizen_booking_cancel_resource.py -> POST /api/citizen/cancel_booking/{id}
-    Verifies cancelling a confirmed booking, updating status to 'Cancelled' in DB.
-    """
-    response = client.post(f"/api/citizen/cancel_booking/{sample_booking.id}", headers=citizen_headers)
-    assert response.status_code == 200
-    assert response.json()["message"] == "Booking cancelled successfully"
-
-    db_session.refresh(sample_booking)
-    assert sample_booking.status == "Cancelled"
-
-
-def test_citizen_cancel_booking_ownership_check_fails(client, second_citizen_headers, sample_booking):
-    """
-    Code Path: citizen_booking_cancel_resource.py -> user_id ownership check.
-    Verifies 403 Forbidden when a user attempts to cancel someone else's booking.
-    """
-    response = client.post(f"/api/citizen/cancel_booking/{sample_booking.id}", headers=second_citizen_headers)
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Access denied"
-
-
-def test_citizen_cancel_booking_already_cancelled_fails(client, citizen_headers, sample_booking, db_session):
-    """
-    Code Path: citizen_booking_cancel_resource.py -> already cancelled check.
-    Verifies 400 Bad Request when attempting to cancel an already cancelled booking.
-    """
-    sample_booking.status = "Cancelled"
-    db_session.commit()
-
-    response = client.post(f"/api/citizen/cancel_booking/{sample_booking.id}", headers=citizen_headers)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Booking is already cancelled"
-
-
-def test_citizen_cancel_booking_past_booking_fails(client, citizen_headers, sample_booking, db_session):
-    """
-    Code Path: citizen_booking_cancel_resource.py -> past booking date check.
-    Verifies 400 Bad Request when attempting to cancel a past booking.
-    """
-    sample_booking.booked_date = date.today() - timedelta(days=2)
-    db_session.commit()
-
-    response = client.post(f"/api/citizen/cancel_booking/{sample_booking.id}", headers=citizen_headers)
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Cannot cancel a past booking"
-
-
-def test_citizen_cancel_booking_not_found(client, citizen_headers):
-    """
-    Code Path: citizen_booking_cancel_resource.py -> booking not found.
-    Verifies 404 Not Found for non-existent booking ID.
-    """
-    response = client.post("/api/citizen/cancel_booking/99999", headers=citizen_headers)
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Booking not found"
