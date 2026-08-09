@@ -22,5 +22,7 @@ class Config:
 
     FRONTEND_URL = getenv("FRONTEND_URL")
 
+    GEMINI_API_KEY = getenv("GEMINI_API_KEY")
+
     HOST = getenv("HOST")
     PORT = int(getenv("PORT"))
