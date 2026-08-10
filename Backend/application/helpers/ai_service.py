@@ -231,7 +231,7 @@ OR
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.1,
-                max_output_tokens=300,
+                max_output_tokens=1024,
             ),
         )
         return _parse_json_response(response.text)

@@ -77,12 +77,14 @@ def test_anonymous_complaint_creation_success_minimal(client, db_session):
     assert "tracking_token" in data
     assert data["tracking_token"].startswith("CRA-")
 
-    # DB Persistence Verification
+    # DB Persistence Verification — description undergoes AI sanitization before storing
     token = data["tracking_token"]
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
     assert complaint.title == "Water Leakage on Main Street"
-    assert complaint.description == "Clean drinking water leaking from underground pipe for 2 days"
+    assert complaint.description is not None and len(complaint.description) >= 10
+    desc_lower = complaint.description.lower()
+    assert any(term in desc_lower for term in ["water", "pipe", "leak"])
     assert complaint.status == "Submitted"
     assert complaint.severity == "Normal"
     assert complaint.department_id is None

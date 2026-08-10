@@ -213,7 +213,7 @@ def test_ai_spam_detection_not_spam_proceeds(client, db_session):
 def test_ai_translation_non_english_input(client, db_session):
     """
     Code Path: anonymous_complaint_resource.py -> translate_text
-    Verifies that non-English title and description are translated to English before storing in DB.
+    Verifies non-English title and description are translated to English before passing to subsequent pipeline stages.
     """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
@@ -224,29 +224,46 @@ def test_ai_translation_non_english_input(client, db_session):
             return {"translated_text": "Water pipe burst near colony entrance", "detected_language": "hi"}
         return {"translated_text": text, "detected_language": "en"}
 
+    mock_sanitize = AsyncMock(side_effect=lambda desc: {
+        "sanitized_text": f"Sanitized: {desc}",
+        "summary": "Sanitized summary"
+    })
+
     form_data = {
         "title": "पानी का रिसाव",
         "description": "मुख्य सड़क पर पाइप फट गया है"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", side_effect=mock_translate):
+         patch("application.resources.general.anonymous_complaint_resource.translate_text", side_effect=mock_translate), \
+         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     created = db_session.query(Complaint).first()
     assert created is not None
     assert created.title == "Water leakage on Main Street"
-    assert created.description == "Water pipe burst near colony entrance"
+    
+    # Verify translated description reached sanitization stage
+    mock_sanitize.assert_called_once_with("Water pipe burst near colony entrance")
+    assert created.description == "Sanitized: Water pipe burst near colony entrance"
 
 
 def test_ai_translation_english_input_retains_original(client, db_session):
     """
     Code Path: anonymous_complaint_resource.py -> translate_text (detected_language='en')
-    Verifies English input is stored as-is.
+    Verifies English input is passed through translation and subsequently sanitized for DB storage.
     """
     mock_spam = AsyncMock(return_value={"is_spam": False})
-    mock_trans = AsyncMock(return_value={"translated_text": "Garbage issue", "detected_language": "en"})
+
+    async def mock_translate(text, target_lang="en"):
+        return {"translated_text": text, "detected_language": "en"}
+
+    mock_trans = AsyncMock(side_effect=mock_translate)
+    mock_sanitize = AsyncMock(side_effect=lambda desc: {
+        "sanitized_text": f"Sanitized: {desc}",
+        "summary": "Sanitized summary"
+    })
 
     form_data = {
         "title": "Garbage Overflow",
@@ -254,13 +271,21 @@ def test_ai_translation_english_input_retains_original(client, db_session):
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans):
+         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
+         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     created = db_session.query(Complaint).first()
     assert created.title == "Garbage Overflow"
-    assert created.description == "Garbage bin overflowing near market area"
+
+    # Verify translation was attempted for title and description
+    mock_trans.assert_any_call("Garbage Overflow", target_lang="en")
+    mock_trans.assert_any_call("Garbage bin overflowing near market area", target_lang="en")
+
+    # Verify English description was passed to sanitization and sanitized version stored
+    mock_sanitize.assert_called_once_with("Garbage bin overflowing near market area")
+    assert created.description == "Sanitized: Garbage bin overflowing near market area"
 
 
 # ============================================================================
@@ -750,3 +775,75 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     assert new_cmp_dict["location"] == "Block A Corner"
     assert len(candidate_list) >= 1
     assert candidate_list[0]["id"] == open_c.id
+
+
+# ============================================================================
+# 11. DEDUP TOKEN BUDGET REGRESSION TEST
+#     Bug: find_duplicate_complaints used max_output_tokens=300. The model
+#     (gemma-4-31b-it) uses chain-of-thought thinking tokens that consumed the
+#     full 300-token budget before it could write the JSON answer, causing
+#     response.text=None, a silent AttributeError, and dedup bypass.
+#     Fix: max_output_tokens raised to 1024.
+# ============================================================================
+
+def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
+    """
+    Regression: find_duplicate_complaints must call generate_content with
+    max_output_tokens >= 1024.
+
+    The model uses chain-of-thought reasoning (~496 thinking tokens) before
+    emitting the JSON answer (~80 tokens). With max_output_tokens=300 the model
+    hit MAX_TOKENS mid-reasoning, response.text became None, _parse_json_response
+    raised AttributeError, the except clause returned None, and the pipeline
+    silently skipped duplicate detection — creating a new record instead of
+    merging.  This test pins the minimum token budget so the regression cannot
+    recur silently.
+    """
+    import asyncio
+    from unittest.mock import MagicMock, patch, call
+    from application.helpers.ai_service import find_duplicate_complaints
+    from google.genai import types
+
+    mock_response = MagicMock()
+    mock_response.text = '{"is_duplicate": false}'
+
+    mock_generate = MagicMock(return_value=mock_response)
+    mock_client = MagicMock()
+    mock_client.models.generate_content = mock_generate
+
+    new_complaint = {
+        "title": "Pothole near college gate",
+        "description": "Deep pothole at bus stop",
+        "location": "College Gate, Main Bus Stop",
+    }
+    existing = [
+        {
+            "id": 1,
+            "token": "CRA-MASTER01",
+            "title": "Large Pothole Near College Gate",
+            "description": "Deep pothole near the college gate adjacent to main bus stop",
+            "location": "College Gate, Main Bus Stop",
+        }
+    ]
+
+    with patch("application.helpers.ai_service._get_client", return_value=mock_client):
+        asyncio.run(find_duplicate_complaints(new_complaint, existing))
+
+    mock_generate.assert_called_once()
+    call_kwargs = mock_generate.call_args
+
+    # Extract the GenerateContentConfig passed as the 'config' kwarg
+    config_arg = call_kwargs.kwargs.get("config") or call_kwargs.args[2] if len(call_kwargs.args) > 2 else None
+    # Handle positional-or-keyword call conventions
+    if config_arg is None:
+        all_args = list(call_kwargs.args) + list(call_kwargs.kwargs.values())
+        config_arg = next((a for a in all_args if isinstance(a, types.GenerateContentConfig)), None)
+
+    assert config_arg is not None, "GenerateContentConfig was not passed to generate_content"
+    assert config_arg.max_output_tokens >= 1024, (
+        f"max_output_tokens={config_arg.max_output_tokens} is too low; "
+        "gemma-4-31b-it needs >= 1024 tokens for chain-of-thought reasoning "
+        "before it can write the JSON answer. With < 1024 the model hits "
+        "MAX_TOKENS, response.text becomes None, and dedup is silently skipped."
+    )
+
