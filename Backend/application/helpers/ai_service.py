@@ -61,8 +61,8 @@ Respond ONLY with valid JSON:
             model=MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=200,
+                temperature=0.0,
+                max_output_tokens=1000,
             ),
         )
         return _parse_json_response(response.text)
@@ -172,7 +172,7 @@ Respond ONLY with valid JSON:
             contents=contents,
             config=types.GenerateContentConfig(
                 temperature=0.1,
-                max_output_tokens=300,
+                max_output_tokens=1024,
             ),
         )
         result = _parse_json_response(response.text)
