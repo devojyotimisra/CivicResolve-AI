@@ -596,3 +596,79 @@ def test_assign_missing_officer_id(client, comm_headers, sample_complaint, db_se
     assert response.json()["detail"] == "Officer ID is required"
 
 
+def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_headers, sample_complaint, existing_officer, db_session, test_department):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> reassign active Critical complaint.
+    Verifies reassigning an 'In Progress' Critical complaint to a new officer:
+    1. Updates assigned_officer_id and assigned_officer_name.
+    2. Preserves status as 'In Progress' (does not reset to 'Assigned').
+    3. Adds ComplaintUpdate audit log with old_status='In Progress', new_status='In Progress'.
+    """
+    second_officer = User(
+        email="second.officer@civicresolve.in",
+        password=hash_password("OfficerPass123!"),
+        name="Officer Alice",
+        role="field_officer",
+        badge_id="OFF-102",
+        department_id=test_department.id,
+        department=test_department.name,
+        is_active=True
+    )
+    role = db_session.query(Role).filter_by(name="field_officer").first()
+    if role:
+        second_officer.roles.append(role)
+    db_session.add(second_officer)
+
+    sample_complaint.severity = "Critical"
+    sample_complaint.status = "In Progress"
+    sample_complaint.assigned_officer_id = existing_officer.id
+    sample_complaint.assigned_officer_name = existing_officer.name
+    db_session.commit()
+
+    payload = {"officer_id": second_officer.id}
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+
+    assert response.status_code == 200
+    assert response.json()["message"] == f"Complaint assigned to {second_officer.name}"
+
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.assigned_officer_id == second_officer.id
+    assert sample_complaint.assigned_officer_name == second_officer.name
+    assert sample_complaint.status == "In Progress"
+
+    audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=sample_complaint.id).order_by(ComplaintUpdate.id.desc()).first()
+    assert audit is not None
+    assert audit.old_status == "In Progress"
+    assert audit.new_status == "In Progress"
+    assert "Officer Alice" in audit.note
+
+
+def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, sample_complaint, db_session):
+    """
+    Code Path: commissioner_assign_officer_resource.py -> officer role check.
+    Verifies 400 Bad Request when attempting to assign a user who exists in DB but lacks 'field_officer' role (e.g. Citizen).
+    """
+    role = db_session.query(Role).filter_by(name="citizen").first()
+    non_officer = User(
+        email="citizen.target@civicresolve.in",
+        password=hash_password("Pass123!"),
+        name="Citizen Target",
+        role="citizen",
+        is_active=True
+    )
+    if role:
+        non_officer.roles.append(role)
+    db_session.add(non_officer)
+
+    sample_complaint.severity = "Critical"
+    db_session.commit()
+
+    payload = {"officer_id": non_officer.id}
+    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid officer"
+
+    db_session.refresh(sample_complaint)
+    assert sample_complaint.assigned_officer_id is None
+
