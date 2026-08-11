@@ -72,6 +72,18 @@ def autocleanup_dependency_overrides(app: FastAPI) -> Generator[None, None, None
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def mock_genai_client_default():
+    """Default fallback mock for _get_client so tests do not make real network calls to Gemini API."""
+    from unittest.mock import patch, AsyncMock
+    mock_resp = AsyncMock()
+    mock_resp.text = '{"is_spam": false, "is_duplicate": false, "department": null}'
+    mock_client = AsyncMock()
+    mock_client.models.generate_content.return_value = mock_resp
+    with patch("application.helpers.ai_service._get_client", return_value=mock_client):
+        yield
+
+
 @pytest.fixture(scope="function")
 def client(app: FastAPI, db_session: Session) -> Generator[TestClient, None, None]:
     """FastAPI TestClient configured with get_db overridden to use db_session."""

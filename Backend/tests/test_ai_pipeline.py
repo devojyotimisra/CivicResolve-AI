@@ -847,3 +847,151 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
         "MAX_TOKENS, response.text becomes None, and dedup is silently skipped."
     )
 
+
+# ============================================================================
+# 12. LEAST-LOADED OFFICER & DEDUPLICATION BOUNDARY INTEGRATION TESTS
+# ============================================================================
+
+def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(client, db_session, ai_dept):
+    """
+    Code Path: anonymous_complaint_resource.py -> officer auto-assignment load query.
+    Verifies that 'Resolved' (and 'Closed'/'Cancelled') complaints are excluded when calculating active officer load.
+    Officer A has 5 'Resolved' tickets (0 active tickets).
+    Officer B has 1 'In Progress' ticket (1 active ticket).
+    Auto-routing dispatches to Officer A.
+    """
+    mock_spam = AsyncMock(return_value={"is_spam": False})
+    mock_trans = AsyncMock(return_value=None)
+    mock_sanitize = AsyncMock(return_value=None)
+    mock_route = AsyncMock(return_value={"department": ai_dept.name, "confidence": 0.95})
+    mock_dup = AsyncMock(return_value=None)
+
+    role = db_session.query(Role).filter_by(name="field_officer").first()
+    if not role:
+        role = Role(name="field_officer")
+        db_session.add(role)
+
+    officer_a = User(
+        email="officer.a.resolved@civicresolve.in",
+        password=hash_password("OfficerPass123!"),
+        name="Officer A (Resolved History)",
+        role="field_officer",
+        department_id=ai_dept.id,
+        department=ai_dept.name,
+        badge_id="BADGE-RESOLVED-01",
+        is_active=True
+    )
+    officer_a.roles.append(role)
+    db_session.add(officer_a)
+    db_session.commit()
+
+    for i in range(5):
+        db_session.add(Complaint(
+            token=f"CRA-RES-0{i+1}",
+            title=f"Resolved Ticket {i+1}",
+            description="Completed maintenance",
+            department_id=ai_dept.id,
+            department=ai_dept.name,
+            assigned_officer_id=officer_a.id,
+            assigned_officer_name=officer_a.name,
+            status="Resolved",
+            severity="Normal"
+        ))
+
+    officer_b = User(
+        email="officer.b.active@civicresolve.in",
+        password=hash_password("OfficerPass123!"),
+        name="Officer B (Active Ticket)",
+        role="field_officer",
+        department_id=ai_dept.id,
+        department=ai_dept.name,
+        badge_id="BADGE-ACTIVE-01",
+        is_active=True
+    )
+    officer_b.roles.append(role)
+    db_session.add(officer_b)
+
+    db_session.add(Complaint(
+        token="CRA-ACT-01",
+        title="Active Ticket 1",
+        description="Ongoing work",
+        department_id=ai_dept.id,
+        department=ai_dept.name,
+        assigned_officer_id=officer_b.id,
+        assigned_officer_name=officer_b.name,
+        status="In Progress",
+        severity="Normal"
+    ))
+    db_session.commit()
+
+    form_data = {
+        "title": "Water Leakage on Main Street",
+        "description": "Burst pipe leaking water"
+    }
+
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
+         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
+         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize), \
+         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route), \
+         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+        response = client.post("/api/complaint/anonymous", data=form_data)
+
+    assert response.status_code == 200
+    created = db_session.query(Complaint).filter_by(title="Water Leakage on Main Street").first()
+    assert created is not None
+    assert created.assigned_officer_id == officer_a.id
+    assert created.assigned_officer_name == officer_a.name
+    assert created.status == "Assigned"
+
+
+def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_session, ai_dept):
+    """
+    Code Path: anonymous_complaint_resource.py -> deduplication candidate query filter.
+    Verifies that if an identical complaint exists in DB but its status is 'Resolved',
+    it is excluded from recent_complaints candidates passed to find_duplicate_complaints.
+    A new complaint is created instead of merging into the resolved complaint.
+    """
+    mock_spam = AsyncMock(return_value={"is_spam": False})
+    mock_trans = AsyncMock(return_value=None)
+    mock_sanitize = AsyncMock(return_value=None)
+    mock_route = AsyncMock(return_value=None)
+    mock_dup = AsyncMock(return_value={"is_duplicate": False})
+
+    resolved_complaint = Complaint(
+        token="CRA-RESOLVED01",
+        title="Pothole on 1st Main",
+        description="Pothole near 1st Main park entrance",
+        location="1st Main Park",
+        status="Resolved",
+        severity="Normal",
+        department_id=ai_dept.id,
+        department=ai_dept.name,
+        created_at=datetime.now(IST) - timedelta(hours=1)
+    )
+    db_session.add(resolved_complaint)
+    db_session.commit()
+
+    form_data = {
+        "title": "Pothole on 1st Main",
+        "description": "Pothole near 1st Main park entrance",
+        "address_text": "1st Main Park"
+    }
+
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
+         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
+         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize), \
+         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route), \
+         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup) as spy_dup:
+        response = client.post("/api/complaint/anonymous", data=form_data)
+
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["tracking_token"] != resolved_complaint.token
+
+    assert db_session.query(Complaint).count() == 2
+
+    if spy_dup.called:
+        candidate_list = spy_dup.call_args[0][1]
+        resolved_ids = [c["id"] for c in candidate_list]
+        assert resolved_complaint.id not in resolved_ids
+
