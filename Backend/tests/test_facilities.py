@@ -1,20 +1,3 @@
-"""
-Facilities & Facility Bookings Integration Tests.
-
-Covers both sides of the Facility domain:
-1. Commissioner Facility Management:
-   - GET /api/commissioner/facilities
-   - POST /api/commissioner/facility
-   - PUT /api/commissioner/facility/{facility_id}
-   - DELETE /api/commissioner/facility/{facility_id}
-
-2. Citizen Facility Catalog & Booking:
-   - GET /api/citizen/facilities
-   - GET /api/citizen/facility/{facility_id}
-   - POST /api/citizen/book_facility/{facility_id}
-   - GET /api/citizen/bookings
-"""
-
 import pytest
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
@@ -23,13 +6,8 @@ from application.helpers.models import User, Role, Facility, FacilityBooking
 from application.middlewares.init_jwt import create_access_token
 
 
-# ============================================================================
-# LOCAL FIXTURES (FACILITY DOMAIN SPECIFIC)
-# ============================================================================
-
 @pytest.fixture(autouse=True)
 def seed_roles(db_session: Session):
-    """Ensures citizen, field_officer, commissioner roles exist in db_session."""
     for role_name in ["citizen", "field_officer", "commissioner"]:
         if not db_session.query(Role).filter_by(name=role_name).first():
             db_session.add(Role(name=role_name))
@@ -38,7 +16,6 @@ def seed_roles(db_session: Session):
 
 @pytest.fixture
 def comm_user(db_session: Session) -> User:
-    """Creates a Commissioner user."""
     role = db_session.query(Role).filter_by(name="commissioner").first()
     user = User(
         email="comm.fac@civicresolve.in",
@@ -58,14 +35,12 @@ def comm_user(db_session: Session) -> User:
 
 @pytest.fixture
 def comm_headers(comm_user: User) -> dict:
-    """Returns JWT Authorization headers for comm_user."""
     token = create_access_token(comm_user.id)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def citizen_user(db_session: Session) -> User:
-    """Creates a primary Citizen user."""
     role = db_session.query(Role).filter_by(name="citizen").first()
     user = User(
         email="citizen.fac@civicresolve.in",
@@ -87,14 +62,12 @@ def citizen_user(db_session: Session) -> User:
 
 @pytest.fixture
 def citizen_headers(citizen_user: User) -> dict:
-    """Returns JWT Authorization headers for citizen_user."""
     token = create_access_token(citizen_user.id)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def second_citizen_user(db_session: Session) -> User:
-    """Creates a secondary Citizen user for ownership testing."""
     role = db_session.query(Role).filter_by(name="citizen").first()
     user = User(
         email="citizen.fac2@civicresolve.in",
@@ -116,14 +89,12 @@ def second_citizen_user(db_session: Session) -> User:
 
 @pytest.fixture
 def second_citizen_headers(second_citizen_user: User) -> dict:
-    """Returns JWT Authorization headers for second_citizen_user."""
     token = create_access_token(second_citizen_user.id)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def officer_headers(db_session: Session) -> dict:
-    """Returns JWT Authorization headers for a field officer (for 403 role checks)."""
     role = db_session.query(Role).filter_by(name="field_officer").first()
     officer = User(
         email="officer.fac@civicresolve.in",
@@ -144,7 +115,6 @@ def officer_headers(db_session: Session) -> dict:
 
 @pytest.fixture
 def active_facility(db_session: Session) -> Facility:
-    """Creates an active Facility in the test database."""
     facility = Facility(
         name="Town Hall Auditorium",
         facility_type="Auditorium",
@@ -163,7 +133,6 @@ def active_facility(db_session: Session) -> Facility:
 
 @pytest.fixture
 def inactive_facility(db_session: Session) -> Facility:
-    """Creates an inactive Facility in the test database."""
     facility = Facility(
         name="Closed Community Center",
         facility_type="Community Hall",
@@ -182,7 +151,6 @@ def inactive_facility(db_session: Session) -> Facility:
 
 @pytest.fixture
 def sample_booking(db_session: Session, active_facility: Facility, citizen_user: User) -> FacilityBooking:
-    """Creates a confirmed FacilityBooking for tomorrow booked by citizen_user."""
     booking_date = date.today() + timedelta(days=5)
     booking = FacilityBooking(
         user_id=citizen_user.id,
@@ -201,14 +169,7 @@ def sample_booking(db_session: Session, active_facility: Facility, citizen_user:
     return booking
 
 
-# ============================================================================
-# AUTHORIZATION & ROLE CHECKS
-# ============================================================================
-
 def test_commissioner_facility_endpoints_unauthorized(client):
-    """
-    Verifies 401 Unauthorized for unauthenticated requests across commissioner facility routes.
-    """
     assert client.get("/api/commissioner/facilities").status_code == 401
     assert client.post("/api/commissioner/facility", json={}).status_code == 401
     assert client.put("/api/commissioner/facility/1", json={}).status_code == 401
@@ -216,9 +177,6 @@ def test_commissioner_facility_endpoints_unauthorized(client):
 
 
 def test_citizen_facility_endpoints_unauthorized(client):
-    """
-    Verifies 401 Unauthorized for unauthenticated requests across citizen facility routes.
-    """
     assert client.get("/api/citizen/facilities").status_code == 401
     assert client.get("/api/citizen/facility/1").status_code == 401
     assert client.post("/api/citizen/book_facility/1", json={}).status_code == 401
@@ -226,9 +184,6 @@ def test_citizen_facility_endpoints_unauthorized(client):
 
 
 def test_commissioner_facility_endpoints_forbidden_for_citizen_and_officer(client, citizen_headers, officer_headers):
-    """
-    Verifies 403 Forbidden for Citizen or Field Officer calling all commissioner facility endpoints.
-    """
     for headers in [citizen_headers, officer_headers]:
         res_get = client.get("/api/commissioner/facilities", headers=headers)
         assert res_get.status_code == 403
@@ -240,9 +195,6 @@ def test_commissioner_facility_endpoints_forbidden_for_citizen_and_officer(clien
 
 
 def test_citizen_facility_endpoints_forbidden_for_commissioner_and_officer(client, comm_headers, officer_headers):
-    """
-    Verifies 403 Forbidden for Commissioner or Field Officer calling citizen facility routes.
-    """
     for headers in [comm_headers, officer_headers]:
         assert client.get("/api/citizen/facilities", headers=headers).status_code == 403
         assert client.get("/api/citizen/facility/1", headers=headers).status_code == 403
@@ -250,15 +202,7 @@ def test_citizen_facility_endpoints_forbidden_for_commissioner_and_officer(clien
         assert client.get("/api/citizen/bookings", headers=headers).status_code == 403
 
 
-# ============================================================================
-# COMMISSIONER FACILITY MANAGEMENT TESTS
-# ============================================================================
-
 def test_commissioner_facilities_list_success(client, comm_headers, active_facility, inactive_facility):
-    """
-    Code Path: commissioner_facilities_list_resource.py -> GET /api/commissioner/facilities
-    Verifies fetching all facilities (both active and inactive) with complete schema validation.
-    """
     response = client.get("/api/commissioner/facilities", headers=comm_headers)
     assert response.status_code == 200
 
@@ -270,10 +214,6 @@ def test_commissioner_facilities_list_success(client, comm_headers, active_facil
 
 
 def test_commissioner_add_facility_success(client, comm_headers, db_session):
-    """
-    Code Path: commissioner_facility_add_resource.py -> POST /api/commissioner/facility
-    Verifies creating a new Facility with both camelCase and snake_case field parsing.
-    """
     payload = {
         "name": "Sports Complex Arena",
         "facilityType": "Indoor Stadium",
@@ -295,11 +235,7 @@ def test_commissioner_add_facility_success(client, comm_headers, db_session):
 
 
 def test_commissioner_add_facility_validation_failures(client, comm_headers):
-    """
-    Code Path: commissioner_facility_add_resource.py -> field validators.
-    Verifies 400 Bad Request for invalid name, address, pincode, price, or missing facility_type.
-    """
-    # Missing/short name
+
     resp1 = client.post("/api/commissioner/facility", json={
         "name": "A",
         "facilityType": "Type",
@@ -310,7 +246,6 @@ def test_commissioner_add_facility_validation_failures(client, comm_headers):
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Name must be at least 2 characters long"
 
-    # Invalid pincode
     resp2 = client.post("/api/commissioner/facility", json={
         "name": "Valid Name",
         "facilityType": "Type",
@@ -321,7 +256,6 @@ def test_commissioner_add_facility_validation_failures(client, comm_headers):
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Pincode must be a 6-digit number"
 
-    # Missing facility type
     resp3 = client.post("/api/commissioner/facility", json={
         "name": "Valid Name",
         "address": "Valid Address 123",
@@ -333,10 +267,6 @@ def test_commissioner_add_facility_validation_failures(client, comm_headers):
 
 
 def test_commissioner_update_facility_success(client, comm_headers, active_facility, db_session):
-    """
-    Code Path: commissioner_facility_update_resource.py -> PUT /api/commissioner/facility/{id}
-    Verifies partial updates of facility attributes and active status.
-    """
     payload = {
         "name": "Town Hall Auditorium Renamed",
         "price_per_day": 600.0,
@@ -354,31 +284,18 @@ def test_commissioner_update_facility_success(client, comm_headers, active_facil
 
 
 def test_commissioner_update_facility_not_found(client, comm_headers):
-    """
-    Code Path: commissioner_facility_update_resource.py -> facility not found.
-    Verifies 404 Not Found for non-existent facility ID.
-    """
     response = client.put("/api/commissioner/facility/99999", json={"name": "Ghost"}, headers=comm_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Facility not found"
 
 
 def test_commissioner_update_facility_invalid_price(client, comm_headers, active_facility):
-    """
-    Code Path: commissioner_facility_update_resource.py -> validate_price.
-    Verifies 400 Bad Request for negative price.
-    """
     response = client.put(f"/api/commissioner/facility/{active_facility.id}", json={"price_per_day": -50.0}, headers=comm_headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Price must be greater than 0"
 
 
-
 def test_commissioner_delete_facility_soft_deactivation(client, comm_headers, active_facility, db_session):
-    """
-    Code Path: commissioner_facility_delete_resource.py -> DELETE /api/commissioner/facility/{id}
-    Verifies soft deactivation of facility (is_active = False).
-    """
     response = client.delete(f"/api/commissioner/facility/{active_facility.id}", headers=comm_headers)
     assert response.status_code == 200
     assert response.json()["message"] == "Facility deactivated"
@@ -388,24 +305,12 @@ def test_commissioner_delete_facility_soft_deactivation(client, comm_headers, ac
 
 
 def test_commissioner_delete_facility_not_found(client, comm_headers):
-    """
-    Code Path: commissioner_facility_delete_resource.py -> facility not found.
-    Verifies 404 Not Found for non-existent facility ID.
-    """
     response = client.delete("/api/commissioner/facility/99999", headers=comm_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Facility not found"
 
 
-# ============================================================================
-# CITIZEN FACILITY CATALOG & DETAIL TESTS
-# ============================================================================
-
 def test_citizen_facilities_list_only_active(client, citizen_headers, active_facility, inactive_facility):
-    """
-    Code Path: citizen_facilities_list_resource.py -> GET /api/citizen/facilities
-    Verifies returning ONLY active facilities (is_active = True).
-    """
     response = client.get("/api/citizen/facilities", headers=citizen_headers)
     assert response.status_code == 200
 
@@ -413,14 +318,10 @@ def test_citizen_facilities_list_only_active(client, citizen_headers, active_fac
     assert "facilities" in data
     facility_ids = [f["id"] for f in data["facilities"]]
     assert active_facility.id in facility_ids
-    assert inactive_facility.id not in facility_ids  # Inactive facility excluded
+    assert inactive_facility.id not in facility_ids
 
 
 def test_citizen_facility_detail_success(client, citizen_headers, active_facility, sample_booking):
-    """
-    Code Path: citizen_facility_detail_resource.py -> GET /api/citizen/facility/{id}
-    Verifies returning facility details, booked_dates array, and my_booked_dates array.
-    """
     response = client.get(f"/api/citizen/facility/{active_facility.id}", headers=citizen_headers)
     assert response.status_code == 200
 
@@ -434,31 +335,17 @@ def test_citizen_facility_detail_success(client, citizen_headers, active_facilit
 
 
 def test_citizen_facility_detail_inactive_or_not_found(client, citizen_headers, inactive_facility):
-    """
-    Code Path: citizen_facility_detail_resource.py -> inactive or non-existent facility.
-    Verifies 404 Not Found.
-    """
-    # Inactive facility
+
     resp1 = client.get(f"/api/citizen/facility/{inactive_facility.id}", headers=citizen_headers)
     assert resp1.status_code == 404
     assert resp1.json()["detail"] == "Facility not found"
 
-    # Non-existent facility ID
     resp2 = client.get("/api/citizen/facility/99999", headers=citizen_headers)
     assert resp2.status_code == 404
     assert resp2.json()["detail"] == "Facility not found"
 
 
-# ============================================================================
-# CITIZEN FACILITY BOOKING TESTS
-# ============================================================================
-
 def test_citizen_book_facility_success(client, citizen_headers, active_facility, db_session, citizen_user):
-    """
-    Code Path: citizen_facility_book_resource.py -> POST /api/citizen/book_facility/{id}
-    Verifies successful booking creation, reference code generation ('BKG-...'),
-    amount_paid matching facility price_per_day, and status 'Confirmed'.
-    """
     target_date = date.today() + timedelta(days=10)
     payload = {
         "bookedDate": target_date.isoformat(),
@@ -476,7 +363,6 @@ def test_citizen_book_facility_success(client, citizen_headers, active_facility,
     assert data["booking"]["status"] == "Confirmed"
     assert data["booking"]["bookingReference"].startswith("BKG-")
 
-    # DB Verification
     created_booking = db_session.query(FacilityBooking).filter_by(booking_reference=data["booking"]["bookingReference"]).first()
     assert created_booking is not None
     assert created_booking.user_id == citizen_user.id
@@ -486,10 +372,6 @@ def test_citizen_book_facility_success(client, citizen_headers, active_facility,
 
 
 def test_citizen_book_facility_past_date_fails(client, citizen_headers, active_facility):
-    """
-    Code Path: citizen_facility_book_resource.py -> past date check.
-    Verifies 400 Bad Request when attempting to book a past date.
-    """
     past_date = date.today() - timedelta(days=1)
     payload = {"booked_date": past_date.isoformat()}
 
@@ -499,10 +381,6 @@ def test_citizen_book_facility_past_date_fails(client, citizen_headers, active_f
 
 
 def test_citizen_book_facility_too_far_in_future_fails(client, citizen_headers, active_facility):
-    """
-    Code Path: citizen_facility_book_resource.py -> 90-day advance booking limit check.
-    Verifies 400 Bad Request when attempting to book > 90 days in advance.
-    """
     far_future = date.today() + timedelta(days=95)
     payload = {"booked_date": far_future.isoformat()}
 
@@ -512,10 +390,6 @@ def test_citizen_book_facility_too_far_in_future_fails(client, citizen_headers, 
 
 
 def test_citizen_book_facility_duplicate_date_fails(client, citizen_headers, active_facility, sample_booking):
-    """
-    Code Path: citizen_facility_book_resource.py -> existing confirmed booking check for same date.
-    Verifies 400 Bad Request when attempting to book an already booked date.
-    """
     payload = {"booked_date": sample_booking.booked_date.isoformat()}
 
     response = client.post(f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers)
@@ -524,26 +398,17 @@ def test_citizen_book_facility_duplicate_date_fails(client, citizen_headers, act
 
 
 def test_citizen_book_facility_missing_or_invalid_date(client, citizen_headers, active_facility):
-    """
-    Code Path: citizen_facility_book_resource.py -> date presence & isoformat parsing checks.
-    Verifies 400 Bad Request for missing date or bad date string.
-    """
-    # Missing date
+
     resp1 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={}, headers=citizen_headers)
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Date is required"
 
-    # Invalid date string format
     resp2 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={"date": "invalid-date"}, headers=citizen_headers)
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Invalid date format. Use YYYY-MM-DD"
 
 
 def test_citizen_book_facility_inactive_facility_fails(client, citizen_headers, inactive_facility):
-    """
-    Code Path: citizen_facility_book_resource.py -> facility not found or is_active is False.
-    Verifies 404 Not Found when booking an inactive facility.
-    """
     target_date = date.today() + timedelta(days=2)
     payload = {"booked_date": target_date.isoformat()}
 
@@ -552,15 +417,7 @@ def test_citizen_book_facility_inactive_facility_fails(client, citizen_headers, 
     assert response.json()["detail"] == "Facility not found"
 
 
-# ============================================================================
-# CITIZEN BOOKING HISTORY & CANCELLATION TESTS
-# ============================================================================
-
 def test_citizen_bookings_list_success(client, citizen_headers, sample_booking):
-    """
-    Code Path: citizen_bookings_list_resource.py -> GET /api/citizen/bookings
-    Verifies listing citizen's own bookings ordered by date descending.
-    """
     response = client.get("/api/citizen/bookings", headers=citizen_headers)
     assert response.status_code == 200
 

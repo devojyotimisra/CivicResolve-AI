@@ -34,4 +34,3 @@ def commissioner_facilities_list(
         })
 
     return {"facilities": facilities_data}
-

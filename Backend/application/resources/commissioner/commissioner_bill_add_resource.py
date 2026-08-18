@@ -5,6 +5,7 @@ from application.extensions.db_extn import get_db
 from application.helpers.models import User, UtilityBill
 from application.helpers.validators import validate_amount
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -64,6 +65,15 @@ def commissioner_issue_bill(
     )
 
     db.add(bill)
+
+    create_notification(
+        db,
+        user_id=citizen_id,
+        title="New Bill Issued",
+        message=f"A {bill_type} bill of ₹{amount:.2f} ({bill_number}) has been issued to you. Due: {due_date.isoformat()}",
+        notif_type="warning",
+    )
+
     db.commit()
 
     return {"message": f"Bill {bill_number} issued to {citizen.name}"}

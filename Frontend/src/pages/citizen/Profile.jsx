@@ -145,38 +145,38 @@ export const CitizenProfile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-                <form onSubmit={submitPassForm} className="space-y-4">
-                  {passError && (
-                    <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-                      {passError}
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Label htmlFor="curr-pass">Current Password</Label>
-                    <Input
-                      id="curr-pass"
-                      type="password"
-                      placeholder="••••••••"
-                      value={passForm.current}
-                      onChange={(e) =>
-                        setPassForm({ ...passForm, current: e.target.value })
-                      }
-                      required
-                    />
+              <form onSubmit={submitPassForm} className="space-y-4">
+                {passError && (
+                  <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                    {passError}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-pass">New Security Password</Label>
-                    <Input
-                      id="new-pass"
-                      type="password"
-                      placeholder="••••••••"
-                      value={passForm.newPass}
-                      onChange={(e) =>
-                        setPassForm({ ...passForm, newPass: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="curr-pass">Current Password</Label>
+                  <Input
+                    id="curr-pass"
+                    type="password"
+                    placeholder="••••••••"
+                    value={passForm.current}
+                    onChange={(e) =>
+                      setPassForm({ ...passForm, current: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-pass">New Security Password</Label>
+                  <Input
+                    id="new-pass"
+                    type="password"
+                    placeholder="••••••••"
+                    value={passForm.newPass}
+                    onChange={(e) =>
+                      setPassForm({ ...passForm, newPass: e.target.value })
+                    }
+                    required
+                  />
+                </div>
                 <Button
                   type="submit"
                   variant="outline"

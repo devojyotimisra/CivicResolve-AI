@@ -136,161 +136,163 @@ export const CommissionerDashboard = () => {
               Distribution of cases across civic engineering departments.
             </CardDescription>
           </CardHeader>
-            <CardContent className="h-[400px] mt-4">
-              {stats.byDepartment.length === 0 || stats.totalComplaints === 0 ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
-                  No department distribution data available
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stats.byDepartment}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {stats.byDepartment.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <CardContent className="h-[400px] mt-4">
+            {stats.byDepartment.length === 0 || stats.totalComplaints === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
+                No department distribution data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.byDepartment}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {stats.byDepartment.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card className="border shadow-md">
-            <CardHeader className="pb-2 border-b">
-              <CardTitle className="text-base font-bold">
-                Active vs Finished Tickets
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Current operational status of all reported cases.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px] mt-4">
-              {stats.totalComplaints === 0 ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
-                  No ticket status data available
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={75}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={STATUS_COLORS[index % STATUS_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        <Card className="border shadow-md">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="text-base font-bold">
+              Active vs Finished Tickets
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Current operational status of all reported cases.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px] mt-4">
+            {stats.totalComplaints === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
+                No ticket status data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={75}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={STATUS_COLORS[index % STATUS_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card className="border shadow-md">
-            <CardHeader className="pb-2 border-b">
-              <CardTitle className="text-base font-bold">
-                Normal vs Severe Tickets
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Priority breakdown of civic incidents.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px] mt-4">
-              {stats.totalComplaints === 0 ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
-                  No priority breakdown data available
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={severityData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {severityData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={SEVERITY_COLORS[index % SEVERITY_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        <Card className="border shadow-md">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="text-base font-bold">
+              Normal vs Severe Tickets
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Priority breakdown of civic incidents.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px] mt-4">
+            {stats.totalComplaints === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
+                No priority breakdown data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={severityData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {severityData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={SEVERITY_COLORS[index % SEVERITY_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card className="border shadow-md">
-            <CardHeader className="pb-2 border-b">
-              <CardTitle className="text-base font-bold">
-                Total Revenue Distribution
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Financial breakdown between Utility Bills and Facility Bookings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px] mt-4">
-              {stats.totalRevenue === 0 ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
-                  No revenue data available
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={revenueData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={75}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {revenueData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={REVENUE_COLORS[index % REVENUE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="border shadow-md">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="text-base font-bold">
+              Total Revenue Distribution
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Financial breakdown between Utility Bills and Facility Bookings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px] mt-4">
+            {stats.totalRevenue === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-medium">
+                No revenue data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={revenueData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={75}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {revenueData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={REVENUE_COLORS[index % REVENUE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    formatter={(value) => formatCurrency(value)}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border shadow-md mt-6">
         <CardHeader className="pb-2 border-b">

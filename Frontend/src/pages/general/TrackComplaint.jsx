@@ -31,6 +31,7 @@ export const TrackComplaint = () => {
   const initialToken = searchParams.get("token") || "";
   const [tokenInput, setTokenInput] = useState(initialToken);
   const [complaint, setComplaint] = useState(null);
+  const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
@@ -43,7 +44,40 @@ export const TrackComplaint = () => {
     setError(null);
     try {
       const data = await complaintService.getComplaintByToken(cleanToken);
-      setComplaint(data);
+
+      const complaintData = data.complaint || data;
+      const updatesData = data.updates || [];
+
+      setComplaint({
+        ...complaintData,
+        token: complaintData.token,
+        title: complaintData.title,
+        description: complaintData.description,
+        category: complaintData.category,
+        submittedPhoto:
+          complaintData.submitted_photo || complaintData.submittedPhoto,
+        location: complaintData.location,
+        status: complaintData.status,
+        severity: complaintData.severity,
+        resolutionPhoto:
+          complaintData.resolution_photo || complaintData.resolutionPhoto,
+        resolutionNote:
+          complaintData.resolution_note || complaintData.resolutionNote,
+        createdAt: complaintData.created_at || complaintData.createdAt,
+        updatedAt: complaintData.updated_at || complaintData.updatedAt,
+        resolvedAt: complaintData.resolved_at || complaintData.resolvedAt,
+        closedAt: complaintData.closed_at || complaintData.closedAt,
+        department: complaintData.category || complaintData.department,
+      });
+      setUpdates(
+        updatesData.map((u) => ({
+          ...u,
+          oldStatus: u.old_status || u.oldStatus,
+          newStatus: u.new_status || u.newStatus,
+          createdAt: u.created_at || u.createdAt,
+          note: u.note,
+        })),
+      );
       if (
         updateUrl &&
         searchParams.get("token")?.toUpperCase() !== cleanToken
@@ -55,6 +89,7 @@ export const TrackComplaint = () => {
         "No civic report found matching this 12-character tracking token. Please check the token code.",
       );
       setComplaint(null);
+      setUpdates([]);
     } finally {
       setLoading(false);
     }
@@ -171,6 +206,7 @@ export const TrackComplaint = () => {
         onOpenChange={(open) => {
           if (!open && !viewingImage) {
             setComplaint(null);
+            setUpdates([]);
             setSearchParams({});
           }
         }}
@@ -192,7 +228,9 @@ export const TrackComplaint = () => {
                       new Date(complaint.createdAt).toLocaleDateString()}
                   </span>
                   <Badge variant="outline" className="w-fit ml-2">
-                    {complaint?.department}
+                    {complaint?.department ||
+                      complaint?.category ||
+                      "Pending AI routing"}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
@@ -230,6 +268,7 @@ export const TrackComplaint = () => {
                         </span>
                         <span className="text-muted-foreground">
                           {complaint?.assignedOfficerName ||
+                            complaint?.assignedOfficer ||
                             "Awaiting Department Assignment"}
                         </span>
                         <span className="block text-[11px] text-muted-foreground mt-0.5">
@@ -333,9 +372,10 @@ export const TrackComplaint = () => {
                   </h4>
 
                   <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-                    {complaint?.updates &&
-                      complaint.updates.map((item, idx) => {
-                        const isLatest = idx === complaint.updates.length - 1;
+                    {updates &&
+                      updates.length > 0 &&
+                      updates.map((item, idx) => {
+                        const isLatest = idx === updates.length - 1;
                         return (
                           <div
                             key={idx}
@@ -352,9 +392,13 @@ export const TrackComplaint = () => {
                             </div>
                             <div className="flex-1 rounded-lg bg-muted/40 p-3 border text-xs space-y-1">
                               <div className="flex items-center justify-between font-semibold text-foreground">
-                                <span>Status: {item.newStatus}</span>
+                                <span>
+                                  Status: {item.newStatus || item.new_status}
+                                </span>
                                 <span className="text-[11px] font-normal text-muted-foreground">
-                                  {new Date(item.createdAt).toLocaleString()}
+                                  {item.createdAt
+                                    ? new Date(item.createdAt).toLocaleString()
+                                    : ""}
                                 </span>
                               </div>
                               {item.note ? (

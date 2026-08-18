@@ -12,6 +12,7 @@ from application.resources.general.login_resource import router as login_router
 from application.resources.general.signup_resource import router as signup_router
 from application.resources.general.anonymous_complaint_resource import router as anon_complaint_router
 from application.resources.general.track_complaint_resource import router as track_complaint_router
+from application.resources.general.notification_resource import router as notification_router
 
 from application.resources.citizen.citizen_dashboard_resource import router as citizen_dash_router
 from application.resources.citizen.citizen_bills_list_resource import router as citizen_bills_router
@@ -86,6 +87,7 @@ def create_app():
     app.include_router(signup_router, prefix=prefix, tags=["auth"])
     app.include_router(anon_complaint_router, prefix=prefix, tags=["public"])
     app.include_router(track_complaint_router, prefix=prefix, tags=["public"])
+    app.include_router(notification_router, prefix=prefix, tags=["notifications"])
 
     app.include_router(citizen_dash_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bills_router, prefix=prefix, tags=["citizen"])

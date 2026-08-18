@@ -4,6 +4,7 @@ from datetime import datetime
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, ComplaintUpdate, IST
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -60,6 +61,15 @@ def commissioner_assign_officer(
     )
 
     db.add(update)
+
+    create_notification(
+        db,
+        user_id=officer_id,
+        title="New Ticket Assigned",
+        message=f"You have been assigned to complaint #{complaint.token}: {complaint.title}",
+        notif_type="info",
+    )
+
     db.commit()
 
     return {"message": f"Complaint assigned to {officer.name}"}

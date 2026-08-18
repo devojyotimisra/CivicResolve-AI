@@ -4,6 +4,7 @@ from datetime import datetime
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, ComplaintUpdate, IST
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -26,7 +27,6 @@ def officer_resolve_ticket(
     if complaint.assigned_officer_id != current_user_id:
         raise HTTPException(status_code=403, detail="This ticket is not assigned to you")
 
-    # Title Case status check matching DB storage
     if complaint.status not in ['In Progress', 'On Site']:
         raise HTTPException(status_code=400, detail="Ticket must be in progress or on site to resolve")
 
@@ -49,6 +49,15 @@ def officer_resolve_ticket(
     )
 
     db.add(update)
+
+    create_notification(
+        db,
+        target_role="commissioner",
+        title="Ticket Resolved",
+        message=f"Complaint #{complaint.token}: {complaint.title} has been resolved by {user.name}",
+        notif_type="success",
+    )
+
     db.commit()
 
     return {"message": "Ticket resolved successfully"}

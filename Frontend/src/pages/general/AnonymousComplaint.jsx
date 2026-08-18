@@ -20,7 +20,8 @@ export const AnonymousComplaint = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submittedToken, setSubmittedToken] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -34,7 +35,7 @@ export const AnonymousComplaint = () => {
       return;
     }
 
-    if (!description.trim() && !photoUrl) {
+    if (!description.trim() && !photoFile) {
       toast.error(
         "Please provide either a detailed description or media evidence.",
       );
@@ -51,15 +52,19 @@ export const AnonymousComplaint = () => {
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
-        submittedPhoto: photoUrl || "",
+        photoFile: photoFile,
       };
 
       const result =
         await complaintService.fileAnonymousComplaint(complaintData);
-      setSubmittedToken(result.token);
+
+      const token = result.trackingToken || result.tracking_token;
+      setSubmittedToken(token);
       setIsFormModalOpen(false);
       setConfirmSubmit(false);
-      toast.success("Civic report submitted successfully!");
+      toast.success(
+        "Civic report submitted successfully! AI is processing your report.",
+      );
     } catch (err) {
       toast.error(err.message || "Failed to submit report");
     } finally {
@@ -74,6 +79,24 @@ export const AnonymousComplaint = () => {
       toast.success("Tracking token copied to clipboard!");
       setTimeout(() => setCopied(false), 3000);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveMedia = () => {
+    setPhotoPreview("");
+    setPhotoFile(null);
   };
 
   return (
@@ -164,7 +187,7 @@ export const AnonymousComplaint = () => {
               <div className="space-y-3">
                 <Label>Media Evidence</Label>
 
-                {!photoUrl ? (
+                {!photoPreview ? (
                   <label
                     htmlFor="photo-upload"
                     className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg border-muted-foreground/25 hover:border-primary/50 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer text-center"
@@ -177,47 +200,30 @@ export const AnonymousComplaint = () => {
                         Click to upload evidence
                       </span>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        PNG, JPG, MP4, WEBP up to 20MB
+                        PNG, JPG, JPEG up to 10MB
                       </p>
                     </div>
                     <input
                       id="photo-upload"
                       type="file"
-                      accept="image/*,video/*"
+                      accept="image/png,image/jpeg,image/jpg"
                       className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setPhotoUrl(reader.result);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={handleFileChange}
                     />
                   </label>
                 ) : (
                   <div className="relative w-full max-h-56 overflow-hidden rounded-lg border bg-muted">
-                    {photoUrl.startsWith("data:video") ? (
-                      <video
-                        src={photoUrl}
-                        controls
-                        className="w-full h-56 object-cover"
-                      />
-                    ) : (
-                      <img
-                        src={photoUrl}
-                        alt="Uploaded evidence preview"
-                        className="w-full h-56 object-cover"
-                      />
-                    )}
+                    <img
+                      src={photoPreview}
+                      alt="Uploaded evidence preview"
+                      className="w-full h-56 object-cover"
+                    />
                     <Button
                       type="button"
                       variant="destructive"
                       size="sm"
                       className="absolute top-2 right-2 text-xs h-7 px-3 shadow"
-                      onClick={() => setPhotoUrl("")}
+                      onClick={handleRemoveMedia}
                     >
                       Remove Media
                     </Button>
@@ -232,9 +238,7 @@ export const AnonymousComplaint = () => {
                   className="h-12 px-8 text-base font-bold shadow-lg"
                   disabled={loading}
                 >
-                  {loading
-                    ? "Generating Token..."
-                    : "Submit Anonymous Report Now"}
+                  {loading ? "Submitting..." : "Submit Anonymous Report Now"}
                 </Button>
               </div>
             </form>
@@ -250,7 +254,8 @@ export const AnonymousComplaint = () => {
             setTitle("");
             setDescription("");
             setLocation("");
-            setPhotoUrl("");
+            setPhotoPreview("");
+            setPhotoFile(null);
           }
         }}
       >
@@ -260,8 +265,9 @@ export const AnonymousComplaint = () => {
               Official Tracking Token
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto text-center">
-              Save this 12-character code immediately. It is your ONLY key to
-              track resolution progress and verify resolution photo proof.
+              Save this code immediately. It is your ONLY key to track
+              resolution progress and verify resolution photo proof. AI is
+              analyzing your report in the background.
             </DialogDescription>
           </DialogHeader>
 

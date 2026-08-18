@@ -21,4 +21,3 @@ def commissioner_categories_list(
     return {
         "categories": [{"id": c.id, "name": c.name} for c in categories]
     }
-

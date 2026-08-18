@@ -4,6 +4,7 @@ from datetime import datetime
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, UtilityBill, IST
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -31,6 +32,22 @@ def citizen_pay_bill(
 
     bill.status = 'Paid'
     bill.paid_at = datetime.now(IST)
+
+    create_notification(
+        db,
+        target_role="commissioner",
+        title="Bill Payment Received",
+        message=f"{user.name} paid bill {bill.bill_number} ({bill.bill_type}) — ₹{bill.amount:.2f}",
+        notif_type="success",
+    )
+    create_notification(
+        db,
+        user_id=current_user_id,
+        title="Payment Successful",
+        message=f"Your payment of ₹{bill.amount:.2f} for {bill.bill_type} ({bill.bill_number}) was successful.",
+        notif_type="success",
+    )
+
     db.commit()
 
     return {

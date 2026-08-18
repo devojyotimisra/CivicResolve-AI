@@ -256,15 +256,22 @@ export const CommissionerComplaints = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={comp.severity !== "Critical" || comp.status === "Resolved" || comp.status === "Closed"}
+                            disabled={
+                              comp.severity !== "Critical" ||
+                              comp.status === "Resolved" ||
+                              comp.status === "Closed"
+                            }
                             onClick={() => setSelectedComplaint(comp)}
                             className={`h-8 text-xs font-bold ${
-                              comp.severity === "Critical" && comp.status !== "Resolved" && comp.status !== "Closed"
+                              comp.severity === "Critical" &&
+                              comp.status !== "Resolved" &&
+                              comp.status !== "Closed"
                                 ? "text-primary border-primary/30 hover:bg-primary/10"
                                 : "opacity-50 cursor-not-allowed border-muted/50 text-muted-foreground"
                             }`}
                           >
-                            <UserPlus className="w-3.5 h-3.5 mr-1" /> Assign/Reassign
+                            <UserPlus className="w-3.5 h-3.5 mr-1" />{" "}
+                            Assign/Reassign
                           </Button>
                         </div>
                       </TableCell>

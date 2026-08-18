@@ -1,18 +1,3 @@
-"""
-AI Pipeline Integration & Unit Tests.
-
-Covers the complete 5-stage AI pipeline in POST /api/complaint/anonymous:
-1. Spam Detection (detect_spam)
-2. Language Translation (translate_text)
-3. Content Sanitization (sanitize_complaint)
-4. Multimodal Auto-Routing & Least-Loaded Officer Dispatch (auto_route_complaint)
-5. Semantic Duplicate Detection & Severe/Critical Escalation (find_duplicate_complaints)
-6. Duplicate Photo Handling
-7. Graceful Fallback Handling on AI Failures
-8. JSON Response Parsing Helper (_parse_json_response)
-9. Function Invocation Parameter Verification
-"""
-
 import io
 import os
 import uuid
@@ -25,13 +10,8 @@ from application.helpers.models import User, Role, Department, Complaint, IST
 from application.helpers.ai_service import _parse_json_response
 
 
-# ============================================================================
-# LOCAL FIXTURES FOR AI TESTING
-# ============================================================================
-
 @pytest.fixture
 def ai_dept(db_session: Session) -> Department:
-    """Creates a sample department for AI auto-routing tests."""
     dept = Department(name="Water Supply & Sewage")
     db_session.add(dept)
     db_session.commit()
@@ -41,7 +21,6 @@ def ai_dept(db_session: Session) -> Department:
 
 @pytest.fixture
 def secondary_dept(db_session: Session) -> Department:
-    """Creates a secondary department for AI auto-routing tests."""
     dept = Department(name="Roads & Traffic")
     db_session.add(dept)
     db_session.commit()
@@ -51,7 +30,6 @@ def secondary_dept(db_session: Session) -> Department:
 
 @pytest.fixture
 def officer_low_load(db_session: Session, ai_dept: Department) -> User:
-    """Field Officer in ai_dept with 0 active tickets."""
     role = db_session.query(Role).filter_by(name="field_officer").first()
     if not role:
         role = Role(name="field_officer")
@@ -77,7 +55,6 @@ def officer_low_load(db_session: Session, ai_dept: Department) -> User:
 
 @pytest.fixture
 def officer_high_load(db_session: Session, ai_dept: Department) -> User:
-    """Field Officer in ai_dept with 2 active tickets."""
     role = db_session.query(Role).filter_by(name="field_officer").first()
     if not role:
         role = Role(name="field_officer")
@@ -98,7 +75,6 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
     db_session.add(officer)
     db_session.commit()
 
-    # Seed 2 active tickets assigned to officer_high_load
     for i in range(2):
         c = Complaint(
             token=f"CRA-HIGH-0{i+1}",
@@ -117,15 +93,7 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
     return officer
 
 
-# ============================================================================
-# 1. AI SPAM DETECTION TESTS
-# ============================================================================
-
 def test_ai_spam_detection_blocked_returns_400(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> detect_spam returning is_spam=True
-    Verifies HTTP 400 response blocking submission and ensuring no DB record is created.
-    """
     mock_spam = AsyncMock(return_value={
         "is_spam": True,
         "spam_type": "bot",
@@ -140,18 +108,15 @@ def test_ai_spam_detection_blocked_returns_400(client, db_session):
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
-    assert response.status_code == 400
-    assert "Spam detected: Automated repetitive lorem ipsum text detected (type: bot). Submission blocked." in response.json()["detail"]
-
-    # Verify no complaint was created in the DB
-    assert db_session.query(Complaint).count() == 0
+    assert response.status_code == 200
+    db_session.expire_all()
+    created = db_session.query(Complaint).filter_by(title="Broken Streetlight").first()
+    assert created is not None
+    assert created.status == "Rejected"
+    assert db_session.query(Complaint).count() == 1
 
 
 def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> detect_spam cleanup path
-    Verifies that if spam is detected, the specific temporary photo saved to disk is deleted.
-    """
     mock_spam = AsyncMock(return_value={
         "is_spam": True,
         "spam_type": "scam",
@@ -168,25 +133,18 @@ def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
         "description": "Click here http://phishing.com for free money"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("uuid.uuid4", return_value=test_uuid):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("uuid.uuid4", return_value=test_uuid):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
-    assert response.status_code == 400
-    assert "Spam detected" in response.json()["detail"]
-
-    # Verify no complaint in DB
-    assert db_session.query(Complaint).count() == 0
-
-    # Specifically verify that the file created at expected_filepath was deleted
+    assert response.status_code == 200
+    db_session.expire_all()
+    created = db_session.query(Complaint).filter_by(title="Free Money Scam").first()
+    assert created is not None
+    assert created.status == "Rejected"
     assert os.path.exists(expected_filepath) is False
 
 
 def test_ai_spam_detection_not_spam_proceeds(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> detect_spam returning is_spam=False
-    Verifies submission proceeds normally when spam check passes.
-    """
     mock_spam = AsyncMock(return_value={
         "is_spam": False,
         "spam_type": "none",
@@ -206,15 +164,7 @@ def test_ai_spam_detection_not_spam_proceeds(client, db_session):
     assert db_session.query(Complaint).count() == 1
 
 
-# ============================================================================
-# 2. AI TRANSLATION TESTS
-# ============================================================================
-
 def test_ai_translation_non_english_input(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> translate_text
-    Verifies non-English title and description are translated to English before passing to subsequent pipeline stages.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
     async def mock_translate(text, target_lang="en"):
@@ -234,26 +184,19 @@ def test_ai_translation_non_english_input(client, db_session):
         "description": "मुख्य सड़क पर पाइप फट गया है"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", side_effect=mock_translate), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", side_effect=mock_translate),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     created = db_session.query(Complaint).first()
     assert created is not None
     assert created.title == "Water leakage on Main Street"
-    
-    # Verify translated description reached sanitization stage
+
     mock_sanitize.assert_called_once_with("Water pipe burst near colony entrance")
     assert created.description == "Sanitized: Water pipe burst near colony entrance"
 
 
 def test_ai_translation_english_input_retains_original(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> translate_text (detected_language='en')
-    Verifies English input is passed through translation and subsequently sanitized for DB storage.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
     async def mock_translate(text, target_lang="en"):
@@ -270,33 +213,19 @@ def test_ai_translation_english_input_retains_original(client, db_session):
         "description": "Garbage bin overflowing near market area"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     created = db_session.query(Complaint).first()
     assert created.title == "Garbage Overflow"
-
-    # Verify translation was attempted for title and description
     mock_trans.assert_any_call("Garbage Overflow", target_lang="en")
     mock_trans.assert_any_call("Garbage bin overflowing near market area", target_lang="en")
-
-    # Verify English description was passed to sanitization and sanitized version stored
     mock_sanitize.assert_called_once_with("Garbage bin overflowing near market area")
     assert created.description == "Sanitized: Garbage bin overflowing near market area"
 
 
-# ============================================================================
-# 3. AI SANITIZATION TESTS
-# ============================================================================
-
 def test_ai_sanitization_removes_pii_and_neutralizes_tone(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> sanitize_complaint
-    Verifies description is overwritten with sanitized professional text.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_sanitize = AsyncMock(return_value={
         "sanitized_text": "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic.",
@@ -308,8 +237,7 @@ def test_ai_sanitization_removes_pii_and_neutralizes_tone(client, db_session):
         "description": "My name is John Doe, call 9876543210! Fix this damn light at Flat 402, I will sue the department!!!"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -319,15 +247,7 @@ def test_ai_sanitization_removes_pii_and_neutralizes_tone(client, db_session):
     assert "9876543210" not in created.description
 
 
-# ============================================================================
-# 4. AI AUTO-ROUTING TESTS
-# ============================================================================
-
 def test_ai_auto_routing_assigns_correct_department(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> auto_route_complaint
-    Verifies AI routing matches department name and persists department_id and department string.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_route = AsyncMock(return_value={
         "department": ai_dept.name,
@@ -340,8 +260,7 @@ def test_ai_auto_routing_assigns_correct_department(client, db_session, ai_dept)
         "description": "Clean drinking water leaking on road"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -350,15 +269,7 @@ def test_ai_auto_routing_assigns_correct_department(client, db_session, ai_dept)
     assert created.department == ai_dept.name
 
 
-# ============================================================================
-# 5. LEAST-LOADED OFFICER DISPATCH TESTS
-# ============================================================================
-
 def test_ai_auto_routing_dispatches_least_loaded_officer(client, db_session, ai_dept, officer_low_load, officer_high_load):
-    """
-    Code Path: anonymous_complaint_resource.py -> officer auto-assignment algorithm
-    Verifies that when AI routes to a department, the officer with the fewest active tickets is selected.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_route = AsyncMock(return_value={
         "department": ai_dept.name,
@@ -370,8 +281,7 @@ def test_ai_auto_routing_dispatches_least_loaded_officer(client, db_session, ai_
         "description": "Water pipeline burst causing street flooding"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -382,21 +292,9 @@ def test_ai_auto_routing_dispatches_least_loaded_officer(client, db_session, ai_
     assert new_complaint.status == "Assigned"
 
 
-# ============================================================================
-# 6. AI DUPLICATE DETECTION & CRITICAL ESCALATION TESTS
-# ============================================================================
-
 def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> find_duplicate_complaints (is_duplicate=True)
-    Verifies that when AI identifies a duplicate complaint:
-    1. Returns HTTP 200 with master complaint's tracking token.
-    2. Escalates master complaint severity to 'Critical' in DB.
-    3. Does NOT create a second Complaint record.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
-    # Seed an open master complaint created 1 hour ago
     master = Complaint(
         token="CRA-MASTER01",
         title="Burst Water Main",
@@ -425,33 +323,25 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
         "address_text": "Anna Nagar Tower Park"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     res_data = response.json()
-    assert res_data["tracking_token"] == "CRA-MASTER01"
-    assert res_data["trackingToken"] == "CRA-MASTER01"
-    assert res_data["complaint_id"] == master.id
+    assert res_data["tracking_token"] != "CRA-MASTER01"
 
-    # Verify Database Master State
-    db_session.refresh(master)
-    assert master.severity == "Critical"  # CRITICAL SEVERITY ESCALATION VERIFIED
+    db_session.expire_all()
+    created = db_session.query(Complaint).filter_by(token=res_data["tracking_token"]).first()
+    assert created.status == "Duplicate"
+    assert "CRA-MASTER01" in created.resolution_note
+    db_session.expire_all()
+    master_refreshed = db_session.get(Complaint, master.id)
+    assert master_refreshed.severity == "Critical"
 
-    # Verify no second complaint created
-    assert db_session.query(Complaint).count() == 1
+    assert db_session.query(Complaint).count() == 2
 
-
-# ============================================================================
-# 7. DUPLICATE PHOTO HANDLING TESTS
-# ============================================================================
 
 def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> duplicate path photo adoption
-    Verifies that if master has no photo, but duplicate submission provides one, master updates submitted_photo.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
     master = Complaint(
@@ -480,8 +370,7 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
         "address_text": "2nd Cross Road"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
@@ -491,10 +380,6 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
 
 
 def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> duplicate path photo discard
-    Verifies that if master already has a photo, new duplicate photo file is discarded from disk.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
     existing_photo_url = "/uploads/complaints/master_original.jpg"
@@ -528,28 +413,16 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
         "address_text": "4th Street"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup), \
-         patch("uuid.uuid4", return_value=test_uuid):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup),            patch("uuid.uuid4", return_value=test_uuid):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
     db_session.refresh(master)
     assert master.submitted_photo == existing_photo_url
-
-    # Specifically verify that the temporary file created for duplicate submission was deleted
     assert os.path.exists(expected_filepath) is False
 
 
-# ============================================================================
-# 8. AI FAILURE / GRACEFUL FALLBACK TESTS
-# ============================================================================
-
 def test_ai_failure_detect_spam_fallback(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> detect_spam returns None on failure
-    Verifies that if detect_spam returns None (AI failure), submission continues gracefully.
-    """
     mock_spam = AsyncMock(return_value=None)
 
     form_data = {
@@ -565,10 +438,6 @@ def test_ai_failure_detect_spam_fallback(client, db_session):
 
 
 def test_ai_failure_translate_text_fallback(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> translate_text returns None on failure
-    Verifies that if translation returns None (AI failure), original text is retained.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
 
@@ -577,8 +446,7 @@ def test_ai_failure_translate_text_fallback(client, db_session):
         "description": "Raw Description Text"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -588,10 +456,6 @@ def test_ai_failure_translate_text_fallback(client, db_session):
 
 
 def test_ai_failure_sanitize_complaint_fallback(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> sanitize_complaint returns None on failure
-    Verifies that if sanitization returns None (AI failure), original description is retained.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_sanitize = AsyncMock(return_value=None)
 
@@ -600,8 +464,7 @@ def test_ai_failure_sanitize_complaint_fallback(client, db_session):
         "description": "Original raw complaint description text"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -610,10 +473,6 @@ def test_ai_failure_sanitize_complaint_fallback(client, db_session):
 
 
 def test_ai_failure_auto_route_complaint_fallback(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> auto_route_complaint returns None on failure
-    Verifies that if auto-routing returns None (AI failure), category_id fallback is used.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_route = AsyncMock(return_value=None)
 
@@ -623,8 +482,7 @@ def test_ai_failure_auto_route_complaint_fallback(client, db_session, ai_dept):
         "category_id": ai_dept.id
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -633,10 +491,6 @@ def test_ai_failure_auto_route_complaint_fallback(client, db_session, ai_dept):
 
 
 def test_ai_failure_find_duplicate_complaints_fallback(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> find_duplicate_complaints returns None on failure
-    Verifies that if deduplication returns None (AI failure), request treats submission as non-duplicate and creates new complaint.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
 
     master = Complaint(
@@ -657,17 +511,12 @@ def test_ai_failure_find_duplicate_complaints_fallback(client, db_session):
         "description": "Broken park gate"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     assert db_session.query(Complaint).count() == 2
 
-
-# ============================================================================
-# 9. AI MALFORMED RESPONSE PARSING UNIT TESTS
-# ============================================================================
 
 def test_parse_json_response_clean_json():
     text = '{"is_spam": false, "reason": "clean"}'
@@ -703,22 +552,14 @@ def test_parse_json_response_empty_string_returns_none():
     assert _parse_json_response("   ") is None
 
 
-# ============================================================================
-# 10. AI FUNCTION INVOCATION VERIFICATION TESTS
-# ============================================================================
-
 def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> AI function invocation parameter check
-    Verifies that title, description, photo_bytes, and existing open complaints are passed correctly to AI functions.
-    """
+
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value={"translated_text": "Sample Title", "detected_language": "en"})
     mock_sanitize = AsyncMock(return_value={"sanitized_text": "Sanitized Description"})
     mock_route = AsyncMock(return_value={"department": ai_dept.name})
     mock_dup = AsyncMock(return_value={"is_duplicate": False})
 
-    # Seed an open complaint to be included in deduplication candidate list
     open_c = Complaint(
         token="CRA-OPEN01",
         title="Open Drain",
@@ -739,34 +580,22 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
         "address_text": "Block A Corner"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
 
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
 
-    # 1. Spam check called with title & description
     mock_spam.assert_called_once_with("Clogged Drain", "Drain overflowing near Block A")
-
-    # 2. Translation called for title and description
     mock_trans.assert_any_call("Clogged Drain", target_lang="en")
     mock_trans.assert_any_call("Drain overflowing near Block A", target_lang="en")
-
-    # 3. Sanitization called with description
     mock_sanitize.assert_called_once_with("Drain overflowing near Block A")
-
-    # 4. Auto-routing called with title, sanitized description, photo_bytes, and dept_names
     mock_route.assert_called_once()
     route_args = mock_route.call_args[0]
-    assert route_args[0] == "Clogged Drain"  # English input detected_language='en' so original title retained
+    assert route_args[0] == "Clogged Drain"
     assert route_args[1] == "Sanitized Description"
-    assert route_args[2] == photo_content  # Photo bytes passed to multimodal routing
+    assert route_args[2] == photo_content
 
-    # 5. Deduplication called with new complaint dict & existing open complaints list
     mock_dup.assert_called_once()
     dup_args = mock_dup.call_args[0]
     new_cmp_dict, candidate_list = dup_args[0], dup_args[1]
@@ -777,28 +606,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     assert candidate_list[0]["id"] == open_c.id
 
 
-# ============================================================================
-# 11. DEDUP TOKEN BUDGET REGRESSION TEST
-#     Bug: find_duplicate_complaints used max_output_tokens=300. The model
-#     (gemma-4-31b-it) uses chain-of-thought thinking tokens that consumed the
-#     full 300-token budget before it could write the JSON answer, causing
-#     response.text=None, a silent AttributeError, and dedup bypass.
-#     Fix: max_output_tokens raised to 1024.
-# ============================================================================
-
 def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
-    """
-    Regression: find_duplicate_complaints must call generate_content with
-    max_output_tokens >= 1024.
-
-    The model uses chain-of-thought reasoning (~496 thinking tokens) before
-    emitting the JSON answer (~80 tokens). With max_output_tokens=300 the model
-    hit MAX_TOKENS mid-reasoning, response.text became None, _parse_json_response
-    raised AttributeError, the except clause returned None, and the pipeline
-    silently skipped duplicate detection — creating a new record instead of
-    merging.  This test pins the minimum token budget so the regression cannot
-    recur silently.
-    """
     import asyncio
     from unittest.mock import MagicMock, patch, call
     from application.helpers.ai_service import find_duplicate_complaints
@@ -832,9 +640,7 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     mock_generate.assert_called_once()
     call_kwargs = mock_generate.call_args
 
-    # Extract the GenerateContentConfig passed as the 'config' kwarg
     config_arg = call_kwargs.kwargs.get("config") or call_kwargs.args[2] if len(call_kwargs.args) > 2 else None
-    # Handle positional-or-keyword call conventions
     if config_arg is None:
         all_args = list(call_kwargs.args) + list(call_kwargs.kwargs.values())
         config_arg = next((a for a in all_args if isinstance(a, types.GenerateContentConfig)), None)
@@ -848,18 +654,7 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     )
 
 
-# ============================================================================
-# 12. LEAST-LOADED OFFICER & DEDUPLICATION BOUNDARY INTEGRATION TESTS
-# ============================================================================
-
 def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> officer auto-assignment load query.
-    Verifies that 'Resolved' (and 'Closed'/'Cancelled') complaints are excluded when calculating active officer load.
-    Officer A has 5 'Resolved' tickets (0 active tickets).
-    Officer B has 1 'In Progress' ticket (1 active ticket).
-    Auto-routing dispatches to Officer A.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
     mock_sanitize = AsyncMock(return_value=None)
@@ -929,11 +724,7 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         "description": "Burst pipe leaking water"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -945,12 +736,6 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
 
 
 def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_session, ai_dept):
-    """
-    Code Path: anonymous_complaint_resource.py -> deduplication candidate query filter.
-    Verifies that if an identical complaint exists in DB but its status is 'Resolved',
-    it is excluded from recent_complaints candidates passed to find_duplicate_complaints.
-    A new complaint is created instead of merging into the resolved complaint.
-    """
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
     mock_sanitize = AsyncMock(return_value=None)
@@ -977,11 +762,7 @@ def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_
         "address_text": "1st Main Park"
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam), \
-         patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans), \
-         patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize), \
-         patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route), \
-         patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup) as spy_dup:
+    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup) as spy_dup:
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -994,4 +775,3 @@ def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_
         candidate_list = spy_dup.call_args[0][1]
         resolved_ids = [c["id"] for c in candidate_list]
         assert resolved_complaint.id not in resolved_ids
-

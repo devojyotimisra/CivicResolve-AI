@@ -1,139 +1,89 @@
-import { INITIAL_BILLS, INITIAL_BILL_TYPES } from "@/api/mockSeedData";
-
-const BILLS_KEY = "civic_bills";
-const BILL_TYPES_KEY = "civic_bill_types";
-
-function getBillsFromStorage() {
-  const data = localStorage.getItem(BILLS_KEY);
-  if (!data) {
-    localStorage.setItem(BILLS_KEY, JSON.stringify(INITIAL_BILLS));
-    return INITIAL_BILLS;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return INITIAL_BILLS;
-  }
-}
-
-function saveBillsToStorage(bills) {
-  localStorage.setItem(BILLS_KEY, JSON.stringify(bills));
-}
-
-function getBillTypesFromStorage() {
-  const data = localStorage.getItem(BILL_TYPES_KEY);
-  if (!data) {
-    localStorage.setItem(BILL_TYPES_KEY, JSON.stringify(INITIAL_BILL_TYPES));
-    return INITIAL_BILL_TYPES;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return INITIAL_BILL_TYPES;
-  }
-}
-
-function saveBillTypesToStorage(types) {
-  localStorage.setItem(BILL_TYPES_KEY, JSON.stringify(types));
-}
+import client from "@/api/client";
+import { authService } from "./authService";
 
 export const billService = {
   getUserBills: async (userId) => {
-    await new Promise((res) => setTimeout(res, 300));
-    const bills = getBillsFromStorage();
-    return bills.filter((b) => b.userId === userId);
+    try {
+      const response = await client.get("/citizen/bills");
+      return response.data.bills || response.data;
+    } catch (error) {
+      console.error("Error fetching user bills:", error);
+      throw error;
+    }
   },
 
   getAllBills: async (filters = {}) => {
-    await new Promise((res) => setTimeout(res, 300));
-    let bills = getBillsFromStorage();
-    if (filters.status && filters.status !== "all") {
-      bills = bills.filter((b) => b.status === filters.status);
+    try {
+      const session = authService.getCurrentSession();
+      if (!session) throw new Error("No active session");
+
+      let endpoint = "";
+      if (session.user.role === "citizen") endpoint = "/citizen/bills";
+      else if (session.user.role === "commissioner") endpoint = "/commissioner/bills";
+      else endpoint = "/citizen/bills";
+
+      const response = await client.get(endpoint, { params: filters });
+      return response.data.bills || response.data;
+    } catch (error) {
+      console.error("Error fetching all bills:", error);
+      throw error;
     }
-    if (filters.billType && filters.billType !== "all") {
-      bills = bills.filter((b) => b.billType === filters.billType);
-    }
-    return bills.sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
   },
 
   payBill: async (billId) => {
-    await new Promise((res) => setTimeout(res, 800));
-    const bills = getBillsFromStorage();
-    const index = bills.findIndex((b) => b.id === billId || b.billNumber === billId);
-    if (index === -1) throw new Error("Utility bill not found");
-
-    const bill = bills[index];
-    if (bill.status === "Paid") {
-      throw new Error("This bill has already been paid.");
+    try {
+      const response = await client.post(`/citizen/pay_bill/${billId}`);
+      return response.data.bill || response.data;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error("Failed to pay bill.");
     }
-
-    bill.status = "Paid";
-    bill.paidAt = new Date().toISOString();
-    bill.paymentRef = `TXN_ONLINE_${Math.floor(10000000 + Math.random() * 90000000)}`;
-
-    bills[index] = bill;
-    saveBillsToStorage(bills);
-    return bill;
   },
 
   generateBill: async (billData) => {
-    await new Promise((res) => setTimeout(res, 400));
-    const bills = getBillsFromStorage();
-
-    const newBill = {
-      id: `bill_${Date.now()}`,
-      billNumber: billData.billNumber || `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      userId: billData.userId,
-      citizenName: billData.citizenName,
-      billType: billData.billType,
-      amount: parseFloat(String(billData.amount).replace(/,/g, "")) || 0,
-      dueDate: billData.dueDate,
-      status: "Pending",
-      period: billData.period || "Current Quarter Assessment",
-      generatedAt: new Date().toISOString().split("T")[0]
-    };
-
-    bills.unshift(newBill);
-    saveBillsToStorage(bills);
-    return newBill;
+    try {
+      const response = await client.post("/commissioner/bill", billData);
+      return response.data.bill || response.data;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error("Failed to generate bill.");
+    }
   },
 
   getBillTypes: async () => {
-    await new Promise((res) => setTimeout(res, 200));
-    return getBillTypesFromStorage();
+    try {
+
+      const response = await client.get("/commissioner/bill_types").catch(() => ({ data: [] }));
+      return response.data;
+    } catch (error) {
+      return [];
+    }
   },
 
   saveBillType: async (typeData) => {
-    await new Promise((res) => setTimeout(res, 300));
-    const types = getBillTypesFromStorage();
-
-    if (typeData.id) {
-      const index = types.findIndex((t) => t.id === typeData.id);
-      if (index !== -1) {
-        types[index] = { ...types[index], ...typeData };
-        saveBillTypesToStorage(types);
-        return types[index];
+    try {
+      if (typeData.id) {
+        const response = await client.put(`/commissioner/bill_type/${typeData.id}`, typeData);
+        return response.data;
+      } else {
+        const response = await client.post("/commissioner/bill_type", typeData);
+        return response.data;
       }
+    } catch (error) {
+      throw new Error("Failed to save bill type.");
     }
-
-    const newType = {
-      id: `bt_${Date.now()}`,
-      ...typeData
-    };
-
-    types.push(newType);
-    saveBillTypesToStorage(types);
-    return newType;
   },
 
   deleteBillType: async (typeId) => {
-    await new Promise((res) => setTimeout(res, 200));
-    let types = getBillTypesFromStorage();
-    const filtered = types.filter((t) => t.id !== typeId);
-    if (filtered.length === types.length) {
-      throw new Error("Bill type not found");
+    try {
+      await client.delete(`/commissioner/bill_type/${typeId}`);
+      return true;
+    } catch (error) {
+      throw new Error("Failed to delete bill type.");
     }
-    saveBillTypesToStorage(filtered);
-    return true;
   }
 };

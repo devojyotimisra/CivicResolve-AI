@@ -1,10 +1,3 @@
-"""
-Public & Anonymous Module Integration Tests.
-
-Endpoints Tested:
-- POST /api/complaint/anonymous
-- GET /api/complaint/track/{token}
-"""
 
 import io
 import pytest
@@ -14,13 +7,8 @@ from application.helpers.models import User, Role, Department, Complaint, Compla
 from application.middlewares.init_jwt import create_access_token
 
 
-# ============================================================================
-# LOCAL FIXTURES (PUBLIC DOMAIN SPECIFIC)
-# ============================================================================
-
 @pytest.fixture(autouse=True)
 def seed_roles(db_session: Session):
-    """Ensures default roles exist in db_session."""
     for role_name in ["citizen", "field_officer", "commissioner"]:
         if not db_session.query(Role).filter_by(name=role_name).first():
             db_session.add(Role(name=role_name))
@@ -29,7 +17,6 @@ def seed_roles(db_session: Session):
 
 @pytest.fixture
 def citizen_headers(db_session: Session) -> dict:
-    """Returns JWT Authorization headers for a citizen user (for cross-flow verification)."""
     user = User(
         email="public.citizen@civicresolve.in",
         password=hash_password("Pass123!"),
@@ -46,7 +33,6 @@ def citizen_headers(db_session: Session) -> dict:
 
 @pytest.fixture
 def sample_department(db_session: Session) -> Department:
-    """Creates a sample Department entity in the test database."""
     dept = Department(name="Public Works & Utilities")
     db_session.add(dept)
     db_session.commit()
@@ -54,16 +40,7 @@ def sample_department(db_session: Session) -> Department:
     return dept
 
 
-# ============================================================================
-# ANONYMOUS COMPLAINT CREATION TESTS (POST /api/complaint/anonymous)
-# ============================================================================
-
 def test_anonymous_complaint_creation_success_minimal(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> POST /api/complaint/anonymous
-    Verifies creating an anonymous complaint with minimal required fields (title & description),
-    no auth token required, tracking_token generation, and DB state verification.
-    """
     payload = {
         "title": "Water Leakage on Main Street",
         "description": "Clean drinking water leaking from underground pipe for 2 days"
@@ -77,8 +54,8 @@ def test_anonymous_complaint_creation_success_minimal(client, db_session):
     assert "tracking_token" in data
     assert data["tracking_token"].startswith("CRA-")
 
-    # DB Persistence Verification — description undergoes AI sanitization before storing
     token = data["tracking_token"]
+    db_session.expire_all()
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
     assert complaint.title == "Water Leakage on Main Street"
@@ -89,18 +66,13 @@ def test_anonymous_complaint_creation_success_minimal(client, db_session):
     assert complaint.severity == "Normal"
     assert complaint.department_id is None
 
-    # Initial ComplaintUpdate verification
-    update = db_session.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).first()
+    update = db_session.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.id.desc()).first()
     assert update is not None
     assert update.new_status == "Submitted"
-    assert update.note == "Complaint submitted anonymously"
+    assert update.note == "AI processing completed"
 
 
 def test_anonymous_complaint_creation_with_valid_department_and_location(client, sample_department, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> category_id and address_text parameters.
-    Verifies saving department_id, location, and department link in database.
-    """
     payload = {
         "title": "Pothole near Central Bus Stop",
         "description": "Deep pothole causing traffic slowdown near bus terminal",
@@ -119,10 +91,6 @@ def test_anonymous_complaint_creation_with_valid_department_and_location(client,
 
 
 def test_anonymous_complaint_title_validation_failure(client):
-    """
-    Code Path: anonymous_complaint_resource.py -> validate_title check.
-    Verifies 400 Bad Request for short or empty title.
-    """
     payload = {
         "title": "Bad",
         "description": "Valid description with sufficient length for testing"
@@ -134,10 +102,6 @@ def test_anonymous_complaint_title_validation_failure(client):
 
 
 def test_anonymous_complaint_description_validation_failure(client):
-    """
-    Code Path: anonymous_complaint_resource.py -> validate_description check.
-    Verifies 400 Bad Request for short or empty description.
-    """
     payload = {
         "title": "Valid Long Title Here",
         "description": "Too short"
@@ -149,10 +113,6 @@ def test_anonymous_complaint_description_validation_failure(client):
 
 
 def test_anonymous_complaint_invalid_department(client):
-    """
-    Code Path: anonymous_complaint_resource.py -> category_id existence check.
-    Verifies 400 Bad Request for non-existent category_id.
-    """
     payload = {
         "title": "Valid Long Title Here",
         "description": "Valid description with sufficient length for testing",
@@ -165,10 +125,6 @@ def test_anonymous_complaint_invalid_department(client):
 
 
 def test_anonymous_complaint_file_upload_success(client, db_session):
-    """
-    Code Path: anonymous_complaint_resource.py -> photo upload handling.
-    Verifies uploading valid image file (.jpg) and populating submitted_photo URL.
-    """
     payload = {
         "title": "Broken Streetlight on 5th Cross",
         "description": "Streetlight bulb broken and hanging dangerously"
@@ -188,10 +144,6 @@ def test_anonymous_complaint_file_upload_success(client, db_session):
 
 
 def test_anonymous_complaint_invalid_file_extension(client):
-    """
-    Code Path: anonymous_complaint_resource.py -> file extension validation.
-    Verifies 400 Bad Request for unsupported file extension (.txt).
-    """
     payload = {
         "title": "Broken Streetlight on 5th Cross",
         "description": "Streetlight bulb broken and hanging dangerously"
@@ -206,10 +158,6 @@ def test_anonymous_complaint_invalid_file_extension(client):
 
 
 def test_anonymous_complaint_invalid_mime_type(client):
-    """
-    Code Path: anonymous_complaint_resource.py -> MIME type validation.
-    Verifies 400 Bad Request when MIME type is not image/png or image/jpeg.
-    """
     payload = {
         "title": "Broken Streetlight on 5th Cross",
         "description": "Streetlight bulb broken and hanging dangerously"
@@ -223,16 +171,7 @@ def test_anonymous_complaint_invalid_mime_type(client):
     assert "Invalid MIME type" in response.json()["detail"]
 
 
-# ============================================================================
-# PUBLIC COMPLAINT TRACKING TESTS (GET /api/complaint/track/{token})
-# ============================================================================
-
 def test_public_track_complaint_success(client, sample_department, db_session):
-    """
-    Code Path: track_complaint_resource.py -> GET /api/complaint/track/{token}
-    Verifies tracking a complaint by token without authentication, returning complaint
-    fields and updates audit trail array.
-    """
     complaint = Complaint(
         token="CRA-TRACK01",
         title="Overflowing Dumpster in Market",
@@ -272,24 +211,12 @@ def test_public_track_complaint_success(client, sample_department, db_session):
 
 
 def test_public_track_complaint_not_found(client):
-    """
-    Code Path: track_complaint_resource.py -> non-existent token lookup.
-    Verifies 404 Not Found for invalid token string.
-    """
     response = client.get("/api/complaint/track/CRA-NONEXISTENT")
     assert response.status_code == 404
     assert response.json()["detail"] == "Complaint not found"
 
 
-# ============================================================================
-# CROSS-FLOW REGRESSION & CONSISTENCY TESTS
-# ============================================================================
-
 def test_cross_flow_anonymous_creation_then_public_tracking(client, db_session):
-    """
-    Verifies end-to-end flow: creating an anonymous complaint, retrieving tracking token,
-    and successfully tracking it publicly without authentication.
-    """
     create_payload = {
         "title": "Open Manhole Cover near School",
         "description": "Hazardous open manhole cover right next to primary school gate"
@@ -299,7 +226,6 @@ def test_cross_flow_anonymous_creation_then_public_tracking(client, db_session):
     assert create_resp.status_code == 200
     token = create_resp.json()["tracking_token"]
 
-    # Public unauthenticated tracking call
     track_resp = client.get(f"/api/complaint/track/{token}")
     assert track_resp.status_code == 200
 
@@ -311,10 +237,6 @@ def test_cross_flow_anonymous_creation_then_public_tracking(client, db_session):
 
 
 def test_cross_flow_anonymous_complaint_retrievable_in_public_tracking(client, db_session):
-    """
-    Verifies Phase 9 architecture decision: Anonymously created civic complaints are retrievable
-    via GET /api/complaint/track/{token}.
-    """
     create_payload = {
         "title": "Clogged Storm Drain before Monsoon",
         "description": "Drain filled with plastic bottles causing waterlogging risk"
@@ -323,7 +245,6 @@ def test_cross_flow_anonymous_complaint_retrievable_in_public_tracking(client, d
     assert create_resp.status_code == 200
     token = create_resp.json()["tracking_token"]
 
-    # Public tracking call
     track_resp = client.get(f"/api/complaint/track/{token}")
     assert track_resp.status_code == 200
 

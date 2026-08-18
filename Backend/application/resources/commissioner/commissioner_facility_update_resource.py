@@ -7,6 +7,7 @@ from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
+
 @router.put("/commissioner/facility/{facility_id}")
 def commissioner_update_facility(
     facility_id: int,

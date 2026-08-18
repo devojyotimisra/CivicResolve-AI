@@ -6,6 +6,7 @@ from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
+
 @router.get("/commissioner/bill_types")
 def commissioner_bill_types_list(
     current_user_id: int = Depends(get_current_user_id),

@@ -204,12 +204,15 @@ export const CommissionerFacilities = () => {
     try {
       const payload = {
         ...form,
-        amenities: form.amenities && typeof form.amenities === "string"
-          ? form.amenities
-              .split(",")
-              .map((a) => a.trim())
-              .filter(Boolean)
-          : Array.isArray(form.amenities) ? form.amenities : [],
+        amenities:
+          form.amenities && typeof form.amenities === "string"
+            ? form.amenities
+                .split(",")
+                .map((a) => a.trim())
+                .filter(Boolean)
+            : Array.isArray(form.amenities)
+              ? form.amenities
+              : [],
       };
       if (editing) {
         payload.id = editing.id;
@@ -323,150 +326,153 @@ export const CommissionerFacilities = () => {
 
             <Card className="bg-card/80 border shadow-sm shrink-0 flex items-center">
               <CardContent className="p-4 w-full">
-                <Button onClick={openNew} className="font-bold shadow-md h-9 w-full">
+                <Button
+                  onClick={openNew}
+                  className="font-bold shadow-md h-9 w-full"
+                >
                   <Plus className="w-4 h-4 mr-2" /> Add New Facility
                 </Button>
               </CardContent>
             </Card>
           </div>
 
-      {loading ? (
-        <div className="p-12 text-center text-muted-foreground text-sm">
-          Loading municipal facilities...
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          title="No Facilities Found"
-          description={
-            facilities.length === 0
-              ? "No civic facilities found."
-              : "No facilities match your selected filters."
-          }
-          icon={Building2}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filtered.map((fac) => (
-            <Card
-              key={fac.id}
-              className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between bg-card"
-            >
-              <div>
-                <CardHeader className="pb-3 border-b bg-muted/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <Badge
-                        variant="outline"
-                        className="mb-1.5 text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
-                      >
-                        {fac.facilityType}
-                      </Badge>
-                      <CardTitle className="text-base font-bold leading-tight text-foreground">
-                        {fac.name}
-                      </CardTitle>
-                    </div>
-                    <Badge
-                      className={
-                        fac.isActive
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold text-[10px] shrink-0"
-                          : "bg-muted text-muted-foreground font-bold text-[10px] shrink-0"
-                      }
-                    >
-                      {fac.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-xs text-muted-foreground pt-1 truncate">
-                    {fac.address}
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-4 space-y-4">
-                  {fac.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {fac.description}
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-muted/40 border text-xs">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                      <span className="font-semibold text-foreground">
-                        {fac.capacity}
-                      </span>{" "}
-                      capacity
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <BadgeDollarSign className="w-3.5 h-3.5 text-primary" />
-                      <span className="font-semibold text-foreground">
-                        ₹{fac.pricePerDay?.toLocaleString()}
-                      </span>
-                      /day
-                    </div>
-                  </div>
-
-                  {fac.amenities && fac.amenities.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {fac.amenities.slice(0, 4).map((am, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+          {loading ? (
+            <div className="p-12 text-center text-muted-foreground text-sm">
+              Loading municipal facilities...
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              title="No Facilities Found"
+              description={
+                facilities.length === 0
+                  ? "No civic facilities found."
+                  : "No facilities match your selected filters."
+              }
+              icon={Building2}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filtered.map((fac) => (
+                <Card
+                  key={fac.id}
+                  className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between bg-card"
+                >
+                  <div>
+                    <CardHeader className="pb-3 border-b bg-muted/20">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <Badge
+                            variant="outline"
+                            className="mb-1.5 text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
+                          >
+                            {fac.facilityType}
+                          </Badge>
+                          <CardTitle className="text-base font-bold leading-tight text-foreground">
+                            {fac.name}
+                          </CardTitle>
+                        </div>
+                        <Badge
+                          className={
+                            fac.isActive
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold text-[10px] shrink-0"
+                              : "bg-muted text-muted-foreground font-bold text-[10px] shrink-0"
+                          }
                         >
-                          {am}
-                        </span>
-                      ))}
-                      {fac.amenities.length > 4 && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                          +{fac.amenities.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </div>
+                          {fac.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-xs text-muted-foreground pt-1 truncate">
+                        {fac.address}
+                      </CardDescription>
+                    </CardHeader>
 
-              <CardContent className="p-4 pt-0 mt-auto">
-                <div className="flex items-center gap-2 pt-3 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEdit(fac)}
-                    className="flex-1 font-semibold text-xs border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggle(fac)}
-                    disabled={toggling === fac.id}
-                    className={`flex-1 font-semibold text-xs ${fac.isActive ? "text-destructive border-destructive/30 hover:bg-destructive/10" : "text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"}`}
-                  >
-                    {fac.isActive ? (
-                      <ToggleLeft className="w-3.5 h-3.5 mr-1.5" />
-                    ) : (
-                      <ToggleRight className="w-3.5 h-3.5 mr-1.5" />
-                    )}
-                    {toggling === fac.id
-                      ? "..."
-                      : fac.isActive
-                        ? "Deactivate"
-                        : "Activate"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDeletingFacility(fac)}
-                    className="px-2.5 font-semibold text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
-                    title="Delete Facility"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                    <CardContent className="p-4 space-y-4">
+                      {fac.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {fac.description}
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-muted/40 border text-xs">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          <span className="font-semibold text-foreground">
+                            {fac.capacity}
+                          </span>{" "}
+                          capacity
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <BadgeDollarSign className="w-3.5 h-3.5 text-primary" />
+                          <span className="font-semibold text-foreground">
+                            ₹{fac.pricePerDay?.toLocaleString()}
+                          </span>
+                          /day
+                        </div>
+                      </div>
+
+                      {fac.amenities && fac.amenities.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {fac.amenities.slice(0, 4).map((am, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                            >
+                              {am}
+                            </span>
+                          ))}
+                          {fac.amenities.length > 4 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                              +{fac.amenities.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </div>
+
+                  <CardContent className="p-4 pt-0 mt-auto">
+                    <div className="flex items-center gap-2 pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(fac)}
+                        className="flex-1 font-semibold text-xs border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggle(fac)}
+                        disabled={toggling === fac.id}
+                        className={`flex-1 font-semibold text-xs ${fac.isActive ? "text-destructive border-destructive/30 hover:bg-destructive/10" : "text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"}`}
+                      >
+                        {fac.isActive ? (
+                          <ToggleLeft className="w-3.5 h-3.5 mr-1.5" />
+                        ) : (
+                          <ToggleRight className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {toggling === fac.id
+                          ? "..."
+                          : fac.isActive
+                            ? "Deactivate"
+                            : "Activate"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeletingFacility(fac)}
+                        className="px-2.5 font-semibold text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
+                        title="Delete Facility"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <div className="space-y-6">
@@ -482,7 +488,10 @@ export const CommissionerFacilities = () => {
                 />
               </div>
 
-              <Select value={reservationFilter} onValueChange={setReservationFilter}>
+              <Select
+                value={reservationFilter}
+                onValueChange={setReservationFilter}
+              >
                 <SelectTrigger className="text-xs h-9">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
@@ -618,7 +627,9 @@ export const CommissionerFacilities = () => {
                     <SelectValue placeholder="Select Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Community Hall">Community Hall</SelectItem>
+                    <SelectItem value="Community Hall">
+                      Community Hall
+                    </SelectItem>
                     <SelectItem value="Park">Park</SelectItem>
                     <SelectItem value="Sports Arena">Sports Arena</SelectItem>
                     <SelectItem value="Library">Library</SelectItem>
