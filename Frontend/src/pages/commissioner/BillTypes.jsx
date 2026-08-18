@@ -121,8 +121,6 @@ export const CommissionerBillTypes = () => {
           title="No Bill Types"
           description="No bill types defined yet."
           icon={Tags}
-          actionLabel="Add First Bill Type"
-          onAction={openNew}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

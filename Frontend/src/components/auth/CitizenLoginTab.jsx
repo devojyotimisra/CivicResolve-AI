@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { INITIAL_USERS } from "@/api/mockSeedData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Lock, ArrowRight } from "lucide-react";
 
 export const CitizenLoginTab = () => {
-  const defaultCitizen = INITIAL_USERS.find((u) => u.role === "citizen") || {};
-  const [email, setEmail] = useState(defaultCitizen.email);
-  const [password, setPassword] = useState(defaultCitizen.password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();

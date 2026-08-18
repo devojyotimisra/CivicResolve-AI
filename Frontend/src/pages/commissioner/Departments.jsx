@@ -121,8 +121,6 @@ export const CommissionerDepartments = () => {
           title="No Departments"
           description="No departments defined yet."
           icon={Building2}
-          actionLabel="Add First Department"
-          onAction={openNew}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

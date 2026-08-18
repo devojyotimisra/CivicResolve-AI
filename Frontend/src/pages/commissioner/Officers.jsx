@@ -94,10 +94,15 @@ export const CommissionerOfficers = () => {
     }
     const badgeRegex = /^OFF-\d{3}$/;
     if (!badgeRegex.test(form.badgeId.trim().toUpperCase())) {
-      toast.error("Badge ID must be in the exact format OFF-*** (OFF followed by 3 digits, e.g., OFF-101).");
+      toast.error(
+        "Badge ID must be in the exact format OFF-*** (OFF followed by 3 digits, e.g., OFF-101).",
+      );
       return;
     }
-    setForm((prev) => ({ ...prev, badgeId: prev.badgeId.trim().toUpperCase() }));
+    setForm((prev) => ({
+      ...prev,
+      badgeId: prev.badgeId.trim().toUpperCase(),
+    }));
     setConfirmSave(true);
   };
 
@@ -321,9 +326,7 @@ export const CommissionerOfficers = () => {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">
-                Badge ID *
-              </Label>
+              <Label className="text-xs font-semibold">Badge ID *</Label>
               <Input
                 value={form.badgeId}
                 onChange={(e) => setForm({ ...form, badgeId: e.target.value })}

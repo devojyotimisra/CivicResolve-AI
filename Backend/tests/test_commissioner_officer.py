@@ -1,14 +1,3 @@
-"""
-Commissioner Officer Management Router Integration Tests.
-
-Endpoints Tested:
-- GET /api/commissioner/officers
-- POST /api/commissioner/officer
-- PUT /api/commissioner/officer/{officer_id}
-- DELETE /api/commissioner/officer/{officer_id}
-- PUT /api/commissioner/assign/{complaint_id}
-"""
-
 import pytest
 from sqlalchemy.orm import Session
 from application.extensions.security_extn import hash_password
@@ -16,13 +5,8 @@ from application.helpers.models import User, Role, Department, Complaint, Compla
 from application.middlewares.init_jwt import create_access_token
 
 
-# ============================================================================
-# LOCAL FIXTURES (COMMISSIONER OFFICER MANAGEMENT SPECIFIC)
-# ============================================================================
-
 @pytest.fixture(autouse=True)
 def seed_officer_roles(db_session: Session):
-    """Ensures standard roles (field_officer, commissioner, citizen) exist in db_session."""
     for role_name in ["citizen", "field_officer", "commissioner"]:
         if not db_session.query(Role).filter_by(name=role_name).first():
             db_session.add(Role(name=role_name))
@@ -31,7 +15,6 @@ def seed_officer_roles(db_session: Session):
 
 @pytest.fixture
 def comm_user(db_session: Session) -> User:
-    """Creates a Commissioner user in the test database."""
     role = db_session.query(Role).filter_by(name="commissioner").first()
     user = User(
         email="comm.officertest@civicresolve.in",
@@ -51,14 +34,12 @@ def comm_user(db_session: Session) -> User:
 
 @pytest.fixture
 def comm_headers(comm_user: User) -> dict:
-    """Returns JWT Authorization headers for the commissioner user."""
     token = create_access_token(comm_user.id)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def citizen_headers(db_session: Session) -> dict:
-    """Returns JWT Authorization headers for a citizen user (for 403 authorization checks)."""
     role = db_session.query(Role).filter_by(name="citizen").first()
     user = User(
         email="citizen.commtest@civicresolve.in",
@@ -78,7 +59,6 @@ def citizen_headers(db_session: Session) -> dict:
 
 @pytest.fixture
 def test_department(db_session: Session) -> Department:
-    """Creates a sample Department entity in the test database."""
     dept = Department(name="Health & Sanitation")
     db_session.add(dept)
     db_session.commit()
@@ -88,7 +68,6 @@ def test_department(db_session: Session) -> Department:
 
 @pytest.fixture
 def second_department(db_session: Session) -> Department:
-    """Creates a second Department entity for update testing."""
     dept = Department(name="Roads & Infrastructure")
     db_session.add(dept)
     db_session.commit()
@@ -98,7 +77,6 @@ def second_department(db_session: Session) -> Department:
 
 @pytest.fixture
 def existing_officer(db_session: Session, test_department: Department) -> User:
-    """Creates an existing Field Officer linked to test_department."""
     role = db_session.query(Role).filter_by(name="field_officer").first()
     officer = User(
         email="existing.officer@civicresolve.in",
@@ -122,7 +100,6 @@ def existing_officer(db_session: Session, test_department: Department) -> User:
 
 @pytest.fixture
 def sample_complaint(db_session: Session, test_department: Department) -> Complaint:
-    """Creates a Submitted Complaint in the test database."""
     complaint = Complaint(
         token="CMP-9901",
         title="Broken Streetlight",
@@ -139,14 +116,7 @@ def sample_complaint(db_session: Session, test_department: Department) -> Compla
     return complaint
 
 
-# ============================================================================
-# AUTHORIZATION TESTS
-# ============================================================================
-
 def test_officer_endpoints_unauthorized(client):
-    """
-    Verifies that unauthenticated requests (no JWT token) return 401 Unauthorized across officer endpoints.
-    """
     assert client.get("/api/commissioner/officers").status_code == 401
     assert client.post("/api/commissioner/officer", json={}).status_code == 401
     assert client.put("/api/commissioner/officer/1", json={}).status_code == 401
@@ -155,9 +125,6 @@ def test_officer_endpoints_unauthorized(client):
 
 
 def test_officer_endpoints_forbidden_for_citizen(client, citizen_headers):
-    """
-    Verifies that requests by non-commissioner users (e.g. Citizen) return 403 Forbidden.
-    """
     assert client.get("/api/commissioner/officers", headers=citizen_headers).status_code == 403
     assert client.post("/api/commissioner/officer", json={}, headers=citizen_headers).status_code == 403
     assert client.put("/api/commissioner/officer/1", json={}, headers=citizen_headers).status_code == 403
@@ -165,15 +132,7 @@ def test_officer_endpoints_forbidden_for_citizen(client, citizen_headers):
     assert client.put("/api/commissioner/assign/1", json={}, headers=citizen_headers).status_code == 403
 
 
-# ============================================================================
-# LIST OFFICERS TESTS (GET /api/commissioner/officers)
-# ============================================================================
-
 def test_list_officers_success(client, comm_headers, existing_officer):
-    """
-    Code Path: commissioner_officers_list_resource.py -> GET /api/commissioner/officers
-    Verifies fetching list of officers with complete schema validation.
-    """
     response = client.get("/api/commissioner/officers", headers=comm_headers)
     assert response.status_code == 200
 
@@ -190,15 +149,7 @@ def test_list_officers_success(client, comm_headers, existing_officer):
     assert matched["active"] is True
 
 
-# ============================================================================
-# CREATE OFFICER TESTS (POST /api/commissioner/officer)
-# ============================================================================
-
 def test_create_officer_by_department_id(client, comm_headers, test_department, db_session):
-    """
-    Code Path: commissioner_officer_add_resource.py -> POST /api/commissioner/officer (dept numeric ID)
-    Verifies creating officer by department_id and confirms BOTH department_id and department string are populated in DB.
-    """
     payload = {
         "email": "new.officer1@civicresolve.in",
         "name": "Officer Alice",
@@ -211,7 +162,6 @@ def test_create_officer_by_department_id(client, comm_headers, test_department, 
     assert response.status_code == 200
     assert response.json()["message"] == "Officer Officer Alice created successfully"
 
-    # Database Verification: both department_id and department string must be populated
     officer_db = db_session.query(User).filter_by(email="new.officer1@civicresolve.in").first()
     assert officer_db is not None
     assert officer_db.department_id == test_department.id
@@ -221,10 +171,6 @@ def test_create_officer_by_department_id(client, comm_headers, test_department, 
 
 
 def test_create_officer_by_department_name(client, comm_headers, test_department, db_session):
-    """
-    Code Path: commissioner_officer_add_resource.py -> POST /api/commissioner/officer (dept name string)
-    Verifies creating officer by department name resolution.
-    """
     payload = {
         "email": "new.officer2@civicresolve.in",
         "name": "Officer Charlie",
@@ -243,10 +189,6 @@ def test_create_officer_by_department_name(client, comm_headers, test_department
 
 
 def test_create_officer_invalid_department(client, comm_headers):
-    """
-    Code Path: commissioner_officer_add_resource.py -> non-existent department lookup fails.
-    Verifies 400 Bad Request rejection for invalid department.
-    """
     payload = {
         "email": "invalid.dept@civicresolve.in",
         "name": "Officer Unknown",
@@ -259,10 +201,6 @@ def test_create_officer_invalid_department(client, comm_headers):
 
 
 def test_create_officer_missing_department(client, comm_headers):
-    """
-    Code Path: commissioner_officer_add_resource.py -> department missing/empty.
-    Verifies 400 Bad Request when department is omitted.
-    """
     payload = {
         "email": "nodept@civicresolve.in",
         "name": "Officer NoDept"
@@ -274,10 +212,6 @@ def test_create_officer_missing_department(client, comm_headers):
 
 
 def test_create_officer_duplicate_email(client, comm_headers, existing_officer):
-    """
-    Code Path: commissioner_officer_add_resource.py -> duplicate email check.
-    Verifies 409 Conflict when attempting to use an existing email.
-    """
     payload = {
         "email": existing_officer.email,
         "name": "Duplicate Email Officer",
@@ -290,10 +224,6 @@ def test_create_officer_duplicate_email(client, comm_headers, existing_officer):
 
 
 def test_create_officer_duplicate_badge_id(client, comm_headers, existing_officer, test_department):
-    """
-    Code Path: commissioner_officer_add_resource.py -> duplicate badge_id check.
-    Verifies 409 Conflict when attempting to use an existing badge_id.
-    """
     payload = {
         "email": "unique.email@civicresolve.in",
         "name": "Duplicate Badge Officer",
@@ -307,11 +237,7 @@ def test_create_officer_duplicate_badge_id(client, comm_headers, existing_office
 
 
 def test_create_officer_invalid_name_or_email(client, comm_headers, test_department):
-    """
-    Code Path: commissioner_officer_add_resource.py -> validate_email & validate_name checks.
-    Verifies 400 Bad Request for malformed email or name.
-    """
-    # Invalid email
+
     resp1 = client.post("/api/commissioner/officer", json={
         "email": "bad-email",
         "name": "Valid Name",
@@ -319,7 +245,6 @@ def test_create_officer_invalid_name_or_email(client, comm_headers, test_departm
     }, headers=comm_headers)
     assert resp1.status_code == 400
 
-    # Short name
     resp2 = client.post("/api/commissioner/officer", json={
         "email": "valid.email@civicresolve.in",
         "name": "A",
@@ -328,15 +253,7 @@ def test_create_officer_invalid_name_or_email(client, comm_headers, test_departm
     assert resp2.status_code == 400
 
 
-# ============================================================================
-# UPDATE OFFICER TESTS (PUT /api/commissioner/officer/{officer_id})
-# ============================================================================
-
 def test_update_officer_success(client, comm_headers, existing_officer, db_session):
-    """
-    Code Path: commissioner_officer_update_resource.py -> PUT /api/commissioner/officer/{id}
-    Verifies updating officer attributes (name, phone, badgeId, active status).
-    """
     payload = {
         "name": "Officer Bob Updated",
         "phone": "9998887776",
@@ -348,7 +265,6 @@ def test_update_officer_success(client, comm_headers, existing_officer, db_sessi
     assert response.status_code == 200
     assert response.json()["message"] == "Officer updated successfully"
 
-    # Database Verification
     db_session.refresh(existing_officer)
     assert existing_officer.name == "Officer Bob Updated"
     assert existing_officer.phone == "9998887776"
@@ -356,10 +272,6 @@ def test_update_officer_success(client, comm_headers, existing_officer, db_sessi
 
 
 def test_update_officer_department(client, comm_headers, existing_officer, second_department, db_session):
-    """
-    Code Path: commissioner_officer_update_resource.py -> update department.
-    Verifies changing officer department and confirms BOTH department_id and department string update.
-    """
     payload = {
         "department_id": second_department.id
     }
@@ -373,10 +285,6 @@ def test_update_officer_department(client, comm_headers, existing_officer, secon
 
 
 def test_update_officer_invalid_department(client, comm_headers, existing_officer):
-    """
-    Code Path: commissioner_officer_update_resource.py -> invalid department.
-    Verifies 400 Bad Request when updating to an invalid department.
-    """
     payload = {
         "department": "FakeDepartment99"
     }
@@ -387,24 +295,12 @@ def test_update_officer_invalid_department(client, comm_headers, existing_office
 
 
 def test_update_non_existent_officer(client, comm_headers):
-    """
-    Code Path: commissioner_officer_update_resource.py -> officer not found.
-    Verifies 404 Not Found for non-existent officer ID.
-    """
     response = client.put("/api/commissioner/officer/99999", json={"name": "Ghost"}, headers=comm_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Officer not found"
 
 
-# ============================================================================
-# DELETE / DEACTIVATE OFFICER TESTS (DELETE /api/commissioner/officer/{officer_id})
-# ============================================================================
-
 def test_delete_officer_soft_delete(client, comm_headers, existing_officer, db_session):
-    """
-    Code Path: commissioner_officer_delete_resource.py -> DELETE /api/commissioner/officer/{id}
-    Verifies soft deactivation of officer (is_active = False).
-    """
     response = client.delete(f"/api/commissioner/officer/{existing_officer.id}", headers=comm_headers)
     assert response.status_code == 200
     assert response.json()["message"] == "Officer deactivated successfully"
@@ -414,24 +310,12 @@ def test_delete_officer_soft_delete(client, comm_headers, existing_officer, db_s
 
 
 def test_delete_non_existent_officer(client, comm_headers):
-    """
-    Code Path: commissioner_officer_delete_resource.py -> officer not found.
-    Verifies 404 Not Found when deleting non-existent officer ID.
-    """
     response = client.delete("/api/commissioner/officer/99999", headers=comm_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Officer not found"
 
 
-# ============================================================================
-# ASSIGN OFFICER TESTS (PUT /api/commissioner/assign/{complaint_id})
-# ============================================================================
-
 def test_assign_officer_success(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> PUT /api/commissioner/assign/{complaint_id}
-    Verifies assigning an active officer to a severe complaint, status transition, and audit trail creation.
-    """
     sample_complaint.severity = "Critical"
     db_session.commit()
 
@@ -444,14 +328,12 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
     assert response.status_code == 200
     assert response.json()["message"] == f"Complaint assigned to {existing_officer.name}"
 
-    # Database Verification
     db_session.refresh(sample_complaint)
     assert sample_complaint.assigned_officer_id == existing_officer.id
     assert sample_complaint.assigned_officer_name == existing_officer.name
     assert sample_complaint.status == "Assigned"
     assert sample_complaint.severity == "Critical"
 
-    # Verify ComplaintUpdate audit trail created
     audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=sample_complaint.id).first()
     assert audit is not None
     assert audit.old_status == "Submitted"
@@ -459,10 +341,6 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
 
 
 def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
-    Verifies 400 Bad Request when attempting to assign an officer to a Normal severity complaint.
-    """
     sample_complaint.severity = "Normal"
     db_session.commit()
 
@@ -472,17 +350,12 @@ def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
 
-    # Ensure complaint severity and assignment were not modified
     db_session.refresh(sample_complaint)
     assert sample_complaint.severity == "Normal"
     assert sample_complaint.assigned_officer_id is None
 
 
 def test_assign_officer_low_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
-    Verifies 400 Bad Request when attempting to assign an officer to a Low severity complaint.
-    """
     sample_complaint.severity = "Low"
     db_session.commit()
 
@@ -498,10 +371,6 @@ def test_assign_officer_low_severity_fails(client, comm_headers, sample_complain
 
 
 def test_assign_officer_high_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
-    Verifies 400 Bad Request when attempting to assign an officer to a High severity complaint.
-    """
     sample_complaint.severity = "High"
     db_session.commit()
 
@@ -517,11 +386,6 @@ def test_assign_officer_high_severity_fails(client, comm_headers, sample_complai
 
 
 def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> severe complaint check.
-    Verifies 400 Bad Request when non-Critical complaint supplies {"severity": "Critical"} in request body.
-    Confirming that a non-Critical complaint cannot bypass the severity restriction.
-    """
     sample_complaint.severity = "Normal"
     db_session.commit()
 
@@ -540,10 +404,6 @@ def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_compla
 
 
 def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> deactivated officer check.
-    Verifies 400 Bad Request when assigning a deactivated officer.
-    """
     sample_complaint.severity = "Critical"
     existing_officer.is_active = False
     db_session.commit()
@@ -558,10 +418,6 @@ def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint
 
 
 def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> invalid officer check.
-    Verifies 400 Bad Request when assigning a non-existent officer ID.
-    """
     sample_complaint.severity = "Critical"
     db_session.commit()
 
@@ -573,10 +429,6 @@ def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db
 
 
 def test_assign_non_existent_complaint(client, comm_headers, existing_officer):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> complaint not found.
-    Verifies 404 Not Found when assigning to a non-existent complaint ID.
-    """
     payload = {"officer_id": existing_officer.id}
     response = client.put("/api/commissioner/assign/99999", json=payload, headers=comm_headers)
     assert response.status_code == 404
@@ -584,10 +436,6 @@ def test_assign_non_existent_complaint(client, comm_headers, existing_officer):
 
 
 def test_assign_missing_officer_id(client, comm_headers, sample_complaint, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> missing officer_id.
-    Verifies 400 Bad Request when officer_id is omitted.
-    """
     sample_complaint.severity = "Critical"
     db_session.commit()
 
@@ -597,13 +445,6 @@ def test_assign_missing_officer_id(client, comm_headers, sample_complaint, db_se
 
 
 def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_headers, sample_complaint, existing_officer, db_session, test_department):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> reassign active Critical complaint.
-    Verifies reassigning an 'In Progress' Critical complaint to a new officer:
-    1. Updates assigned_officer_id and assigned_officer_name.
-    2. Preserves status as 'In Progress' (does not reset to 'Assigned').
-    3. Adds ComplaintUpdate audit log with old_status='In Progress', new_status='In Progress'.
-    """
     second_officer = User(
         email="second.officer@civicresolve.in",
         password=hash_password("OfficerPass123!"),
@@ -644,10 +485,6 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
 
 
 def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, sample_complaint, db_session):
-    """
-    Code Path: commissioner_assign_officer_resource.py -> officer role check.
-    Verifies 400 Bad Request when attempting to assign a user who exists in DB but lacks 'field_officer' role (e.g. Citizen).
-    """
     role = db_session.query(Role).filter_by(name="citizen").first()
     non_officer = User(
         email="citizen.target@civicresolve.in",
@@ -671,4 +508,3 @@ def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, s
 
     db_session.refresh(sample_complaint)
     assert sample_complaint.assigned_officer_id is None
-

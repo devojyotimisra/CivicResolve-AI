@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { billService } from "@/services/billService";
-import { authService } from "@/services/authService";
+import { adminService } from "@/services/adminService";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,11 +60,11 @@ export const CommissionerBills = () => {
     try {
       const [billData, users, types] = await Promise.all([
         billService.getAllBills(),
-        Promise.resolve(authService.getUsers()),
+        adminService.getCitizens(),
         billService.getBillTypes(),
       ]);
       setBills(billData);
-      setCitizens(users.filter((u) => u.role === "citizen"));
+      setCitizens(users);
       setBillTypes(types);
     } catch {
       toast.error("Failed to load billing records");

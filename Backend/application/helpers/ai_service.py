@@ -1,5 +1,4 @@
 import json
-import base64
 import asyncio
 from functools import lru_cache
 from google import genai
@@ -7,7 +6,7 @@ from google.genai import types
 from application.helpers.config import Config
 
 
-MODEL = "gemma-4-31b-it"
+MODEL = Config.GEMINI_MODEL
 
 
 @lru_cache(maxsize=1)
@@ -16,7 +15,6 @@ def _get_client():
 
 
 def _parse_json_response(text: str) -> dict | None:
-    """Extract and parse JSON from model response text."""
     text = text.strip()
     if text.startswith("```"):
         lines = text.split("\n")
@@ -54,7 +52,7 @@ Complaint Title: {title}
 Complaint Description: {description}
 
 Respond ONLY with valid JSON:
-{{"is_spam": true/false, "spam_type": "bot"/"scam"/"spam"/"outdated"/"none", "reason": "brief explanation"}}"""
+{"is_spam": true/false, "spam_type": "bot"/"scam"/"spam"/"outdated"/"none", "reason": "brief explanation"} """
 
         response = await asyncio.to_thread(
             client.models.generate_content,
@@ -82,7 +80,7 @@ If the text is already in {target_lang}, return it as-is.
 Text: {text}
 
 Respond ONLY with valid JSON:
-{{"translated_text": "the translated text here", "detected_language": "two-letter ISO 639-1 code like en, hi, bn, ta, te, mr, gu, kn, ml"}}"""
+{"translated_text": "the translated text here", "detected_language": "two-letter ISO 639-1 code like en, hi, bn, ta, te, mr, gu, kn, ml"} """
 
         response = await asyncio.to_thread(
             client.models.generate_content,
@@ -112,7 +110,7 @@ Original complaint:
 {description}
 
 Respond ONLY with valid JSON:
-{{"sanitized_text": "the rewritten professional description here", "summary": "one-line factual summary under 100 characters"}}"""
+{"sanitized_text": "the rewritten professional description here", "summary": "one-line factual summary under 100 characters"} """
 
         response = await asyncio.to_thread(
             client.models.generate_content,
@@ -134,10 +132,6 @@ async def auto_route_complaint(
     photo_bytes: bytes | None,
     department_names: list[str],
 ) -> dict | None:
-    """
-    Analyze complaint text and optional photo to determine the correct department.
-    Returns: {"department": str, "confidence": float, "reasoning": str}
-    """
     try:
         client = _get_client()
         dept_list = ", ".join(f'"{d}"' for d in department_names)
@@ -157,7 +151,7 @@ Rules:
 - confidence should be a float between 0.0 and 1.0
 
 Respond ONLY with valid JSON:
-{{"department": "exact department name from list", "confidence": 0.0-1.0, "reasoning": "brief explanation"}}"""
+{"department": "exact department name from list", "confidence": 0.0-1.0, "reasoning": "brief explanation"} """
 
         contents = [prompt]
         if photo_bytes:
@@ -221,9 +215,9 @@ EXISTING OPEN COMPLAINTS:
 {existing_json}
 
 Respond ONLY with valid JSON. If duplicate found, use the FIRST matching complaint:
-{{"is_duplicate": true, "master_id": <id of matching complaint>, "master_token": "<token of matching complaint>", "reason": "brief explanation"}}
+{{ "is_duplicate": true, "master_id": <id of matching complaint>, "master_token": "<token of matching complaint>", "reason": "brief explanation"}} 
 OR
-{{"is_duplicate": false}}"""
+{{ "is_duplicate": false}} """
 
         response = await asyncio.to_thread(
             client.models.generate_content,
@@ -235,5 +229,6 @@ OR
             ),
         )
         return _parse_json_response(response.text)
-    except Exception:
+    except Exception as e:
+        print(f"Exception in find_duplicate_complaints: {e}")
         return None

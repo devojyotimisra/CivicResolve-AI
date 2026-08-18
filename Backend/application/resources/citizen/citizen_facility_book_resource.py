@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Facility, FacilityBooking
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -70,6 +71,22 @@ def citizen_book_facility(
     )
 
     db.add(booking)
+
+    create_notification(
+        db,
+        user_id=current_user_id,
+        title="Booking Confirmed",
+        message=f"Your booking for {facility.name} on {booking_date.isoformat()} is confirmed. Ref: {booking_ref}",
+        notif_type="success",
+    )
+    create_notification(
+        db,
+        target_role="commissioner",
+        title="New Facility Booking",
+        message=f"{user.name} booked {facility.name} for {booking_date.isoformat()} (Ref: {booking_ref})",
+        notif_type="info",
+    )
+
     db.commit()
     db.refresh(booking)
 

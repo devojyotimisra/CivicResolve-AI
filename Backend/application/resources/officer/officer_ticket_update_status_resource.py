@@ -4,6 +4,7 @@ from datetime import datetime
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Complaint, ComplaintUpdate, IST
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -57,6 +58,15 @@ def officer_update_ticket_status(
     )
 
     db.add(update)
+
+    create_notification(
+        db,
+        target_role="commissioner",
+        title="Ticket Status Updated",
+        message=f"Complaint #{complaint.token} status changed from {old_status} to {new_status} by {user.name}",
+        notif_type="info",
+    )
+
     db.commit()
 
     return {"message": f"Status updated to {new_status}"}

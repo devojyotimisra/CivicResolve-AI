@@ -7,7 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { INITIAL_NOTIFICATIONS } from "@/api/mockSeedData";
+import { notificationService } from "@/services/notificationService";
 import { toast } from "sonner";
 
 const NotificationContext = createContext(null);
@@ -21,152 +21,109 @@ export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
 
-  useEffect(() => {
+  const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !user?.role) {
       setNotifications([]);
       return;
     }
 
-    const storageKey = `civic_notifications_${user.id || user.role}`;
-    const defaults = INITIAL_NOTIFICATIONS[user.role] || [];
-    const stored = localStorage.getItem(storageKey);
-    let currentList = [];
-
-    if (stored) {
-      try {
-        currentList = JSON.parse(stored);
-      } catch {
-        currentList = [];
-      }
+    try {
+      const data = await notificationService.getAll();
+      setNotifications(sortNotifs(data));
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      setNotifications([]);
     }
-
-    const syncedDefaults = defaults.map((seedNotif) => {
-      const existing = currentList.find((n) => n.id === seedNotif.id);
-      return existing ? { ...existing, ...seedNotif } : seedNotif;
-    });
-
-    const customNotifs = currentList.filter(
-      (n) => !defaults.some((seed) => seed.id === n.id),
-    );
-    const finalList = sortNotifs([...syncedDefaults, ...customNotifs]);
-
-    setNotifications(finalList);
-    localStorage.setItem(storageKey, JSON.stringify(finalList));
   }, [isAuthenticated, user]);
 
-  const saveToStorage = useCallback(
-    (updatedList) => {
-      if (!isAuthenticated || !user?.role) return;
-      const storageKey = `civic_notifications_${user.id || user.role}`;
-      localStorage.setItem(storageKey, JSON.stringify(updatedList));
-    },
-    [isAuthenticated, user],
-  );
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
-  const markAsRead = useCallback(
-    (id) => {
-      setNotifications((prev) => {
-        const updated = sortNotifs(
+  const markAsRead = useCallback(async (id) => {
+    try {
+      const updated = await notificationService.markAsRead(id);
+      setNotifications((prev) =>
+        sortNotifs(
           prev.map((item) =>
             item.id === id ? { ...item, isRead: true } : item,
           ),
-        );
-        saveToStorage(updated);
-        return updated;
-      });
-    },
-    [saveToStorage],
-  );
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+      toast.error("Failed to mark notification as read");
+    }
+  }, []);
 
-  const markAsUnread = useCallback(
-    (id) => {
-      setNotifications((prev) => {
-        const updated = sortNotifs(
+  const markAsUnread = useCallback(async (id) => {
+    try {
+      await notificationService.markAsUnread(id);
+      setNotifications((prev) =>
+        sortNotifs(
           prev.map((item) =>
             item.id === id ? { ...item, isRead: false } : item,
           ),
-        );
-        saveToStorage(updated);
-        return updated;
-      });
-    },
-    [saveToStorage],
-  );
-
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => {
-      const updated = sortNotifs(
-        prev.map((item) => ({ ...item, isRead: true })),
+        ),
       );
-      saveToStorage(updated);
+    } catch (error) {
+      console.error("Failed to mark as unread:", error);
+      toast.error("Failed to mark notification as unread");
+    }
+  }, []);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((prev) =>
+        sortNotifs(prev.map((item) => ({ ...item, isRead: true }))),
+      );
       toast.success("All notifications marked as read");
-      return updated;
-    });
-  }, [saveToStorage]);
-
-  const deleteNotification = useCallback(
-    (id) => {
-      setNotifications((prev) => {
-        const updated = sortNotifs(prev.filter((item) => item.id !== id));
-        saveToStorage(updated);
-        return updated;
-      });
-    },
-    [saveToStorage],
-  );
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-    saveToStorage([]);
-    toast.info("Cleared all notifications");
-  }, [saveToStorage]);
-
-  const addNotification = useCallback(
-    (notif) => {
-      const newNotif = {
-        id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        createdAt: new Date().toISOString(),
-        isRead: false,
-        ...notif,
-      };
-
-      setNotifications((prev) => {
-        const updated = sortNotifs([newNotif, ...prev]);
-        saveToStorage(updated);
-        return updated;
-      });
-
-      toast[
-        newNotif.notifType === "alert" ? "error" : newNotif.notifType || "info"
-      ](newNotif.title, {
-        description: newNotif.message,
-      });
-    },
-    [saveToStorage],
-  );
-
-  const simulateNewNotification = useCallback(() => {
-    if (!user?.role) {
-      toast.error("Please log in to simulate notifications");
-      return;
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+      toast.error("Failed to mark all as read");
     }
+  }, []);
 
-    const pool =
-      INITIAL_NOTIFICATIONS[user.role] || INITIAL_NOTIFICATIONS.citizen || [];
-    if (!pool.length) return;
-    const randomNotif = pool[Math.floor(Math.random() * pool.length)];
-    addNotification({
-      title: randomNotif.title,
-      message: randomNotif.message,
-      notifType: randomNotif.notifType,
-    });
-  }, [user, addNotification]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.simulateNotification = simulateNewNotification;
+  const deleteNotification = useCallback(async (id) => {
+    try {
+      await notificationService.deleteOne(id);
+      setNotifications((prev) =>
+        sortNotifs(prev.filter((item) => item.id !== id)),
+      );
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+      toast.error("Failed to delete notification");
     }
-  }, [simulateNewNotification]);
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    try {
+      await notificationService.clearAll();
+      setNotifications([]);
+      toast.info("Cleared all notifications");
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+      toast.error("Failed to clear notifications");
+    }
+  }, []);
+
+  const addNotification = useCallback((notif) => {
+    const newNotif = {
+      id: notif.id || `temp-${Date.now()}`,
+      createdAt: notif.createdAt || new Date().toISOString(),
+      isRead: false,
+      ...notif,
+    };
+
+    setNotifications((prev) => sortNotifs([newNotif, ...prev]));
+
+    toast[
+      newNotif.notifType === "alert" ? "error" : newNotif.notifType || "info"
+    ](newNotif.title, {
+      description: newNotif.message,
+    });
+  }, []);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.isRead).length,
@@ -183,7 +140,7 @@ export const NotificationProvider = ({ children }) => {
       deleteNotification,
       clearAll,
       addNotification,
-      simulateNewNotification,
+      refetch: fetchNotifications,
     }),
     [
       notifications,
@@ -194,7 +151,7 @@ export const NotificationProvider = ({ children }) => {
       deleteNotification,
       clearAll,
       addNotification,
-      simulateNewNotification,
+      fetchNotifications,
     ],
   );
 

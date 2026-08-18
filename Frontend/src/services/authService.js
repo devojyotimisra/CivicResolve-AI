@@ -1,84 +1,54 @@
-import { INITIAL_USERS } from "@/api/mockSeedData";
+import client from "@/api/client";
 
-const USERS_KEY = "civic_users";
 const SESSION_KEY = "civic_current_session";
-
-function getUsersFromStorage() {
-  const data = localStorage.getItem(USERS_KEY);
-  if (!data) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
-    return INITIAL_USERS;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
-    return INITIAL_USERS;
-  }
-}
-
-function saveUsersToStorage(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
 
 export const authService = {
   login: async (emailOrBadge, password, role) => {
-    await new Promise((res) => setTimeout(res, 400));
-    const users = getUsersFromStorage();
+    try {
+      const response = await client.post("/login", {
+        email: emailOrBadge,
+        password: password,
+        role: role
+      });
 
-    const user = users.find((u) => {
-      if (u.badgeId && String(u.badgeId).toLowerCase() === String(emailOrBadge).toLowerCase() && u.password === password && u.role === role) {
-        return true;
+      const sessionData = {
+        token: response.data.token,
+        user: response.data.user
+      };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+      localStorage.setItem("civic_auth_token", sessionData.token);
+      return sessionData;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
       }
-      return u.email?.toLowerCase() === emailOrBadge.toLowerCase() && u.password === password && u.role === role;
-    });
-
-    if (!user) {
-      throw new Error(`Invalid credentials for ${role.toUpperCase()} portal. Please verify your email/ID and password.`);
+      throw new Error(`Invalid credentials for ${role.toUpperCase()} portal. Please verify your details.`);
     }
-
-    if (user.isActive === false) {
-      throw new Error("This account has been deactivated by system administration.");
-    }
-
-    const sessionData = {
-      token: `jwt_mock_${user.id}_${Date.now()}`,
-      user: user,
-    };
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-    localStorage.setItem("civic_auth_token", sessionData.token);
-    return sessionData;
   },
 
   signup: async (userData) => {
-    await new Promise((res) => setTimeout(res, 500));
-    const users = getUsersFromStorage();
+    try {
 
-    if (users.some((u) => u.email?.toLowerCase() === userData.email?.toLowerCase())) {
-      throw new Error("An account with this email address already exists.");
+      const response = await client.post("/signup", userData);
+
+      const sessionData = {
+        token: response.data.token,
+        user: response.data.user
+      };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+      localStorage.setItem("civic_auth_token", sessionData.token);
+      return sessionData;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error("An error occurred during signup.");
     }
-
-    const newUser = {
-      id: `usr_citizen_${Date.now()}`,
-      role: "citizen",
-      ...userData,
-    };
-
-    users.push(newUser);
-    saveUsersToStorage(users);
-
-    const sessionData = {
-      token: `jwt_mock_${newUser.id}_${Date.now()}`,
-      user: newUser,
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-    localStorage.setItem("civic_auth_token", sessionData.token);
-    return sessionData;
   },
 
   logout: async () => {
-    await new Promise((res) => setTimeout(res, 200));
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem("civic_auth_token");
   },
@@ -94,25 +64,50 @@ export const authService = {
   },
 
   updateProfile: async (userId, updatedData) => {
-    await new Promise((res) => setTimeout(res, 400));
-    const users = getUsersFromStorage();
-    const index = users.findIndex((u) => u.id === userId);
-    if (index === -1) throw new Error("User not found");
+    try {
+      const session = authService.getCurrentSession();
+      if (!session) throw new Error("No active session");
 
-    const updatedUser = { ...users[index], ...updatedData };
-    users[index] = updatedUser;
-    saveUsersToStorage(users);
 
-    const session = authService.getCurrentSession();
-    if (session && session.user.id === userId) {
-      session.user = updatedUser;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      let endpoint = "";
+      if (session.user.role === "citizen") endpoint = "/citizen/edit_profile";
+      else if (session.user.role === "commissioner") endpoint = "/commissioner/edit_profile";
+      else if (session.user.role === "officer") endpoint = "/officer/edit_profile";
+      else throw new Error("Invalid role");
+
+      await client.put(endpoint, updatedData);
+
+
+      let fetchEndpoint = "";
+      if (session.user.role === "citizen") fetchEndpoint = "/citizen/profile";
+      else if (session.user.role === "commissioner") fetchEndpoint = "/commissioner/profile";
+      else if (session.user.role === "officer") fetchEndpoint = "/officer/profile";
+
+      const updatedUserRes = await client.get(fetchEndpoint);
+
+
+
+      const newUser = {
+        ...session.user,
+        ...updatedUserRes.data,
+        role: session.user.role,
+      };
+
+      const newSession = {
+        ...session,
+        user: newUser,
+      };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+      return newSession.user;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error("Failed to update profile.");
     }
-
-    return updatedUser;
-  },
-
-  getUsers: () => {
-    return getUsersFromStorage();
   }
 };
