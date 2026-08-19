@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from application.extensions.db_extn import get_db
-from application.helpers.models import User
+from application.helpers.models import User, Complaint
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.schemas import UserSchema
+from typing import List
 
 router = APIRouter()
 
 
-@router.get("/commissioner/officers")
+@router.get("/commissioner/officers", response_model=dict[str, List[UserSchema]])
 def commissioner_officers_list(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -21,20 +23,27 @@ def commissioner_officers_list(
         or_(User.role == 'field_officer', User.roles.any(name='field_officer'))
     ).order_by(User.name.asc()).all()
 
-    officers_data = []
+    result = []
     for o in officers:
-        created_at_val = getattr(o, 'created_at', None)
-        created_at_str = created_at_val.isoformat() if created_at_val and hasattr(created_at_val, 'isoformat') else None
-        officers_data.append({
+        active_count = db.query(Complaint).filter(
+            Complaint.assigned_officer_id == o.id,
+            Complaint.status.in_(['Assigned', 'En Route', 'On Site', 'In Progress'])
+        ).count()
+
+        officer_dict = {
             "id": o.id,
             "email": o.email,
             "name": o.name,
-            "phone": o.phone,
-            "badgeId": o.badge_id,
-            "active": o.is_active,
+            "role": o.role,
+            "badge_id": o.badge_id,
+            "department_id": o.department_id,
             "department": o.department,
-            "jurisdictionZone": o.address,
-            "createdAt": created_at_str,
-        })
+            "phone": o.phone,
+            "address": o.address,
+            "pincode": o.pincode,
+            "is_active": o.is_active,
+            "active": o.is_active,
+        }
+        result.append(UserSchema.model_validate(officer_dict))
 
-    return {"officers": officers_data}
+    return {"officers": result}

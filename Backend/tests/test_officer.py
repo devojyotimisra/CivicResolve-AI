@@ -188,12 +188,12 @@ def test_officer_dashboard_success(client, officer_headers, assigned_complaint, 
     assert response.status_code == 200
 
     data = response.json()
-    assert data["officer_name"] == "Officer Primary"
+    assert data["officerName"] == "Officer Primary"
     assert data["department"] == "Public Works"
-    assert "assigned_tickets" in data
-    assert data["total_assigned"] >= 1
+    assert "assignedTickets" in data
+    assert data["totalAssigned"] >= 1
 
-    ticket_ids = [t["id"] for t in data["assigned_tickets"]]
+    ticket_ids = [t["id"] for t in data["assignedTickets"]]
     assert assigned_complaint.id in ticket_ids
     assert resolved_complaint.id not in ticket_ids
 

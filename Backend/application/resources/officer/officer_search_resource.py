@@ -1,3 +1,4 @@
+from application.helpers.schemas import OfficerSearchResponse, CommissionerSearchRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -8,9 +9,9 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.post("/officer/search")
+@router.post("/officer/search", response_model=OfficerSearchResponse)
 def officer_search(
-    data: dict,
+    data: CommissionerSearchRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -18,7 +19,7 @@ def officer_search(
     if not user or not user.has_role('field_officer'):
         raise HTTPException(status_code=403, detail="Officer access required")
 
-    query_str = data.get("query", "").strip()
+    query_str = (data.query or "").strip()
     if not query_str:
         return {"tickets": []}
 
@@ -34,19 +35,8 @@ def officer_search(
         )
     ).order_by(Complaint.created_at.desc()).all()
 
-    tickets_data = []
     for c in tickets:
         category = db.get(Department, c.department_id) if c.department_id else None
-        tickets_data.append({
-            "id": c.id,
-            "token": c.token,
-            "title": c.title,
-            "description": c.description,
-            "department": category.name if category else c.department,
-            "location": c.location,
-            "status": c.status,
-            "severity": c.severity,
-            "createdAt": c.created_at.isoformat() if c.created_at else None,
-        })
+        c.department = category.name if category else c.department
 
-    return {"tickets": tickets_data}
+    return {"tickets": tickets}

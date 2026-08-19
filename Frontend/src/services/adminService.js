@@ -102,18 +102,18 @@ export const adminService = {
       const response = await client.get("/commissioner/dash");
       const data = response.data;
       return {
-        totalComplaints: data.totalComplaints ?? data.total_complaints ?? 0,
-        pendingComplaints: data.pendingComplaints ?? data.pending_complaints ?? 0,
-        resolvedComplaints: data.resolvedComplaints ?? data.resolved_complaints ?? 0,
-        closedComplaints: data.closedComplaints ?? data.closed_complaints ?? 0,
-        criticalComplaints: data.criticalComplaints ?? data.critical_complaints ?? 0,
-        totalOfficers: data.totalOfficers ?? data.total_officers ?? 0,
-        totalCitizens: data.totalCitizens ?? data.total_citizens ?? 0,
-        totalRevenue: data.totalRevenue ?? data.total_revenue ?? 0,
-        billRevenue: data.billRevenue ?? data.bill_revenue ?? 0,
-        bookingRevenue: data.bookingRevenue ?? data.booking_revenue ?? 0,
-        byDepartment: data.complaintsByCategory ?? data.complaints_by_category ?? [],
-        byStatus: data.complaintsByStatus ?? data.complaints_by_status ?? [],
+        totalComplaints: data.totalComplaints ?? 0,
+        pendingComplaints: data.pendingComplaints ?? 0,
+        resolvedComplaints: data.resolvedComplaints ?? 0,
+        closedComplaints: data.closedComplaints ?? 0,
+        criticalComplaints: data.criticalComplaints ?? 0,
+        totalOfficers: data.totalOfficers ?? 0,
+        totalCitizens: data.totalCitizens ?? 0,
+        totalRevenue: data.totalRevenue ?? 0,
+        billRevenue: data.billRevenue ?? 0,
+        bookingRevenue: data.bookingRevenue ?? 0,
+        byDepartment: data.complaintsByCategory ?? [],
+        byStatus: data.complaintsByStatus ?? [],
         trend: []
       };
     } catch (error) {
@@ -127,18 +127,18 @@ export const adminService = {
       const response = await client.get("/commissioner/dash");
       const data = response.data;
       return {
-        totalComplaints: data.totalComplaints ?? data.total_complaints ?? 0,
-        pendingComplaints: data.pendingComplaints ?? data.pending_complaints ?? 0,
-        resolvedComplaints: data.resolvedComplaints ?? data.resolved_complaints ?? 0,
-        closedComplaints: data.closedComplaints ?? data.closed_complaints ?? 0,
-        criticalComplaints: data.criticalComplaints ?? data.critical_complaints ?? 0,
-        totalOfficers: data.totalOfficers ?? data.total_officers ?? 0,
-        totalCitizens: data.totalCitizens ?? data.total_citizens ?? 0,
-        totalRevenue: data.totalRevenue ?? data.total_revenue ?? 0,
-        billRevenue: data.billRevenue ?? data.bill_revenue ?? 0,
-        bookingRevenue: data.bookingRevenue ?? data.booking_revenue ?? 0,
-        byDepartment: data.complaintsByCategory ?? data.complaints_by_category ?? [],
-        byStatus: data.complaintsByStatus ?? data.complaints_by_status ?? [],
+        totalComplaints: data.totalComplaints ?? 0,
+        pendingComplaints: data.pendingComplaints ?? 0,
+        resolvedComplaints: data.resolvedComplaints ?? 0,
+        closedComplaints: data.closedComplaints ?? 0,
+        criticalComplaints: data.criticalComplaints ?? 0,
+        totalOfficers: data.totalOfficers ?? 0,
+        totalCitizens: data.totalCitizens ?? 0,
+        totalRevenue: data.totalRevenue ?? 0,
+        billRevenue: data.billRevenue ?? 0,
+        bookingRevenue: data.bookingRevenue ?? 0,
+        byDepartment: data.complaintsByCategory ?? [],
+        byStatus: data.complaintsByStatus ?? [],
         trend: []
       };
     } catch (error) {

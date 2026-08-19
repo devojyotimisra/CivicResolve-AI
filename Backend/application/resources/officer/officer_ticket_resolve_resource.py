@@ -1,3 +1,4 @@
+from application.helpers.schemas import OfficerTicketResolveRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -9,10 +10,10 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.post("/officer/ticket/{complaint_id}/resolve")
+@router.post("/officer/ticket/{complaint_id}/resolve", response_model=dict[str, str])
 def officer_resolve_ticket(
     complaint_id: int,
-    data: dict,
+    data: OfficerTicketResolveRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -30,8 +31,8 @@ def officer_resolve_ticket(
     if complaint.status not in ['In Progress', 'On Site']:
         raise HTTPException(status_code=400, detail="Ticket must be in progress or on site to resolve")
 
-    resolution_note = data.get("resolution_note", "").strip() if data.get("resolution_note") else None
-    resolution_photo_url = data.get("resolution_photo_url", "").strip() if data.get("resolution_photo_url") else None
+    resolution_note = data.resolution_note.strip() if data.resolution_note else None
+    resolution_photo_url = data.resolution_photo_url.strip() if data.resolution_photo_url else None
 
     old_status = complaint.status
     complaint.status = 'Resolved'

@@ -58,7 +58,7 @@ export const AnonymousComplaint = () => {
       const result =
         await complaintService.fileAnonymousComplaint(complaintData);
 
-      const token = result.trackingToken || result.tracking_token;
+      const token = result.trackingToken;
       setSubmittedToken(token);
       setIsFormModalOpen(false);
       setConfirmSubmit(false);

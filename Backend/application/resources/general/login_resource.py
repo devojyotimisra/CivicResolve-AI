@@ -1,3 +1,4 @@
+from application.helpers.schemas import AuthResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -10,7 +11,7 @@ import re
 router = APIRouter()
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthResponse)
 def login(data: dict, db: Session = Depends(get_db)):
     identifier = (data.get("email") or "").strip()
     if not identifier:
@@ -47,16 +48,10 @@ def login(data: dict, db: Session = Depends(get_db)):
     else:
         role = 'citizen'
 
+    user.role = role
+
     return {
         "message": "Login successful",
         "token": access_token,
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "role": role,
-            "badgeId": user.badge_id,
-            "phone": user.phone,
-            "department": user.department
-        }
+        "user": user
     }

@@ -5,7 +5,7 @@ export const billService = {
   getUserBills: async (userId) => {
     try {
       const response = await client.get("/citizen/bills");
-      return response.data.bills || response.data;
+      return response.data.bills || [];
     } catch (error) {
       console.error("Error fetching user bills:", error);
       throw error;
@@ -23,7 +23,7 @@ export const billService = {
       else endpoint = "/citizen/bills";
 
       const response = await client.get(endpoint, { params: filters });
-      return response.data.bills || response.data;
+      return response.data.bills || [];
     } catch (error) {
       console.error("Error fetching all bills:", error);
       throw error;
@@ -33,7 +33,7 @@ export const billService = {
   payBill: async (billId) => {
     try {
       const response = await client.post(`/citizen/pay_bill/${billId}`);
-      return response.data.bill || response.data;
+      return response.data.bill;
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         throw new Error(error.response.data.error);
@@ -45,7 +45,7 @@ export const billService = {
   generateBill: async (billData) => {
     try {
       const response = await client.post("/commissioner/bill", billData);
-      return response.data.bill || response.data;
+      return response.data.bill;
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         throw new Error(error.response.data.error);

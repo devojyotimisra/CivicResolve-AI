@@ -1,3 +1,4 @@
+from application.helpers.schemas import AuthResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -9,7 +10,7 @@ from application.middlewares.init_jwt import create_access_token
 router = APIRouter()
 
 
-@router.post("/signup")
+@router.post("/signup", response_model=AuthResponse)
 def signup(data: dict, db: Session = Depends(get_db)):
     is_valid, result = validate_email(data.get("email"))
     if not is_valid:
@@ -67,14 +68,10 @@ def signup(data: dict, db: Session = Depends(get_db)):
     db.commit()
 
     access_token = create_access_token(new_user.id)
+    new_user.role = "citizen"
 
     return {
         "message": "Account created successfully",
         "token": access_token,
-        "user": {
-            "id": new_user.id,
-            "email": new_user.email,
-            "name": new_user.name,
-            "role": "citizen"
-        }
+        "user": new_user
     }

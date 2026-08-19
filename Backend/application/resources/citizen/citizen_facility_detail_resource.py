@@ -1,3 +1,4 @@
+from application.helpers.schemas import CitizenFacilityDetailResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
@@ -8,7 +9,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/citizen/facility/{facility_id}")
+@router.get("/citizen/facility/{facility_id}", response_model=CitizenFacilityDetailResponse)
 def citizen_facility_detail(
     facility_id: int,
     current_user_id: int = Depends(get_current_user_id),
@@ -37,15 +38,7 @@ def citizen_facility_detail(
     my_bookings = [b.booked_date.isoformat() for b in bookings if b.user_id == current_user_id]
 
     return {
-        "facility": {
-            "id": facility.id,
-            "name": facility.name,
-            "facility_type": facility.facility_type,
-            "address": facility.address,
-            "pincode": facility.pincode,
-            "price_per_day": facility.price_per_day,
-            "description": facility.description,
-        },
+        "facility": facility,
         "booked_dates": booked_dates,
         "my_booked_dates": my_bookings
     }

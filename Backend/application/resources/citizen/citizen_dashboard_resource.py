@@ -1,3 +1,4 @@
+from application.helpers.schemas import CitizenDashboardResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -8,7 +9,7 @@ from datetime import date
 router = APIRouter()
 
 
-@router.get("/citizen/dash")
+@router.get("/citizen/dash", response_model=CitizenDashboardResponse)
 def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     user = db.get(User, current_user_id)
     if not user or not user.has_role('citizen'):
@@ -29,38 +30,16 @@ def citizen_dashboard(current_user_id: int = Depends(get_current_user_id), db: S
         UtilityBill.status.in_(['Pending', 'Overdue'])
     ).order_by(UtilityBill.due_date.asc()).limit(5).all()
 
-    bills_data = []
-    for bill in pending_bills_list:
-        bills_data.append({
-            "id": bill.id,
-            "bill_type": bill.bill_type,
-            "bill_number": bill.bill_number,
-            "amount": bill.amount,
-            "due_date": bill.due_date.isoformat(),
-            "status": bill.status,
-        })
-
     upcoming_bookings_list = db.query(FacilityBooking).filter(
         FacilityBooking.user_id == current_user_id,
         FacilityBooking.status == 'Confirmed',
         FacilityBooking.booked_date >= date.today()
     ).order_by(FacilityBooking.booked_date.asc()).limit(5).all()
 
-    bookings_data = []
-    for booking in upcoming_bookings_list:
-        bookings_data.append({
-            "id": booking.id,
-            "facility_name": booking.facility.name if booking.facility else "N/A",
-            "date": booking.booked_date.isoformat(),
-            "booking_reference": booking.booking_reference,
-            "amount_paid": booking.amount_paid,
-            "status": booking.status,
-        })
-
     return {
         "user_name": user.name,
         "total_bills_due": total_bills_due,
         "upcoming_bookings_count": upcoming_bookings,
-        "pending_bills": bills_data,
-        "upcoming_bookings": bookings_data
+        "pending_bills": pending_bills_list,
+        "upcoming_bookings": upcoming_bookings_list
     }

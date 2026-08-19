@@ -13,7 +13,7 @@ export const facilityService = {
       else endpoint = "/citizen/facilities";
 
       const response = await client.get(endpoint, { params: { type: type !== "all" ? type : undefined } });
-      return response.data.facilities || response.data;
+      return response.data.facilities || [];
     } catch (error) {
       console.error("Error fetching facilities:", error);
       throw error;
@@ -23,7 +23,7 @@ export const facilityService = {
   getFacilityById: async (id) => {
     try {
       const response = await client.get(`/citizen/facility/${id}`);
-      return response.data.facility || response.data;
+      return response.data.facility;
     } catch (error) {
       throw new Error("Facility not found");
     }
@@ -38,10 +38,10 @@ export const facilityService = {
   bookFacility: async (bookingData) => {
     try {
       const response = await client.post(`/citizen/book_facility/${bookingData.facilityId}`, {
-        booked_date: bookingData.bookedDate,
+        bookedDate: bookingData.bookedDate,
         purpose: bookingData.purpose || "Community Gathering"
       });
-      return response.data.booking || response.data;
+      return response.data.booking;
     } catch (error) {
       if (error.response && error.response.data && error.response.data.detail) {
         throw new Error(error.response.data.detail);
@@ -56,7 +56,7 @@ export const facilityService = {
   getUserBookings: async (userId) => {
     try {
       const response = await client.get("/citizen/bookings");
-      return response.data.bookings || response.data;
+      return response.data.bookings || [];
     } catch (error) {
       console.error("Error fetching user bookings:", error);
       throw error;
@@ -74,13 +74,12 @@ export const facilityService = {
 
         const payload = {};
         if (facilityData.name) payload.name = facilityData.name;
-        if (facilityData.facilityType || facilityData.facility_type) payload.facility_type = facilityData.facilityType || facilityData.facility_type;
+        if (facilityData.facilityType) payload.facilityType = facilityData.facilityType;
         if (facilityData.address) payload.address = facilityData.address;
         if (facilityData.pincode) payload.pincode = facilityData.pincode;
-        if (facilityData.pricePerDay || facilityData.price_per_day) payload.price_per_day = facilityData.pricePerDay || facilityData.price_per_day;
+        if (facilityData.pricePerDay) payload.pricePerDay = facilityData.pricePerDay;
         if (facilityData.description !== undefined) payload.description = facilityData.description;
-        if (facilityData.is_active !== undefined) payload.is_active = facilityData.is_active;
-        if (facilityData.isActive !== undefined) payload.is_active = facilityData.isActive;
+        if (facilityData.isActive !== undefined) payload.isActive = facilityData.isActive;
 
         const response = await client.put(`/commissioner/facility/${facilityData.id}`, payload);
         return response.data;
@@ -105,11 +104,12 @@ export const facilityService = {
 
       const detailResponse = await client.get(`/citizen/facility/${facilityId}`);
       const facilityData = detailResponse.data.facility || detailResponse.data;
-      const currentActive = facilityData.is_active ?? facilityData.isActive ?? true;
+      // API always returns isActive (camelCase) via CamelModel
+      const currentActive = facilityData.isActive ?? true;
 
 
       const updateResponse = await client.put(`/commissioner/facility/${facilityId}`, {
-        is_active: !currentActive
+        isActive: !currentActive
       });
       return updateResponse.data;
     } catch (error) {

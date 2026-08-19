@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerBillAddRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date
@@ -10,9 +11,9 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.post("/commissioner/bill")
+@router.post("/commissioner/bill", response_model=dict[str, str])
 def commissioner_issue_bill(
-    data: dict,
+    data: CommissionerBillAddRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -20,7 +21,7 @@ def commissioner_issue_bill(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    citizen_id = data.get("userId") or data.get("citizenId") or data.get("citizen_id")
+    citizen_id = data.user_id or data.citizen_id
     if not citizen_id:
         raise HTTPException(status_code=400, detail="Citizen ID is required")
 
@@ -28,16 +29,16 @@ def commissioner_issue_bill(
     if not citizen or not citizen.has_role('citizen'):
         raise HTTPException(status_code=400, detail="Invalid citizen")
 
-    bill_type = (data.get("billType") or data.get("bill_type", "")).strip()
+    bill_type = (data.bill_type or "").strip()
     if not bill_type:
         raise HTTPException(status_code=400, detail="Bill type is required")
 
-    is_valid, result = validate_amount(data.get("amount"))
+    is_valid, result = validate_amount(data.amount)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     amount = result
 
-    due_date_str = data.get("dueDate") or data.get("due_date")
+    due_date_str = data.due_date
     if not due_date_str:
         raise HTTPException(status_code=400, detail="Due date is required")
 
@@ -46,7 +47,7 @@ def commissioner_issue_bill(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-    period_val = (data.get("period") or "").strip() or None
+    period_val = (data.period or "").strip() or None
 
     import secrets
     bill_number = f"BILL-{secrets.token_urlsafe(6)[:8].upper()}"

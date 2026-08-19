@@ -136,11 +136,11 @@ def test_citizen_dashboard_success(client, citizen_headers, citizen_user):
     assert response.status_code == 200
 
     data = response.json()
-    assert data["user_name"] == citizen_user.name
-    assert "total_bills_due" in data
-    assert "upcoming_bookings_count" in data
-    assert isinstance(data["pending_bills"], list)
-    assert isinstance(data["upcoming_bookings"], list)
+    assert data["userName"] == citizen_user.name
+    assert "totalBillsDue" in data
+    assert "upcomingBookingsCount" in data
+    assert isinstance(data["pendingBills"], list)
+    assert isinstance(data["upcomingBookings"], list)
 
 
 def test_citizen_profile_fetch_success(client, citizen_headers, citizen_user):

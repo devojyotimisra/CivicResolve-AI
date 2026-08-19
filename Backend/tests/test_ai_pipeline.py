@@ -320,7 +320,7 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
     form_data = {
         "title": "Water Pipe Leak near Tower",
         "description": "Massive water flooding near Anna Nagar Tower park",
-        "address_text": "Anna Nagar Tower Park"
+        "addressText": "Anna Nagar Tower Park"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
@@ -328,11 +328,11 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
 
     assert response.status_code == 200
     res_data = response.json()
-    assert res_data["tracking_token"] != "CRA-MASTER01"
+    assert res_data["trackingToken"] != "CRA-MASTER01"
 
     db_session.expire_all()
-    created = db_session.query(Complaint).filter_by(token=res_data["tracking_token"]).first()
-    assert created.status == "Duplicate"
+    created = db_session.query(Complaint).filter_by(token=res_data["trackingToken"]).first()
+    assert created.status == "Merged"
     assert "CRA-MASTER01" in created.resolution_note
     db_session.expire_all()
     master_refreshed = db_session.get(Complaint, master.id)
@@ -367,7 +367,7 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
     form_data = {
         "title": "Open Manhole Cover",
         "description": "Deep open manhole hazard",
-        "address_text": "2nd Cross Road"
+        "addressText": "2nd Cross Road"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
@@ -410,7 +410,7 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
     form_data = {
         "title": "Burst Pipe",
         "description": "Burst pipe on 4th street",
-        "address_text": "4th Street"
+        "addressText": "4th Street"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup),            patch("uuid.uuid4", return_value=test_uuid):
@@ -419,7 +419,12 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
     assert response.status_code == 200
     db_session.refresh(master)
     assert master.submitted_photo == existing_photo_url
-    assert os.path.exists(expected_filepath) is False
+    assert os.path.exists(expected_filepath) is True
+
+    from application.helpers.models import ComplaintMedia
+    media = db_session.query(ComplaintMedia).filter_by(complaint_id=master.id).first()
+    assert media is not None
+    assert media.media_url == f"/uploads/complaints/99999999-8888-7777-6666-555555555555.jpg"
 
 
 def test_ai_failure_detect_spam_fallback(client, db_session):
@@ -479,7 +484,7 @@ def test_ai_failure_auto_route_complaint_fallback(client, db_session, ai_dept):
     form_data = {
         "title": "Pothole Damage",
         "description": "Pothole on main road",
-        "category_id": ai_dept.id
+        "categoryId": ai_dept.id
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
@@ -577,7 +582,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     form_data = {
         "title": "Clogged Drain",
         "description": "Drain overflowing near Block A",
-        "address_text": "Block A Corner"
+        "addressText": "Block A Corner"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
@@ -608,16 +613,24 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
 
 def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     import asyncio
-    from unittest.mock import MagicMock, patch, call
+    from unittest.mock import MagicMock, AsyncMock, patch
+
     from application.helpers.ai_service import find_duplicate_complaints
-    from google.genai import types
 
-    mock_response = MagicMock()
-    mock_response.text = '{"is_duplicate": false}'
+    mock_message = MagicMock()
+    mock_message.content = '{"is_duplicate": false}'
 
-    mock_generate = MagicMock(return_value=mock_response)
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+
+    mock_completion = MagicMock()
+    mock_completion.choices = [mock_choice]
+
+    mock_create = AsyncMock(return_value=mock_completion)
     mock_client = MagicMock()
-    mock_client.models.generate_content = mock_generate
+    mock_client.chat = MagicMock()
+    mock_client.chat.completions = MagicMock()
+    mock_client.chat.completions.create = mock_create
 
     new_complaint = {
         "title": "Pothole near college gate",
@@ -637,20 +650,14 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     with patch("application.helpers.ai_service._get_client", return_value=mock_client):
         asyncio.run(find_duplicate_complaints(new_complaint, existing))
 
-    mock_generate.assert_called_once()
-    call_kwargs = mock_generate.call_args
+    mock_create.assert_called_once()
+    call_kwargs = mock_create.call_args.kwargs
 
-    config_arg = call_kwargs.kwargs.get("config") or call_kwargs.args[2] if len(call_kwargs.args) > 2 else None
-    if config_arg is None:
-        all_args = list(call_kwargs.args) + list(call_kwargs.kwargs.values())
-        config_arg = next((a for a in all_args if isinstance(a, types.GenerateContentConfig)), None)
-
-    assert config_arg is not None, "GenerateContentConfig was not passed to generate_content"
-    assert config_arg.max_output_tokens >= 1024, (
-        f"max_output_tokens={config_arg.max_output_tokens} is too low; "
-        "gemma-4-31b-it needs >= 1024 tokens for chain-of-thought reasoning "
+    assert call_kwargs.get("max_completion_tokens", 0) >= 1024, (
+        f"max_completion_tokens={call_kwargs.get('max_completion_tokens')} is too low; "
+        "the model needs >= 1024 tokens for chain-of-thought reasoning "
         "before it can write the JSON answer. With < 1024 the model hits "
-        "MAX_TOKENS, response.text becomes None, and dedup is silently skipped."
+        "MAX_TOKENS, response content becomes None, and dedup is silently skipped."
     )
 
 
@@ -759,7 +766,7 @@ def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_
     form_data = {
         "title": "Pothole on 1st Main",
         "description": "Pothole near 1st Main park entrance",
-        "address_text": "1st Main Park"
+        "addressText": "1st Main Park"
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup) as spy_dup:
@@ -767,7 +774,7 @@ def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_
 
     assert response.status_code == 200
     res_data = response.json()
-    assert res_data["tracking_token"] != resolved_complaint.token
+    assert res_data["trackingToken"] != resolved_complaint.token
 
     assert db_session.query(Complaint).count() == 2
 

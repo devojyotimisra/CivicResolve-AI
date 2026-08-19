@@ -12,7 +12,12 @@ from application.resources.general.login_resource import router as login_router
 from application.resources.general.signup_resource import router as signup_router
 from application.resources.general.anonymous_complaint_resource import router as anon_complaint_router
 from application.resources.general.track_complaint_resource import router as track_complaint_router
-from application.resources.general.notification_resource import router as notification_router
+from application.resources.general.notification_list_resource import router as notification_list_router
+from application.resources.general.notification_mark_read_resource import router as notification_mark_read_router
+from application.resources.general.notification_mark_unread_resource import router as notification_mark_unread_router
+from application.resources.general.notification_mark_all_read_resource import router as notification_mark_all_read_router
+from application.resources.general.notification_delete_resource import router as notification_delete_router
+from application.resources.general.notification_clear_all_resource import router as notification_clear_all_router
 
 from application.resources.citizen.citizen_dashboard_resource import router as citizen_dash_router
 from application.resources.citizen.citizen_bills_list_resource import router as citizen_bills_router
@@ -53,7 +58,9 @@ from application.resources.commissioner.commissioner_bills_list_resource import 
 from application.resources.commissioner.commissioner_bill_add_resource import router as comm_bill_add_router
 from application.resources.commissioner.commissioner_citizens_resource import router as comm_citizens_router
 from application.resources.commissioner.commissioner_bill_types_list_resource import router as comm_bill_types_list_router
-from application.resources.commissioner.commissioner_bill_type_resource import router as comm_bill_type_router
+from application.resources.commissioner.commissioner_bill_type_add_resource import router as comm_bill_type_add_router
+from application.resources.commissioner.commissioner_bill_type_update_resource import router as comm_bill_type_update_router
+from application.resources.commissioner.commissioner_bill_type_delete_resource import router as comm_bill_type_delete_router
 from application.resources.commissioner.commissioner_search_resource import router as comm_search_router
 from application.resources.commissioner.commissioner_profile_fetch_resource import router as comm_profile_fetch_router
 from application.resources.commissioner.commissioner_profile_update_resource import router as comm_profile_update_router
@@ -87,7 +94,12 @@ def create_app():
     app.include_router(signup_router, prefix=prefix, tags=["auth"])
     app.include_router(anon_complaint_router, prefix=prefix, tags=["public"])
     app.include_router(track_complaint_router, prefix=prefix, tags=["public"])
-    app.include_router(notification_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_list_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_mark_read_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_mark_unread_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_mark_all_read_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_delete_router, prefix=prefix, tags=["notifications"])
+    app.include_router(notification_clear_all_router, prefix=prefix, tags=["notifications"])
 
     app.include_router(citizen_dash_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bills_router, prefix=prefix, tags=["citizen"])
@@ -127,7 +139,9 @@ def create_app():
     app.include_router(comm_bills_list_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_bill_add_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_bill_types_list_router, prefix=prefix, tags=["commissioner"])
-    app.include_router(comm_bill_type_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_bill_type_add_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_bill_type_update_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_bill_type_delete_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_citizens_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_search_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_profile_fetch_router, prefix=prefix, tags=["commissioner"])

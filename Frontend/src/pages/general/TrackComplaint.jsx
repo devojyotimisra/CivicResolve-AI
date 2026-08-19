@@ -45,37 +45,24 @@ export const TrackComplaint = () => {
     try {
       const data = await complaintService.getComplaintByToken(cleanToken);
 
-      const complaintData = data.complaint || data;
+      if (data.redirectToToken) {
+        toast.info(
+          "This issue has been merged with the main case. Redirecting...",
+        );
+        fetchComplaint(data.redirectToToken, true);
+        return;
+      }
+
+      const complaintData = data.complaint;
       const updatesData = data.updates || [];
 
       setComplaint({
         ...complaintData,
-        token: complaintData.token,
-        title: complaintData.title,
-        description: complaintData.description,
-        category: complaintData.category,
-        submittedPhoto:
-          complaintData.submitted_photo || complaintData.submittedPhoto,
-        location: complaintData.location,
-        status: complaintData.status,
-        severity: complaintData.severity,
-        resolutionPhoto:
-          complaintData.resolution_photo || complaintData.resolutionPhoto,
-        resolutionNote:
-          complaintData.resolution_note || complaintData.resolutionNote,
-        createdAt: complaintData.created_at || complaintData.createdAt,
-        updatedAt: complaintData.updated_at || complaintData.updatedAt,
-        resolvedAt: complaintData.resolved_at || complaintData.resolvedAt,
-        closedAt: complaintData.closed_at || complaintData.closedAt,
         department: complaintData.category || complaintData.department,
       });
       setUpdates(
         updatesData.map((u) => ({
           ...u,
-          oldStatus: u.old_status || u.oldStatus,
-          newStatus: u.new_status || u.newStatus,
-          createdAt: u.created_at || u.createdAt,
-          note: u.note,
         })),
       );
       if (
@@ -230,7 +217,9 @@ export const TrackComplaint = () => {
                   <Badge variant="outline" className="w-fit ml-2">
                     {complaint?.department ||
                       complaint?.category ||
-                      "Pending AI routing"}
+                      (complaint?.status === "Rejected"
+                        ? "N/A (Rejected)"
+                        : "Pending")}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
@@ -269,10 +258,16 @@ export const TrackComplaint = () => {
                         <span className="text-muted-foreground">
                           {complaint?.assignedOfficerName ||
                             complaint?.assignedOfficer ||
-                            "Awaiting Department Assignment"}
+                            (complaint?.status === "Rejected"
+                              ? "N/A (Rejected)"
+                              : "Awaiting Department Assignment")}
                         </span>
                         <span className="block text-[11px] text-muted-foreground mt-0.5">
-                          Dept: {complaint?.department}
+                          Dept:{" "}
+                          {complaint?.department ||
+                            (complaint?.status === "Rejected"
+                              ? "N/A"
+                              : "Pending")}
                         </span>
                       </div>
                     </div>
@@ -301,19 +296,35 @@ export const TrackComplaint = () => {
                         </p>
                       </div>
                       {complaint?.submittedPhoto ? (
-                        <Button
-                          type="button"
-                          size="lg"
-                          className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
-                          onClick={() =>
-                            setViewingImage({
-                              url: complaint.submittedPhoto,
-                              title: "Evidence by Citizen",
-                            })
-                          }
-                        >
-                          View
-                        </Button>
+                        <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                          {(() => {
+                            const uniquePhotos = [
+                              ...new Set(
+                                [
+                                  complaint.submittedPhoto,
+                                  ...(complaint.additionalPhotos || []),
+                                ].filter(Boolean),
+                              ),
+                            ];
+                            return (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-10 px-4 font-bold shadow-sm"
+                                onClick={() =>
+                                  setViewingImage({
+                                    photos: uniquePhotos,
+                                    initialIndex: 0,
+                                    title: "Evidence Gallery",
+                                  })
+                                }
+                              >
+                                <Camera className="w-4 h-4 mr-2" />
+                                View ({uniquePhotos.length})
+                              </Button>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
                           <EyeOff className="w-4 h-4" />
@@ -346,7 +357,8 @@ export const TrackComplaint = () => {
                           className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
                           onClick={() =>
                             setViewingImage({
-                              url: complaint.resolutionPhoto,
+                              photos: [complaint.resolutionPhoto],
+                              initialIndex: 0,
                               title: "Evidence Uploaded by Field Officer",
                             })
                           }
@@ -392,9 +404,7 @@ export const TrackComplaint = () => {
                             </div>
                             <div className="flex-1 rounded-lg bg-muted/40 p-3 border text-xs space-y-1">
                               <div className="flex items-center justify-between font-semibold text-foreground">
-                                <span>
-                                  Status: {item.newStatus || item.new_status}
-                                </span>
+                                <span>Status: {item.newStatus}</span>
                                 <span className="text-[11px] font-normal text-muted-foreground">
                                   {item.createdAt
                                     ? new Date(item.createdAt).toLocaleString()
@@ -445,15 +455,17 @@ export const TrackComplaint = () => {
             </div>
           </div>
 
-          <PhotoViewerModal
-            isOpen={!!viewingImage}
-            onClose={() => setViewingImage(null)}
-            photoUrl={viewingImage?.url}
-            title={viewingImage?.title}
-            description="Submitted image evidence."
-          />
         </DialogContent>
       </Dialog>
+
+      <PhotoViewerModal
+        isOpen={!!viewingImage}
+        onClose={() => setViewingImage(null)}
+        photos={viewingImage?.photos || []}
+        initialIndex={viewingImage?.initialIndex || 0}
+        title={viewingImage?.title}
+        description="Submitted image evidence."
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerDashboardResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -8,7 +9,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/commissioner/dash")
+@router.get("/commissioner/dash", response_model=CommissionerDashboardResponse)
 def commissioner_dashboard(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -51,18 +52,6 @@ def commissioner_dashboard(
     status_data = [{"status": status, "count": count} for status, count in by_status]
 
     return {
-        "totalComplaints": total_complaints,
-        "pendingComplaints": pending_complaints,
-        "resolvedComplaints": resolved_complaints,
-        "closedComplaints": closed_complaints,
-        "criticalComplaints": critical_complaints,
-        "totalOfficers": total_officers,
-        "totalCitizens": total_citizens,
-        "totalRevenue": total_revenue,
-        "billRevenue": bill_revenue,
-        "bookingRevenue": booking_revenue,
-        "complaintsByCategory": category_data,
-        "complaintsByStatus": status_data,
         "total_complaints": total_complaints,
         "pending_complaints": pending_complaints,
         "resolved_complaints": resolved_complaints,

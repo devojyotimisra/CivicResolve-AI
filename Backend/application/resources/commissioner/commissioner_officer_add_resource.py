@@ -5,13 +5,14 @@ from application.extensions.security_extn import hash_password
 from application.helpers.models import User, Role, Department
 from application.helpers.validators import validate_email, validate_name
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.schemas import CommissionerOfficerAddRequest
 
 router = APIRouter()
 
 
-@router.post("/commissioner/officer")
+@router.post("/commissioner/officer", response_model=dict[str, str])
 def commissioner_add_officer(
-    data: dict,
+    data: CommissionerOfficerAddRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -19,34 +20,37 @@ def commissioner_add_officer(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    is_valid, result = validate_email(data.get("email"))
+    is_valid, result = validate_email(data.email)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     email = result
 
-    is_valid, result = validate_name(data.get("name"))
+    is_valid, result = validate_name(data.name)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     name = result
 
-    badge_id = (data.get("badgeId") or data.get("badge_id") or "").strip() or None
-
-    department_raw = str(data.get("department") or data.get("department_id") or "").strip()
-    if not department_raw:
-        raise HTTPException(status_code=400, detail="Department is required")
+    badge_id = (data.badge_id or "").strip() or None
 
     dept_obj = None
-    if department_raw.isdigit():
-        dept_obj = db.get(Department, int(department_raw))
-    if not dept_obj:
-        dept_obj = db.query(Department).filter_by(name=department_raw).first()
+    if data.department_id:
+        dept_obj = db.get(Department, data.department_id)
+    if not dept_obj and data.department:
+        department_raw = str(data.department).strip()
+        if department_raw.isdigit():
+            dept_obj = db.get(Department, int(department_raw))
+        if not dept_obj:
+            dept_obj = db.query(Department).filter_by(name=department_raw).first()
+
+    if not data.department_id and not data.department:
+        raise HTTPException(status_code=400, detail="Department is required")
 
     if not dept_obj:
         raise HTTPException(status_code=400, detail="Invalid department")
 
-    jurisdiction_zone = (data.get("jurisdiction_zone") or "").strip()
+    jurisdiction_zone = (data.jurisdiction_zone or "").strip()
 
-    password_raw = (data.get("password") or "").strip()
+    password_raw = (data.password or "").strip()
     if not password_raw:
         password_raw = badge_id if badge_id else "officer123"
 
@@ -62,9 +66,9 @@ def commissioner_add_officer(
         email=email,
         password=hash_password(password_raw),
         name=name,
-        phone=data.get("phone"),
-        address=data.get("address") or jurisdiction_zone or dept_obj.name,
-        pincode=data.get("pincode"),
+        phone=data.phone,
+        address=data.address or jurisdiction_zone or dept_obj.name,
+        pincode=data.pincode,
         department_id=dept_obj.id,
         department=dept_obj.name,
         badge_id=badge_id,
@@ -73,6 +77,17 @@ def commissioner_add_officer(
     )
     new_officer.roles.append(officer_role)
     db.add(new_officer)
+    db.commit()
+    db.refresh(new_officer)
+
+    from application.helpers.notification_helper import create_notification
+    create_notification(
+        db=db,
+        user_id=new_officer.id,
+        title="Welcome to the Platform!",
+        message="You have been added as a Field Officer. Please update your profile, password and check your dashboard for assigned tickets.",
+        notif_type="info"
+    )
     db.commit()
 
     return {"message": f"Officer {name} created successfully"}

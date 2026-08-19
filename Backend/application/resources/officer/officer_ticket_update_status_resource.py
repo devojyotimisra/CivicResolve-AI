@@ -1,3 +1,4 @@
+from application.helpers.schemas import OfficerTicketUpdateStatusRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -16,10 +17,10 @@ VALID_TRANSITIONS = {
 }
 
 
-@router.put("/officer/ticket/{complaint_id}/status")
+@router.put("/officer/ticket/{complaint_id}/status", response_model=dict[str, str])
 def officer_update_ticket_status(
     complaint_id: int,
-    data: dict,
+    data: OfficerTicketUpdateStatusRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -34,7 +35,7 @@ def officer_update_ticket_status(
     if complaint.assigned_officer_id != current_user_id:
         raise HTTPException(status_code=403, detail="This ticket is not assigned to you")
 
-    new_status = data.get("status")
+    new_status = data.status
     if not new_status:
         raise HTTPException(status_code=400, detail="New status is required")
 
@@ -54,7 +55,7 @@ def officer_update_ticket_status(
         updated_by_id=current_user_id,
         old_status=old_status,
         new_status=new_status,
-        note=data.get("note", f"Status updated to {new_status}")
+        note=data.note or f"Status updated to {new_status}"
     )
 
     db.add(update)

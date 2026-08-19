@@ -25,3 +25,4 @@ dist-ssr
 *.sw?
 Backend/uploads/
 .pytest_cache
+dev-dist
