@@ -106,18 +106,18 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     anon_resp = client.post("/api/complaint/anonymous", data={
         "title": "Severe Water Leakage on Main Street",
         "description": "Massive underground water pipe burst flooding road",
-        "address_text": "Main Street Block C",
-        "category_id": test_department.id
+        "addressText": "Main Street Block C",
+        "categoryId": test_department.id
     })
     assert anon_resp.status_code == 200
-    token = anon_resp.json()["tracking_token"]
-    complaint_id = anon_resp.json()["complaint_id"]
+    token = anon_resp.json()["trackingToken"]
+    complaint_id = anon_resp.json()["complaintId"]
 
     complaint = db_session.get(Complaint, complaint_id)
     complaint.severity = "Critical"
     db_session.commit()
 
-    assign_resp = client.put(f"/api/commissioner/assign/{complaint_id}", json={"officer_id": officer_user.id}, headers=comm_headers)
+    assign_resp = client.put(f"/api/commissioner/assign/{complaint_id}", json={"officerId": officer_user.id}, headers=comm_headers)
     assert assign_resp.status_code == 200
 
     off_headers = {"Authorization": f"Bearer {create_access_token(officer_user.id)}"}
@@ -142,10 +142,10 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     assert track_resp.status_code == 200
     track_data = track_resp.json()
     assert track_data["complaint"]["status"] == "Resolved"
-    assert track_data["complaint"]["resolution_note"] == "Pipe repaired and pressure tested successfully"
-    assert track_data["complaint"]["resolution_photo"] == "/uploads/resolutions/fixed.jpg"
+    assert track_data["complaint"]["resolutionNote"] == "Pipe repaired and pressure tested successfully"
+    assert track_data["complaint"]["resolutionPhoto"] == "/uploads/resolutions/fixed.jpg"
 
-    timeline_statuses = [u["new_status"] for u in track_data["updates"]]
+    timeline_statuses = [u["newStatus"] for u in track_data["updates"]]
     assert "Assigned" in timeline_statuses
     assert "En Route" in timeline_statuses
     assert "On Site" in timeline_statuses
@@ -194,11 +194,11 @@ def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list
 
     fac_resp = client.post("/api/commissioner/facility", json={
         "name": "Community Badminton Court",
-        "facility_type": "Sports",
+        "facilityType": "Sports",
         "description": "Indoor wooden floor badminton court",
         "address": "Sector 9 Sports Complex, Main Road",
         "pincode": "560001",
-        "price_per_day": 150.00
+        "pricePerDay": 150.00
     }, headers=comm_headers)
     assert fac_resp.status_code == 200
     assert "created successfully" in fac_resp.json()["message"]
@@ -229,14 +229,14 @@ def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list
     assert any(b["bookingReference"] == booking_ref for b in my_bookings.json()["bookings"])
 
     upd_resp = client.put(f"/api/commissioner/facility/{facility_id}", json={
-        "price_per_day": 180.00,
+        "pricePerDay": 180.00,
         "description": "Air Conditioned indoor wooden floor badminton court"
     }, headers=comm_headers)
     assert upd_resp.status_code == 200
 
     updated_detail = client.get(f"/api/citizen/facility/{facility_id}", headers=citizen_headers)
     assert updated_detail.status_code == 200
-    assert updated_detail.json()["facility"]["price_per_day"] == 180.00
+    assert updated_detail.json()["facility"]["pricePerDay"] == 180.00
     assert "Air Conditioned" in updated_detail.json()["facility"]["description"]
 
 

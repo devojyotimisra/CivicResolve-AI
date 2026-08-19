@@ -320,7 +320,7 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
     db_session.commit()
 
     payload = {
-        "officer_id": existing_officer.id,
+        "officerId": existing_officer.id,
         "severity": "Critical"
     }
 
@@ -344,7 +344,7 @@ def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_
     sample_complaint.severity = "Normal"
     db_session.commit()
 
-    payload = {"officer_id": existing_officer.id}
+    payload = {"officerId": existing_officer.id}
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
     assert response.status_code == 400
@@ -359,7 +359,7 @@ def test_assign_officer_low_severity_fails(client, comm_headers, sample_complain
     sample_complaint.severity = "Low"
     db_session.commit()
 
-    payload = {"officer_id": existing_officer.id}
+    payload = {"officerId": existing_officer.id}
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
     assert response.status_code == 400
@@ -374,7 +374,7 @@ def test_assign_officer_high_severity_fails(client, comm_headers, sample_complai
     sample_complaint.severity = "High"
     db_session.commit()
 
-    payload = {"officer_id": existing_officer.id}
+    payload = {"officerId": existing_officer.id}
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
     assert response.status_code == 400
@@ -390,7 +390,7 @@ def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_compla
     db_session.commit()
 
     payload = {
-        "officer_id": existing_officer.id,
+        "officerId": existing_officer.id,
         "severity": "Critical"
     }
 
@@ -409,7 +409,7 @@ def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint
     db_session.commit()
 
     payload = {
-        "officer_id": existing_officer.id
+        "officerId": existing_officer.id
     }
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
@@ -421,7 +421,7 @@ def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db
     sample_complaint.severity = "Critical"
     db_session.commit()
 
-    payload = {"officer_id": 99999}
+    payload = {"officerId": 99999}
 
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
     assert response.status_code == 400
@@ -429,7 +429,7 @@ def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db
 
 
 def test_assign_non_existent_complaint(client, comm_headers, existing_officer):
-    payload = {"officer_id": existing_officer.id}
+    payload = {"officerId": existing_officer.id}
     response = client.put("/api/commissioner/assign/99999", json=payload, headers=comm_headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "Complaint not found"
@@ -466,7 +466,7 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
     sample_complaint.assigned_officer_name = existing_officer.name
     db_session.commit()
 
-    payload = {"officer_id": second_officer.id}
+    payload = {"officerId": second_officer.id}
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
 
     assert response.status_code == 200
@@ -500,7 +500,7 @@ def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, s
     sample_complaint.severity = "Critical"
     db_session.commit()
 
-    payload = {"officer_id": non_officer.id}
+    payload = {"officerId": non_officer.id}
     response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
 
     assert response.status_code == 400

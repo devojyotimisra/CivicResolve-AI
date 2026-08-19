@@ -1,3 +1,4 @@
+from application.helpers.schemas import CitizenFacilityBookRequest, CitizenFacilityBookResponse
 import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -14,10 +15,10 @@ def generate_booking_ref():
     return "BKG-" + secrets.token_urlsafe(6)[:8].upper()
 
 
-@router.post("/citizen/book_facility/{facility_id}")
+@router.post("/citizen/book_facility/{facility_id}", response_model=CitizenFacilityBookResponse)
 def citizen_book_facility(
     facility_id: int,
-    data: dict,
+    data: CitizenFacilityBookRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -29,7 +30,7 @@ def citizen_book_facility(
     if not facility or not facility.is_active:
         raise HTTPException(status_code=404, detail="Facility not found")
 
-    booking_date_str = data.get("booked_date") or data.get("bookedDate") or data.get("date")
+    booking_date_str = data.booked_date
     if not booking_date_str:
         raise HTTPException(status_code=400, detail="Date is required")
 
@@ -58,11 +59,13 @@ def citizen_book_facility(
     while db.query(FacilityBooking).filter_by(booking_reference=booking_ref).first():
         booking_ref = generate_booking_ref()
 
-    purpose = (data.get("purpose") or "Community Gathering").strip()
+    purpose = (data.purpose or "Community Gathering").strip()
 
     booking = FacilityBooking(
         user_id=current_user_id,
         facility_id=facility_id,
+        citizen_name=user.name,
+        facility_name=facility.name,
         booked_date=booking_date,
         booking_reference=booking_ref,
         amount_paid=facility.price_per_day,
@@ -92,13 +95,5 @@ def citizen_book_facility(
 
     return {
         "message": "Booking confirmed",
-        "booking": {
-            "id": booking.id,
-            "bookingReference": booking_ref,
-            "facilityName": facility.name,
-            "bookedDate": booking_date.isoformat(),
-            "amountPaid": facility.price_per_day,
-            "purpose": purpose,
-            "status": "Confirmed"
-        }
+        "booking": booking
     }

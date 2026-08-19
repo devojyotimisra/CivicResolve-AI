@@ -1,3 +1,4 @@
+from application.helpers.schemas import OfficerHistoryResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -7,7 +8,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/officer/history")
+@router.get("/officer/history", response_model=OfficerHistoryResponse)
 def officer_history(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -20,23 +21,8 @@ def officer_history(
         Complaint.assigned_officer_id == current_user_id
     ).order_by(Complaint.created_at.desc()).all()
 
-    history = []
     for c in complaints:
         category = db.get(Department, c.department_id) if c.department_id else None
-        history.append({
-            "id": c.id,
-            "token": c.token,
-            "title": c.title,
-            "description": c.description,
-            "department": category.name if category else c.department,
-            "location": c.location,
-            "status": c.status,
-            "severity": c.severity,
-            "submittedPhoto": c.submitted_photo,
-            "resolutionPhoto": c.resolution_photo,
-            "resolutionNote": c.resolution_note,
-            "resolvedAt": c.resolved_at.isoformat() if c.resolved_at else None,
-            "createdAt": c.created_at.isoformat() if c.created_at else None,
-        })
+        c.department = category.name if category else c.department
 
-    return {"history": history}
+    return {"history": complaints}

@@ -7,7 +7,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.delete("/commissioner/facility/{facility_id}")
+@router.delete("/commissioner/facility/{facility_id}", response_model=dict[str, str])
 def commissioner_delete_facility(
     facility_id: int,
     current_user_id: int = Depends(get_current_user_id),

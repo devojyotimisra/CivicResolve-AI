@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerFacilityRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -8,10 +9,10 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.put("/commissioner/facility/{facility_id}")
+@router.put("/commissioner/facility/{facility_id}", response_model=dict[str, str])
 def commissioner_update_facility(
     facility_id: int,
-    data: dict,
+    data: CommissionerFacilityRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -23,23 +24,23 @@ def commissioner_update_facility(
     if not facility:
         raise HTTPException(status_code=404, detail="Facility not found")
 
-    if data.get("name"):
-        facility.name = data["name"].strip()
-    if data.get("facility_type"):
-        facility.facility_type = data["facility_type"].strip()
-    if data.get("address"):
-        facility.address = data["address"].strip()
-    if data.get("pincode"):
-        facility.pincode = data["pincode"].strip()
-    if data.get("price_per_day"):
-        is_valid, result = validate_price(data["price_per_day"])
+    if data.name:
+        facility.name = data.name.strip()
+    if data.facility_type:
+        facility.facility_type = data.facility_type.strip()
+    if data.address:
+        facility.address = data.address.strip()
+    if data.pincode:
+        facility.pincode = data.pincode.strip()
+    if data.price_per_day:
+        is_valid, result = validate_price(data.price_per_day)
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         facility.price_per_day = result
-    if data.get("description") is not None:
-        facility.description = data["description"].strip()
-    if "is_active" in data:
-        facility.is_active = bool(data["is_active"])
+    if data.description is not None:
+        facility.description = data.description.strip()
+    if data.is_active is not None:
+        facility.is_active = data.is_active
 
     db.commit()
 

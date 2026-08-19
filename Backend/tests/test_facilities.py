@@ -269,8 +269,8 @@ def test_commissioner_add_facility_validation_failures(client, comm_headers):
 def test_commissioner_update_facility_success(client, comm_headers, active_facility, db_session):
     payload = {
         "name": "Town Hall Auditorium Renamed",
-        "price_per_day": 600.0,
-        "is_active": False
+        "pricePerDay": 600.0,
+        "isActive": False
     }
 
     response = client.put(f"/api/commissioner/facility/{active_facility.id}", json=payload, headers=comm_headers)
@@ -290,7 +290,7 @@ def test_commissioner_update_facility_not_found(client, comm_headers):
 
 
 def test_commissioner_update_facility_invalid_price(client, comm_headers, active_facility):
-    response = client.put(f"/api/commissioner/facility/{active_facility.id}", json={"price_per_day": -50.0}, headers=comm_headers)
+    response = client.put(f"/api/commissioner/facility/{active_facility.id}", json={"pricePerDay": -50.0}, headers=comm_headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Price must be greater than 0"
 
@@ -327,11 +327,11 @@ def test_citizen_facility_detail_success(client, citizen_headers, active_facilit
 
     data = response.json()
     assert "facility" in data
-    assert "booked_dates" in data
-    assert "my_booked_dates" in data
+    assert "bookedDates" in data
+    assert "myBookedDates" in data
     assert data["facility"]["id"] == active_facility.id
-    assert sample_booking.booked_date.isoformat() in data["booked_dates"]
-    assert sample_booking.booked_date.isoformat() in data["my_booked_dates"]
+    assert sample_booking.booked_date.isoformat() in data["bookedDates"]
+    assert sample_booking.booked_date.isoformat() in data["myBookedDates"]
 
 
 def test_citizen_facility_detail_inactive_or_not_found(client, citizen_headers, inactive_facility):
@@ -403,7 +403,7 @@ def test_citizen_book_facility_missing_or_invalid_date(client, citizen_headers, 
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Date is required"
 
-    resp2 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={"date": "invalid-date"}, headers=citizen_headers)
+    resp2 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={"bookedDate": "invalid-date"}, headers=citizen_headers)
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Invalid date format. Use YYYY-MM-DD"
 

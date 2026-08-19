@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, Complaint, Department, ComplaintUpdate
+from application.helpers.models import User, Complaint, Department, ComplaintUpdate, ComplaintMedia
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.schemas import CommissionerComplaintDetailResponse, ComplaintSchema, ComplaintUpdateSchema
 
 router = APIRouter()
 
 
-@router.get("/commissioner/complaint/{complaint_id}")
+@router.get("/commissioner/complaint/{complaint_id}", response_model=CommissionerComplaintDetailResponse)
 def commissioner_complaint_detail(
     complaint_id: int,
     current_user_id: int = Depends(get_current_user_id),
@@ -24,39 +25,44 @@ def commissioner_complaint_detail(
     category = db.get(Department, complaint.department_id) if complaint.department_id else None
     officer = db.get(User, complaint.assigned_officer_id) if complaint.assigned_officer_id else None
 
-    updates = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
-    updates_data = [
-        {
+    updates_orm = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
+
+    media_records = db.query(ComplaintMedia).filter_by(complaint_id=complaint.id, media_type='photo').all()
+    additional_photos = [m.media_url for m in media_records]
+
+    complaint_schema = ComplaintSchema.model_validate({
+        "id": complaint.id,
+        "token": complaint.token,
+        "master_complaint_id": complaint.master_complaint_id,
+        "assigned_officer_id": complaint.assigned_officer_id,
+        "assigned_officer_name": officer.name if officer else complaint.assigned_officer_name,
+        "department_id": complaint.department_id,
+        "department": category.name if category else complaint.department,
+        "title": complaint.title,
+        "description": complaint.description,
+        "location": complaint.location,
+        "submitted_photo": complaint.submitted_photo,
+        "additional_photos": additional_photos,
+        "status": complaint.status,
+        "severity": complaint.severity,
+        "resolution_photo": complaint.resolution_photo,
+        "resolution_note": complaint.resolution_note,
+        "created_at": complaint.created_at,
+        "updated_at": complaint.updated_at,
+        "resolved_at": complaint.resolved_at,
+        "closed_at": complaint.closed_at,
+    })
+
+    updates_schema = [
+        ComplaintUpdateSchema.model_validate({
             "id": u.id,
-            "oldStatus": u.old_status,
-            "newStatus": u.new_status,
+            "old_status": u.old_status,
+            "new_status": u.new_status,
             "note": u.note,
-            "updatedBy": u.updated_by.name if u.updated_by else "System",
-            "createdAt": u.created_at.isoformat() if u.created_at else None
-        }
-        for u in updates
+            "updated_by_name": u.updated_by_name if u.updated_by_name else (u.updated_by.name if u.updated_by else "System"),
+            "created_at": u.created_at,
+        })
+        for u in updates_orm
     ]
 
-    return {
-        "complaint": {
-            "id": complaint.id,
-            "token": complaint.token,
-            "title": complaint.title,
-            "description": complaint.description,
-            "department": category.name if category else complaint.department,
-            "departmentId": complaint.department_id,
-            "location": complaint.location,
-            "submittedPhoto": complaint.submitted_photo,
-            "status": complaint.status,
-            "severity": complaint.severity,
-            "assignedOfficer": officer.name if officer else None,
-            "assignedOfficerId": complaint.assigned_officer_id,
-            "resolutionPhoto": complaint.resolution_photo,
-            "resolutionNote": complaint.resolution_note,
-            "createdAt": complaint.created_at.isoformat() if complaint.created_at else None,
-            "updatedAt": complaint.updated_at.isoformat() if complaint.updated_at else None,
-            "resolvedAt": complaint.resolved_at.isoformat() if complaint.resolved_at else None,
-            "closedAt": complaint.closed_at.isoformat() if complaint.closed_at else None,
-        },
-        "updates": updates_data
-    }
+    return {"complaint": complaint_schema, "updates": updates_schema}

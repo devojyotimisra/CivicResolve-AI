@@ -1,3 +1,5 @@
+from typing import List
+from application.helpers.schemas import UtilityBillSchema
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -7,7 +9,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/citizen/bills")
+@router.get("/citizen/bills", response_model=dict[str, List[UtilityBillSchema]])
 def citizen_bills_list(
     status: str = Query(None),
     current_user_id: int = Depends(get_current_user_id),
@@ -24,18 +26,5 @@ def citizen_bills_list(
 
     bills = query.order_by(UtilityBill.due_date.desc()).all()
 
-    bills_data = []
-    for bill in bills:
-        bills_data.append({
-            "id": bill.id,
-            "billType": bill.bill_type,
-            "billNumber": bill.bill_number,
-            "amount": bill.amount,
-            "dueDate": bill.due_date.isoformat(),
-            "period": bill.period,
-            "status": bill.status,
-            "paidAt": bill.paid_at.isoformat() if bill.paid_at else None,
-            "createdAt": bill.created_at.isoformat() if bill.created_at else None,
-        })
-
-    return {"bills": bills_data}
+    bills = query.order_by(UtilityBill.due_date.desc()).all()
+    return {"bills": bills}

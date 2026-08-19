@@ -1,3 +1,5 @@
+from typing import List
+from application.helpers.schemas import DepartmentSchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -7,7 +9,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/commissioner/categories")
+@router.get("/commissioner/categories", response_model=dict[str, List[DepartmentSchema]])
 def commissioner_categories_list(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -17,7 +19,4 @@ def commissioner_categories_list(
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
     categories = db.query(Department).order_by(Department.name.asc()).all()
-
-    return {
-        "categories": [{"id": c.id, "name": c.name} for c in categories]
-    }
+    return {"categories": categories}

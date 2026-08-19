@@ -10,12 +10,28 @@ import { Phone, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 export const OfficerProfile = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+  const [formData, setFormData] = useState({
+    phone: user?.phone || ""
+  });
+  const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [passForm, setPassForm] = useState({ current: "", newPass: "" });
   const [passError, setPassError] = useState("");
 
-  const handlePasswordUpdate = (e) => {
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await updateProfile({ phone: formData.phone });
+    } catch {
+      // Errors handled by context toast
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     setPassError("");
     if (!passForm.current || !passForm.newPass) {
@@ -31,11 +47,14 @@ export const OfficerProfile = () => {
       return;
     }
     setPassLoading(true);
-    setTimeout(() => {
-      setPassLoading(false);
+    try {
+      await updateProfile({ password: passForm.newPass });
       setPassForm({ current: "", newPass: "" });
-      toast.success("Security password updated successfully!");
-    }, 600);
+    } catch {
+      // Errors handled by context toast
+    } finally {
+      setPassLoading(false);
+    }
   };
 
   return (
@@ -81,34 +100,45 @@ export const OfficerProfile = () => {
             <h4 className="font-bold text-foreground uppercase tracking-wider">
               Contact Details
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-                  <Input
-                    value={user?.email || ""}
-                    disabled
-                    className="pl-9 bg-muted/50 text-muted-foreground cursor-not-allowed border-dashed"
-                  />
+            <form onSubmit={handleProfileUpdate} className="space-y-4 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+                    <Input
+                      value={user?.email || ""}
+                      disabled
+                      className="pl-9 bg-muted/50 text-muted-foreground cursor-not-allowed border-dashed"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Phone Number
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Phone Number
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-                  <Input
-                    value={user?.phone || ""}
-                    disabled
-                    className="pl-9 bg-muted/50 text-muted-foreground cursor-not-allowed border-dashed"
-                  />
-                </div>
-              </div>
-            </div>
+              <Button
+                type="submit"
+                variant="outline"
+                className="w-full sm:w-auto font-semibold text-xs mt-2"
+                disabled={loading}
+              >
+                {loading ? "Updating..." : "Update Contact Details"}
+              </Button>
+            </form>
           </div>
 
           <div className="pt-6 border-t space-y-4">

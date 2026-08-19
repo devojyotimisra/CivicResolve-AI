@@ -528,19 +528,35 @@ export const OfficerDashboard = () => {
                           </p>
                         </div>
                         {selectedTicket?.submittedPhoto ? (
-                          <Button
-                            type="button"
-                            size="lg"
-                            className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
-                            onClick={() =>
-                              setViewingImage({
-                                url: selectedTicket.submittedPhoto,
-                                title: "Evidence Uploaded by Citizen",
-                              })
-                            }
-                          >
-                            View
-                          </Button>
+                          <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                            {(() => {
+                              const uniquePhotos = [
+                                ...new Set(
+                                  [
+                                    selectedTicket.submittedPhoto,
+                                    ...(selectedTicket.additionalPhotos || []),
+                                  ].filter(Boolean),
+                                ),
+                              ];
+                              return (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-10 px-4 font-bold shadow-sm"
+                                  onClick={() =>
+                                    setViewingImage({
+                                      photos: uniquePhotos,
+                                      initialIndex: 0,
+                                      title: "Evidence Gallery",
+                                    })
+                                  }
+                                >
+                                  <Camera className="w-4 h-4 mr-2" />
+                                  View ({uniquePhotos.length})
+                                </Button>
+                              );
+                            })()}
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
                             <EyeOff className="w-4 h-4" />
@@ -574,7 +590,8 @@ export const OfficerDashboard = () => {
                             className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
                             onClick={() =>
                               setViewingImage({
-                                url: selectedTicket.resolutionPhoto,
+                                photos: [selectedTicket.resolutionPhoto],
+                                initialIndex: 0,
                                 title: "Evidence Uploaded by Field Officer",
                               })
                             }
@@ -725,7 +742,8 @@ export const OfficerDashboard = () => {
                                       className="w-full h-56 cursor-pointer group relative"
                                       onClick={() =>
                                         setViewingImage({
-                                          url: resolutionPhoto,
+                                          photos: [resolutionPhoto],
+                                          initialIndex: 0,
                                           title: "Uploaded Resolution Preview",
                                         })
                                       }
@@ -822,15 +840,17 @@ export const OfficerDashboard = () => {
             </div>
           )}
 
-          <PhotoViewerModal
-            isOpen={!!viewingImage}
-            onClose={() => setViewingImage(null)}
-            photoUrl={viewingImage?.url}
-            title={viewingImage?.title}
-            description="Submitted image evidence."
-          />
         </DialogContent>
       </Dialog>
+
+      <PhotoViewerModal
+        isOpen={!!viewingImage}
+        onClose={() => setViewingImage(null)}
+        photos={viewingImage?.photos || []}
+        initialIndex={viewingImage?.initialIndex || 0}
+        title={viewingImage?.title}
+        description="Submitted image evidence."
+      />
     </div>
   );
 };

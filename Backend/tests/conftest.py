@@ -54,12 +54,23 @@ def autocleanup_dependency_overrides(app: FastAPI) -> Generator[None, None, None
 
 
 @pytest.fixture(autouse=True)
-def mock_genai_client_default():
-    from unittest.mock import patch, AsyncMock
-    mock_resp = AsyncMock()
-    mock_resp.text = '{"is_spam": false, "is_duplicate": false, "department": null}'
-    mock_client = AsyncMock()
-    mock_client.models.generate_content.return_value = mock_resp
+def mock_groq_client_default():
+    from unittest.mock import patch, MagicMock, AsyncMock
+
+    mock_message = MagicMock()
+    mock_message.content = '{"is_spam": false, "is_duplicate": false, "department": null}'
+
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+
+    mock_completion = MagicMock()
+    mock_completion.choices = [mock_choice]
+
+    mock_client = MagicMock()
+    mock_client.chat = MagicMock()
+    mock_client.chat.completions = MagicMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_completion)
+
     with patch("application.helpers.ai_service._get_client", return_value=mock_client):
         yield
 

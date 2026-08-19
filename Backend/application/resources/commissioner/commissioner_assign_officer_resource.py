@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerAssignOfficerRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -9,10 +10,10 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.put("/commissioner/assign/{complaint_id}")
+@router.put("/commissioner/assign/{complaint_id}", response_model=dict[str, str])
 def commissioner_assign_officer(
     complaint_id: int,
-    data: dict,
+    data: CommissionerAssignOfficerRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -27,7 +28,7 @@ def commissioner_assign_officer(
     if complaint.severity != 'Critical':
         raise HTTPException(status_code=400, detail="Officer assignment is only allowed for severe complaints")
 
-    officer_id = data.get("officer_id")
+    officer_id = data.officer_id
     if not officer_id:
         raise HTTPException(status_code=400, detail="Officer ID is required")
 
@@ -48,9 +49,9 @@ def commissioner_assign_officer(
 
     complaint.updated_at = datetime.now(IST)
 
-    if data.get("severity"):
-        if data["severity"] in ['Low', 'Normal', 'High', 'Critical']:
-            complaint.severity = data["severity"]
+    if data.severity:
+        if data.severity in ['Low', 'Normal', 'High', 'Critical']:
+            complaint.severity = data.severity
 
     update = ComplaintUpdate(
         complaint_id=complaint.id,

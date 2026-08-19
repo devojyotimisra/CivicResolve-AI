@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerOfficerUpdateRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -7,10 +8,10 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.put("/commissioner/officer/{officer_id}")
+@router.put("/commissioner/officer/{officer_id}", response_model=dict[str, str])
 def commissioner_update_officer(
     officer_id: int,
-    data: dict,
+    data: CommissionerOfficerUpdateRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -22,14 +23,14 @@ def commissioner_update_officer(
     if not officer or not officer.has_role('field_officer'):
         raise HTTPException(status_code=404, detail="Officer not found")
 
-    if data.get("name"):
-        officer.name = data["name"].strip()
-    if data.get("phone"):
-        officer.phone = data["phone"].strip()
-    if "active" in data:
-        officer.is_active = bool(data["active"])
+    if data.name:
+        officer.name = data.name.strip()
+    if data.phone:
+        officer.phone = data.phone.strip()
+    if data.active is not None:
+        officer.is_active = data.active
 
-    dept_input = data.get("department") or data.get("department_id")
+    dept_input = data.department or data.department_id
     if dept_input is not None and str(dept_input).strip():
         dept_raw = str(dept_input).strip()
         dept_obj = None
@@ -44,9 +45,9 @@ def commissioner_update_officer(
         officer.department_id = dept_obj.id
         officer.department = dept_obj.name
 
-    if data.get("jurisdiction_zone"):
-        officer.address = data["jurisdiction_zone"].strip()
-    badge_id = data.get("badgeId") or data.get("badge_id")
+    if data.jurisdiction_zone:
+        officer.address = data.jurisdiction_zone.strip()
+    badge_id = data.badge_id
     if badge_id is not None:
         officer.badge_id = badge_id.strip() if badge_id else None
 

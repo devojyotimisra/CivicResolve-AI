@@ -1,3 +1,4 @@
+from application.helpers.schemas import CitizenBillPayResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -9,7 +10,7 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.post("/citizen/pay_bill/{bill_id}")
+@router.post("/citizen/pay_bill/{bill_id}", response_model=CitizenBillPayResponse)
 def citizen_pay_bill(
     bill_id: int,
     current_user_id: int = Depends(get_current_user_id),
@@ -53,10 +54,10 @@ def citizen_pay_bill(
     return {
         "message": "Payment successful",
         "receipt": {
-            "billNumber": bill.bill_number,
-            "billType": bill.bill_type,
+            "bill_number": bill.bill_number,
+            "bill_type": bill.bill_type,
             "amount": bill.amount,
-            "paidAt": bill.paid_at.isoformat(),
-            "transactionId": f"TXN-{bill.id:06d}",
+            "paid_at": bill.paid_at.isoformat(),
+            "transaction_id": f"TXN-{bill.id:06d}",
         }
     }

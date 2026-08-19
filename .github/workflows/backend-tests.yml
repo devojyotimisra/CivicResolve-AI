@@ -13,7 +13,7 @@ jobs:
     env:
       SECRET_KEY: ci-test-secret-key
       SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
-      JWT_ACCESS_TOKEN_EXPIRES_HOURS: "24"
+      JWT_ACCESS_TOKEN_EXPIRES_DAYS: "31"
       JWT_SECRET_KEY: ci-test-jwt-secret-key
 
       COMMISSIONER_MAIL: commissioner@test.local

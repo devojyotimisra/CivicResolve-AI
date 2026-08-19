@@ -51,10 +51,10 @@ def test_anonymous_complaint_creation_success_minimal(client, db_session):
 
     data = response.json()
     assert data["message"] == "Complaint filed successfully"
-    assert "tracking_token" in data
-    assert data["tracking_token"].startswith("CRA-")
+    assert "trackingToken" in data
+    assert data["trackingToken"].startswith("CRA-")
 
-    token = data["tracking_token"]
+    token = data["trackingToken"]
     db_session.expire_all()
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
@@ -69,21 +69,21 @@ def test_anonymous_complaint_creation_success_minimal(client, db_session):
     update = db_session.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.id.desc()).first()
     assert update is not None
     assert update.new_status == "Submitted"
-    assert update.note == "AI processing completed"
+    assert update.note == ""
 
 
 def test_anonymous_complaint_creation_with_valid_department_and_location(client, sample_department, db_session):
     payload = {
         "title": "Pothole near Central Bus Stop",
         "description": "Deep pothole causing traffic slowdown near bus terminal",
-        "category_id": sample_department.id,
-        "address_text": "Central Bus Stand, Sector 4"
+        "categoryId": sample_department.id,
+        "addressText": "Central Bus Stand, Sector 4"
     }
 
     response = client.post("/api/complaint/anonymous", data=payload)
     assert response.status_code == 200
 
-    token = response.json()["tracking_token"]
+    token = response.json()["trackingToken"]
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
     assert complaint.department_id == sample_department.id
@@ -116,7 +116,7 @@ def test_anonymous_complaint_invalid_department(client):
     payload = {
         "title": "Valid Long Title Here",
         "description": "Valid description with sufficient length for testing",
-        "category_id": 99999
+        "categoryId": 99999
     }
 
     response = client.post("/api/complaint/anonymous", data=payload)
@@ -136,7 +136,7 @@ def test_anonymous_complaint_file_upload_success(client, db_session):
     response = client.post("/api/complaint/anonymous", data=payload, files=file_data)
     assert response.status_code == 200
 
-    token = response.json()["tracking_token"]
+    token = response.json()["trackingToken"]
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
     assert complaint.submitted_photo is not None
@@ -206,7 +206,7 @@ def test_public_track_complaint_success(client, sample_department, db_session):
     assert c_data["title"] == "Overflowing Dumpster in Market"
     assert c_data["status"] == "Submitted"
     assert c_data["severity"] == "Normal"
-    assert c_data["category"] == sample_department.name
+    assert c_data["department"] == sample_department.name
     assert len(data["updates"]) >= 1
 
 
@@ -224,7 +224,7 @@ def test_cross_flow_anonymous_creation_then_public_tracking(client, db_session):
 
     create_resp = client.post("/api/complaint/anonymous", data=create_payload)
     assert create_resp.status_code == 200
-    token = create_resp.json()["tracking_token"]
+    token = create_resp.json()["trackingToken"]
 
     track_resp = client.get(f"/api/complaint/track/{token}")
     assert track_resp.status_code == 200
@@ -243,7 +243,7 @@ def test_cross_flow_anonymous_complaint_retrievable_in_public_tracking(client, d
     }
     create_resp = client.post("/api/complaint/anonymous", data=create_payload)
     assert create_resp.status_code == 200
-    token = create_resp.json()["tracking_token"]
+    token = create_resp.json()["trackingToken"]
 
     track_resp = client.get(f"/api/complaint/track/{token}")
     assert track_resp.status_code == 200

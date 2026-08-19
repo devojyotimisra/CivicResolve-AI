@@ -19,7 +19,7 @@ export const complaintService = {
       }
 
       const response = await client.get(endpoint, { params: filters });
-      return response.data.complaints || response.data.history || response.data;
+      return response.data.complaints || response.data.history || response.data.tickets || [];
     } catch (error) {
       console.error("Error fetching complaints:", error);
       throw error;
@@ -46,13 +46,13 @@ export const complaintService = {
       formData.append("description", complaintData.description || "");
 
       if (complaintData.location) {
-        formData.append("address_text", complaintData.location);
+        formData.append("addressText", complaintData.location);
       }
-      if (complaintData.address_text) {
-        formData.append("address_text", complaintData.address_text);
+      if (complaintData.addressText) {
+        formData.append("addressText", complaintData.addressText);
       }
       if (complaintData.categoryId) {
-        formData.append("category_id", complaintData.categoryId);
+        formData.append("categoryId", complaintData.categoryId);
       }
 
 
@@ -74,8 +74,8 @@ export const complaintService = {
     try {
       if (newStatus === "Resolved") {
         const response = await client.post(`/officer/ticket/${complaintId}/resolve`, {
-          resolution_note: resolutionNote || note,
-          resolution_photo_url: resolutionPhoto
+          resolutionNote: resolutionNote || note,
+          resolutionPhotoUrl: resolutionPhoto
         });
         return response.data;
       } else {
@@ -99,7 +99,7 @@ export const complaintService = {
   assignOfficer: async (complaintId, officerId, officerName) => {
     try {
       const response = await client.put(`/commissioner/assign/${complaintId}`, {
-        officer_id: officerId
+        officerId: officerId
       });
       return response.data;
     } catch (error) {
@@ -140,7 +140,7 @@ export const complaintService = {
   getOfficerComplaints: async (officerId) => {
     try {
       const response = await client.get("/officer/history");
-      return response.data.history || response.data;
+      return response.data.history || [];
     } catch (error) {
       console.error("Error fetching officer complaints:", error);
       throw error;

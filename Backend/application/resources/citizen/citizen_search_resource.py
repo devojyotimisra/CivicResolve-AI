@@ -1,16 +1,18 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Facility
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.schemas import FacilitySchema, CommissionerSearchRequest
 
 router = APIRouter()
 
 
-@router.post("/citizen/search")
+@router.post("/citizen/search", response_model=dict[str, List[FacilitySchema]])
 def citizen_search(
-    data: dict,
+    data: CommissionerSearchRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -18,7 +20,7 @@ def citizen_search(
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    query_str = data.get("query", "").strip()
+    query_str = (data.query or "").strip()
     if not query_str:
         return {"facilities": []}
 
@@ -34,15 +36,4 @@ def citizen_search(
         )
     ).order_by(Facility.name.asc()).all()
 
-    facilities_data = []
-    for f in facilities:
-        facilities_data.append({
-            "id": f.id,
-            "name": f.name,
-            "facility_type": f.facility_type,
-            "address": f.address,
-            "pincode": f.pincode,
-            "price_per_day": f.price_per_day,
-        })
-
-    return {"facilities": facilities_data}
+    return {"facilities": facilities}

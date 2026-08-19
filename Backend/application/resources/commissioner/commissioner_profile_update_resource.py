@@ -1,3 +1,4 @@
+from application.helpers.schemas import CitizenProfileUpdateRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -9,9 +10,9 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.put("/commissioner/edit_profile")
+@router.put("/commissioner/edit_profile", response_model=dict[str, str])
 def commissioner_profile_update(
-    data: dict,
+    data: CitizenProfileUpdateRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -19,20 +20,20 @@ def commissioner_profile_update(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    if data.get("name"):
-        is_valid, result = validate_name(data["name"])
+    if data.name:
+        is_valid, result = validate_name(data.name)
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         user.name = result
 
-    if data.get("phone"):
-        is_valid, result = validate_phone(data["phone"])
+    if data.phone:
+        is_valid, result = validate_phone(data.phone)
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         user.phone = result
 
-    if data.get("password"):
-        is_valid, result = validate_password(data["password"])
+    if data.password:
+        is_valid, result = validate_password(data.password)
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         user.password = hash_password(result)

@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import User, Department
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.schemas import CommissionerCategoryAddRequest
 
 router = APIRouter()
 
 
-@router.post("/commissioner/category")
+@router.post("/commissioner/category", response_model=dict[str, str])
 def commissioner_add_category(
-    data: dict,
+    data: CommissionerCategoryAddRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -17,11 +18,11 @@ def commissioner_add_category(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    name = data.get("name", "").strip()
+    name = (data.name or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Category name is required")
 
-    category_id = data.get("id")
+    category_id = data.id
 
     existing = db.query(Department).filter_by(name=name).first()
 

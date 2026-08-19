@@ -265,13 +265,6 @@ export const CommissionerOfficers = () => {
                     </span>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-end pt-2 border-t text-xs">
-                  <div className="flex items-center gap-1 text-primary font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Active Field Crew</span>
-                  </div>
-                </div>
               </div>
             </Card>
           ))}
@@ -347,16 +340,29 @@ export const CommissionerOfficers = () => {
                 value={form.department}
                 onValueChange={(val) => setForm({ ...form, department: val })}
                 required
+                disabled={!departments || departments.length === 0}
               >
                 <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="Select Department" />
+                  <SelectValue 
+                    placeholder={
+                      !departments || departments.length === 0 
+                        ? "No departments available" 
+                        : "Select Department"
+                    } 
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.name}>
-                      {d.name}
+                  {!departments || departments.length === 0 ? (
+                    <SelectItem value="no-dept" disabled>
+                      No departments available
                     </SelectItem>
-                  ))}
+                  ) : (
+                    departments.map((d) => (
+                      <SelectItem key={d.id} value={d.name}>
+                        {d.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

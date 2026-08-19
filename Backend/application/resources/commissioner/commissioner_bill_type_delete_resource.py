@@ -1,15 +1,15 @@
-from application.helpers.schemas import UserSchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User
+from application.helpers.models import User, BillType
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
 
-@router.get("/commissioner/profile", response_model=UserSchema)
-def commissioner_profile_fetch(
+@router.delete("/commissioner/bill_type/{bill_type_id}", response_model=dict[str, str])
+def commissioner_delete_bill_type(
+    bill_type_id: int,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -17,4 +17,11 @@ def commissioner_profile_fetch(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    return user
+    bill_type = db.get(BillType, bill_type_id)
+    if not bill_type:
+        raise HTTPException(status_code=404, detail="Bill type not found")
+
+    db.delete(bill_type)
+    db.commit()
+
+    return {"message": f"Bill type '{bill_type.name}' deleted successfully"}

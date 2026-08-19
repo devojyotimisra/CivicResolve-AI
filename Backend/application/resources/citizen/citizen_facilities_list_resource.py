@@ -1,3 +1,5 @@
+from typing import List
+from application.helpers.schemas import FacilitySchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -7,7 +9,7 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.get("/citizen/facilities")
+@router.get("/citizen/facilities", response_model=dict[str, List[FacilitySchema]])
 def citizen_facilities_list(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
@@ -17,20 +19,4 @@ def citizen_facilities_list(
         raise HTTPException(status_code=403, detail="Citizen access required")
 
     facilities = db.query(Facility).filter_by(is_active=True).order_by(Facility.name.asc()).all()
-
-    facilities_data = []
-    for f in facilities:
-        facilities_data.append({
-            "id": f.id,
-            "name": f.name,
-            "facilityType": f.facility_type,
-            "address": f.address,
-            "pincode": f.pincode,
-            "pricePerDay": f.price_per_day,
-            "capacity": f.capacity,
-            "description": f.description,
-            "amenities": f.amenities,
-            "isActive": f.is_active,
-        })
-
-    return {"facilities": facilities_data}
+    return {"facilities": facilities}

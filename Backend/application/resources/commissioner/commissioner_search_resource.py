@@ -1,3 +1,5 @@
+from typing import List
+from application.helpers.schemas import CommissionerSearchRequest, ComplaintSchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -8,9 +10,9 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.post("/commissioner/search")
+@router.post("/commissioner/search", response_model=dict[str, List[ComplaintSchema]])
 def commissioner_search(
-    data: dict,
+    data: CommissionerSearchRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -18,7 +20,7 @@ def commissioner_search(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    query_str = data.get("query", "").strip()
+    query_str = (data.query or "").strip()
     if not query_str:
         return {"complaints": []}
 
@@ -33,21 +35,10 @@ def commissioner_search(
         )
     ).order_by(Complaint.created_at.desc()).all()
 
-    complaints_data = []
     for c in complaints:
         category = db.get(Department, c.department_id) if c.department_id else None
         officer = db.get(User, c.assigned_officer_id) if c.assigned_officer_id else None
-        complaints_data.append({
-            "id": c.id,
-            "token": c.token,
-            "title": c.title,
-            "description": c.description,
-            "department": category.name if category else c.department,
-            "location": c.location,
-            "status": c.status,
-            "severity": c.severity,
-            "assignedOfficer": officer.name if officer else None,
-            "createdAt": c.created_at.isoformat() if c.created_at else None,
-        })
+        c.department = category.name if category else c.department
+        c.assigned_officer_name = officer.name if officer else None
 
-    return {"complaints": complaints_data}
+    return {"complaints": complaints}

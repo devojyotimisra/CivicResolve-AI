@@ -1,3 +1,4 @@
+from application.helpers.schemas import CommissionerFacilityRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
@@ -8,9 +9,9 @@ from application.middlewares.init_jwt import get_current_user_id
 router = APIRouter()
 
 
-@router.post("/commissioner/facility")
+@router.post("/commissioner/facility", response_model=dict[str, str])
 def commissioner_add_facility(
-    data: dict,
+    data: CommissionerFacilityRequest,
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -18,28 +19,28 @@ def commissioner_add_facility(
     if not user or not user.has_role('commissioner'):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
-    is_valid, result = validate_name(data.get("name"))
+    is_valid, result = validate_name(data.name)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     name = result
 
-    is_valid, result = validate_address(data.get("address"))
+    is_valid, result = validate_address(data.address)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     address = result
 
-    is_valid, result = validate_pincode(data.get("pincode"))
+    is_valid, result = validate_pincode(data.pincode)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     pincode = result
 
-    price_raw = data.get("pricePerDay") or data.get("price_per_day")
+    price_raw = data.price_per_day
     is_valid, result = validate_price(price_raw)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
     price_per_day = result
 
-    facility_type = (data.get("facilityType") or data.get("facility_type", "")).strip()
+    facility_type = (data.facility_type or "").strip()
     if not facility_type:
         raise HTTPException(status_code=400, detail="Facility type is required")
 
@@ -49,7 +50,7 @@ def commissioner_add_facility(
         address=address,
         pincode=pincode,
         price_per_day=price_per_day,
-        description=data.get("description", "").strip(),
+        description=(data.description or "").strip(),
         is_active=True
     )
 
