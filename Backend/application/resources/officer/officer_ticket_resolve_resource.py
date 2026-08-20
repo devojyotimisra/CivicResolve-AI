@@ -12,7 +12,7 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.post("/officer/ticket/{complaint_id}/resolve", response_model=dict[str, str])
+@router.post("/officer/ticket/{complaint_id}/resolve")
 async def officer_resolve_ticket(
     complaint_id: int,
     resolution_note: Optional[str] = Form(None),
@@ -38,7 +38,7 @@ async def officer_resolve_ticket(
     resolution_photo_url = None
 
     if resolution_photo and resolution_photo.filename:
-        upload_dir = os.path.join("uploads", "resolution")
+        upload_dir = os.path.join("uploads", "resolutions")
         os.makedirs(upload_dir, exist_ok=True)
         
         ext = resolution_photo.filename.split(".")[-1] if "." in resolution_photo.filename else "jpg"
@@ -49,7 +49,7 @@ async def officer_resolve_ticket(
         with open(filepath, "wb") as f:
             f.write(content)
             
-        resolution_photo_url = f"/uploads/resolution/{filename}"
+        resolution_photo_url = f"/uploads/resolutions/{filename}"
 
     old_status = complaint.status
     complaint.status = 'Resolved'
