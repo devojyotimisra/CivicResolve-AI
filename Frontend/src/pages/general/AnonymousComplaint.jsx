@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { MapPin, Copy, Check, Upload, ShieldCheck } from "lucide-react";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
+import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 
 export const AnonymousComplaint = () => {
   const [title, setTitle] = useState("");
@@ -27,6 +28,7 @@ export const AnonymousComplaint = () => {
   const [copied, setCopied] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
 
   const submitForm = (e) => {
     e.preventDefault();
@@ -213,17 +215,34 @@ export const AnonymousComplaint = () => {
                   </label>
                 ) : (
                   <div className="relative w-full max-h-56 overflow-hidden rounded-lg border bg-muted">
-                    <img
-                      src={photoPreview}
-                      alt="Uploaded evidence preview"
-                      className="w-full h-56 object-cover"
-                    />
+                    <div
+                      className="w-full h-56 cursor-pointer group relative"
+                      onClick={() =>
+                        setViewingImage({
+                          photos: [photoPreview],
+                          initialIndex: 0,
+                          title: "Uploaded Evidence Preview",
+                        })
+                      }
+                    >
+                      <img
+                        src={photoPreview}
+                        alt="Uploaded evidence preview"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                        Click to View Full Image
+                      </div>
+                    </div>
                     <Button
                       type="button"
                       variant="destructive"
                       size="sm"
                       className="absolute top-2 right-2 text-xs h-7 px-3 shadow"
-                      onClick={handleRemoveMedia}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveMedia();
+                      }}
                     >
                       Remove Media
                     </Button>
@@ -305,6 +324,15 @@ export const AnonymousComplaint = () => {
         confirmText="File Report"
         isLoading={loading}
         icon={ShieldCheck}
+      />
+
+      <PhotoViewerModal
+        isOpen={!!viewingImage}
+        onClose={() => setViewingImage(null)}
+        photos={viewingImage?.photos || []}
+        initialIndex={viewingImage?.initialIndex || 0}
+        title={viewingImage?.title}
+        description="Submitted image evidence."
       />
     </div>
   );

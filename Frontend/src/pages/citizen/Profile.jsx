@@ -13,12 +13,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Lock, Save, Trash2, SaveAll, KeyRound } from "lucide-react";
+import { User, Lock, Save, SaveAll, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 export const CitizenProfile = () => {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout, updatePassword } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -28,28 +28,10 @@ export const CitizenProfile = () => {
   });
   const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmPass, setConfirmPass] = useState(false);
   const [passForm, setPassForm] = useState({ current: "", newPass: "" });
   const [passError, setPassError] = useState("");
-
-  const handleDeleteAccount = () => {
-    setDeleting(true);
-    setTimeout(() => {
-      try {
-        localStorage.removeItem(`civic_bills_${user?.id}`);
-        localStorage.removeItem(`civic_bookings_${user?.id}`);
-      } catch {}
-      setDeleting(false);
-      setConfirmDelete(false);
-      logout();
-      navigate("/");
-      toast.success("Your citizen account has been permanently deleted.");
-    }, 1000);
-  };
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -62,15 +44,10 @@ export const CitizenProfile = () => {
     }
   };
 
-  const handlePasswordUpdate = () => {
+  const handlePasswordUpdate = async () => {
     setPassError("");
     if (!passForm.current || !passForm.newPass) {
       setPassError("Both fields are required.");
-      setConfirmPass(false);
-      return;
-    }
-    if (passForm.current !== user?.password) {
-      setPassError("Current password is incorrect.");
       setConfirmPass(false);
       return;
     }
@@ -80,12 +57,16 @@ export const CitizenProfile = () => {
       return;
     }
     setPassLoading(true);
-    setTimeout(() => {
-      setPassLoading(false);
+    try {
+      await updatePassword(passForm.current, passForm.newPass);
       setConfirmPass(false);
       setPassForm({ current: "", newPass: "" });
-      toast.success("Security password updated successfully!");
-    }, 600);
+    } catch (error) {
+      setPassError(error.message);
+      setConfirmPass(false);
+    } finally {
+      setPassLoading(false);
+    }
   };
 
   const submitProfileForm = (e) => {
@@ -165,7 +146,7 @@ export const CitizenProfile = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new-pass">New Security Password</Label>
+                  <Label htmlFor="new-pass">New Password</Label>
                   <Input
                     id="new-pass"
                     type="password"
@@ -272,7 +253,7 @@ export const CitizenProfile = () => {
               </form>
             </CardContent>
 
-            <CardFooter className="pt-4 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <CardFooter className="pt-4 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-end gap-3">
               <Button
                 type="submit"
                 form="profile-form"
@@ -281,15 +262,6 @@ export const CitizenProfile = () => {
               >
                 <Save className="mr-2 h-4 w-4" />
                 {loading ? "Saving Changes..." : "Save Profile Updates"}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                variant="destructive"
-                className="font-bold shadow-md w-full sm:w-auto"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Account
               </Button>
             </CardFooter>
           </Card>
@@ -316,17 +288,6 @@ export const CitizenProfile = () => {
         confirmText="Update Password"
         isLoading={passLoading}
         icon={KeyRound}
-      />
-
-      <ConfirmationModal
-        isOpen={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDeleteAccount}
-        title="Delete Citizen Account"
-        description={`Are you sure you want to permanently delete your citizen account (${user?.email})? All linked complaints and tax records will be archived. This action cannot be undone.`}
-        confirmText="Confirm Deletion"
-        isLoading={deleting}
-        variant="destructive"
       />
     </div>
   );

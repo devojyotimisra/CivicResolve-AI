@@ -11,9 +11,11 @@ import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 export const CommissionerProfile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updatePassword } = useAuth();
   const [passLoading, setPassLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [passForm, setPassForm] = useState({ current: "", newPass: "" });
+  const [passError, setPassError] = useState("");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
@@ -51,13 +53,29 @@ export const CommissionerProfile = () => {
     setConfirmPassword(true);
   };
 
-  const handlePasswordUpdate = () => {
-    setPassLoading(true);
-    setTimeout(() => {
-      setPassLoading(false);
+  const handlePasswordUpdate = async () => {
+    setPassError("");
+    if (!passForm.current || !passForm.newPass) {
+      setPassError("Both fields are required.");
       setConfirmPassword(false);
-      toast.success("Security password updated successfully!");
-    }, 600);
+      return;
+    }
+    if (passForm.newPass.length < 8) {
+      setPassError("New password must be at least 8 characters.");
+      setConfirmPassword(false);
+      return;
+    }
+    setPassLoading(true);
+    try {
+      await updatePassword(passForm.current, passForm.newPass);
+      setConfirmPassword(false);
+      setPassForm({ current: "", newPass: "" });
+    } catch (error) {
+      setPassError(error.message);
+      setConfirmPassword(false);
+    } finally {
+      setPassLoading(false);
+    }
   };
 
   return (
@@ -166,6 +184,11 @@ export const CommissionerProfile = () => {
               </h4>
             </div>
             <form onSubmit={initPasswordUpdate} className="space-y-4 w-full">
+              {passError && (
+                <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                  {passError}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="curr-pass" className="text-xs">
                   Current Password
@@ -174,17 +197,21 @@ export const CommissionerProfile = () => {
                   id="curr-pass"
                   type="password"
                   placeholder="••••••••"
+                  value={passForm.current}
+                  onChange={(e) => setPassForm({ ...passForm, current: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-pass" className="text-xs">
-                  New Security Password
+                  New Password
                 </Label>
                 <Input
                   id="new-pass"
                   type="password"
                   placeholder="••••••••"
+                  value={passForm.newPass}
+                  onChange={(e) => setPassForm({ ...passForm, newPass: e.target.value })}
                   required
                 />
               </div>
