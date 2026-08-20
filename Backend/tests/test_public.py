@@ -139,8 +139,8 @@ def test_anonymous_complaint_file_upload_success(client, db_session):
     token = response.json()["trackingToken"]
     complaint = db_session.query(Complaint).filter_by(token=token).first()
     assert complaint is not None
-    assert complaint.submitted_photo is not None
-    assert complaint.submitted_photo.startswith("/uploads/complaints/")
+    assert len(complaint.submitted_photos) > 0
+    assert complaint.submitted_photos[0].startswith("/uploads/complaints/")
 
 
 def test_anonymous_complaint_invalid_file_extension(client):

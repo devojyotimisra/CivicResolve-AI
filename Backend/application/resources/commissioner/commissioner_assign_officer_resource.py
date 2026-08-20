@@ -40,6 +40,7 @@ def commissioner_assign_officer(
         raise HTTPException(status_code=400, detail="Officer account is deactivated")
 
     old_status = complaint.status
+    old_officer_id = complaint.assigned_officer_id
 
     complaint.assigned_officer_id = officer_id
     complaint.assigned_officer_name = officer.name
@@ -70,6 +71,15 @@ def commissioner_assign_officer(
         message=f"You have been assigned to complaint #{complaint.token}: {complaint.title}",
         notif_type="info",
     )
+
+    if old_officer_id and old_officer_id != officer_id:
+        create_notification(
+            db,
+            user_id=old_officer_id,
+            title="Ticket Escalated and Reassigned",
+            message=f"Complaint #{complaint.token}: {complaint.title} has been escalated and reassigned.",
+            notif_type="info",
+        )
 
     db.commit()
 

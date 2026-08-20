@@ -346,18 +346,17 @@ def test_officer_ticket_status_update_not_found(client, officer_headers):
 
 def test_officer_ticket_resolve_success(client, officer_headers, in_progress_complaint, db_session):
     payload = {
-        "resolution_note": "Pipe repaired and pressure tested successfully.",
-        "resolution_photo_url": "/uploads/resolutions/pipe_fixed.jpg"
+        "resolution_note": "Pipe repaired and pressure tested successfully."
     }
 
-    response = client.post(f"/api/officer/ticket/{in_progress_complaint.id}/resolve", json=payload, headers=officer_headers)
+    response = client.post(f"/api/officer/ticket/{in_progress_complaint.id}/resolve", data=payload, headers=officer_headers)
     assert response.status_code == 200
     assert response.json()["message"] == "Ticket resolved successfully"
 
     db_session.refresh(in_progress_complaint)
     assert in_progress_complaint.status == "Resolved"
     assert in_progress_complaint.resolution_note == "Pipe repaired and pressure tested successfully."
-    assert in_progress_complaint.resolution_photo == "/uploads/resolutions/pipe_fixed.jpg"
+    assert in_progress_complaint.resolution_photos == []
     assert in_progress_complaint.resolved_at is not None
 
     audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=in_progress_complaint.id, new_status="Resolved").first()
@@ -366,7 +365,7 @@ def test_officer_ticket_resolve_success(client, officer_headers, in_progress_com
 
 def test_officer_ticket_resolve_invalid_initial_status(client, officer_headers, assigned_complaint):
     payload = {"resolution_note": "Premature resolution attempt"}
-    response = client.post(f"/api/officer/ticket/{assigned_complaint.id}/resolve", json=payload, headers=officer_headers)
+    response = client.post(f"/api/officer/ticket/{assigned_complaint.id}/resolve", data=payload, headers=officer_headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Ticket must be in progress or on site to resolve"
 

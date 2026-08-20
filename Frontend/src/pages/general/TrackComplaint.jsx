@@ -73,7 +73,7 @@ export const TrackComplaint = () => {
       }
     } catch {
       setError(
-        "No civic report found matching this 12-character tracking token. Please check the token code.",
+        "No civic report found matching this 12-character tracking token due to wrong token or spam detection",
       );
       setComplaint(null);
       setUpdates([]);
@@ -179,7 +179,7 @@ export const TrackComplaint = () => {
         <DialogContent className="sm:max-w-md border-2 border-destructive/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 text-center">
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-xl font-bold text-foreground">
-              Token Not Found
+              Token Not Found or Spam
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               {error}
@@ -295,35 +295,23 @@ export const TrackComplaint = () => {
                           Original hazard evidence submitted by reporter
                         </p>
                       </div>
-                      {complaint?.submittedPhoto ? (
+                      {complaint?.submittedPhotos?.length > 0 ? (
                         <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-                          {(() => {
-                            const uniquePhotos = [
-                              ...new Set(
-                                [
-                                  complaint.submittedPhoto,
-                                  ...(complaint.additionalPhotos || []),
-                                ].filter(Boolean),
-                              ),
-                            ];
-                            return (
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="h-10 px-4 font-bold shadow-sm"
-                                onClick={() =>
-                                  setViewingImage({
-                                    photos: uniquePhotos,
-                                    initialIndex: 0,
-                                    title: "Evidence Gallery",
-                                  })
-                                }
-                              >
-                                <Camera className="w-4 h-4 mr-2" />
-                                View ({uniquePhotos.length})
-                              </Button>
-                            );
-                          })()}
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-10 px-4 font-bold shadow-sm"
+                            onClick={() =>
+                              setViewingImage({
+                                photos: complaint.submittedPhotos,
+                                initialIndex: 0,
+                                title: "Evidence Gallery",
+                              })
+                            }
+                          >
+                            <Camera className="w-4 h-4 mr-2" />
+                            View ({complaint.submittedPhotos.length})
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
@@ -350,20 +338,20 @@ export const TrackComplaint = () => {
                           </p>
                         )}
                       </div>
-                      {complaint?.resolutionPhoto ? (
+                      {complaint?.resolutionPhotos?.length > 0 ? (
                         <Button
                           type="button"
                           size="lg"
                           className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
                           onClick={() =>
                             setViewingImage({
-                              photos: [complaint.resolutionPhoto],
+                              photos: complaint.resolutionPhotos,
                               initialIndex: 0,
                               title: "Evidence Uploaded by Field Officer",
                             })
                           }
                         >
-                          View
+                          View ({complaint.resolutionPhotos.length})
                         </Button>
                       ) : (
                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">

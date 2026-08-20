@@ -48,7 +48,7 @@ class ComplaintUpdateSchema(CamelModel):
 class ComplaintSchema(CamelModel):
     id: int
     token: str
-    master_complaint_id: Optional[int] = None
+    related_tokens: Optional[List[str]] = None
     assigned_officer_id: Optional[int] = None
     assigned_officer_name: Optional[str] = None
     department_id: Optional[int] = None
@@ -56,11 +56,10 @@ class ComplaintSchema(CamelModel):
     title: str
     description: str
     location: Optional[str] = None
-    submitted_photo: Optional[str] = None
-    additional_photos: Optional[List[str]] = None
+    submitted_photos: Optional[List[str]] = None
     status: str
     severity: str
-    resolution_photo: Optional[str] = None
+    resolution_photos: Optional[List[str]] = None
     resolution_note: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

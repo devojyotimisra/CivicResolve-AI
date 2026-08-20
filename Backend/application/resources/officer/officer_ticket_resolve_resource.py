@@ -1,5 +1,7 @@
-from application.helpers.schemas import OfficerTicketResolveRequest
-from fastapi import APIRouter, Depends, HTTPException
+import uuid
+import os
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
 from application.extensions.db_extn import get_db
@@ -11,9 +13,10 @@ router = APIRouter()
 
 
 @router.post("/officer/ticket/{complaint_id}/resolve", response_model=dict[str, str])
-def officer_resolve_ticket(
+async def officer_resolve_ticket(
     complaint_id: int,
-    data: OfficerTicketResolveRequest,
+    resolution_note: Optional[str] = Form(None),
+    resolution_photo: Optional[UploadFile] = File(None),
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
@@ -31,13 +34,27 @@ def officer_resolve_ticket(
     if complaint.status not in ['In Progress', 'On Site']:
         raise HTTPException(status_code=400, detail="Ticket must be in progress or on site to resolve")
 
-    resolution_note = data.resolution_note.strip() if data.resolution_note else None
-    resolution_photo_url = data.resolution_photo_url.strip() if data.resolution_photo_url else None
+    resolution_note_str = resolution_note.strip() if resolution_note else None
+    resolution_photo_url = None
+
+    if resolution_photo and resolution_photo.filename:
+        upload_dir = os.path.join("uploads", "resolution")
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        ext = resolution_photo.filename.split(".")[-1] if "." in resolution_photo.filename else "jpg"
+        filename = f"{uuid.uuid4()}.{ext}"
+        filepath = os.path.join(upload_dir, filename)
+        
+        content = await resolution_photo.read()
+        with open(filepath, "wb") as f:
+            f.write(content)
+            
+        resolution_photo_url = f"/uploads/resolution/{filename}"
 
     old_status = complaint.status
     complaint.status = 'Resolved'
-    complaint.resolution_photo = resolution_photo_url
-    complaint.resolution_note = resolution_note
+    complaint.resolution_photos = [resolution_photo_url] if resolution_photo_url else []
+    complaint.resolution_note = resolution_note_str
     complaint.resolved_at = datetime.now(IST)
     complaint.updated_at = datetime.now(IST)
 
@@ -46,7 +63,7 @@ def officer_resolve_ticket(
         updated_by_id=current_user_id,
         old_status=old_status,
         new_status='Resolved',
-        note=resolution_note or 'Issue resolved by field officer'
+        note=resolution_note_str or 'Issue resolved by field officer'
     )
 
     db.add(update)
@@ -61,4 +78,4 @@ def officer_resolve_ticket(
 
     db.commit()
 
-    return {"message": "Ticket resolved successfully"}
+    return {"message": "Ticket resolved successfully", "resolutionPhotoUrl": resolution_photo_url or ""}

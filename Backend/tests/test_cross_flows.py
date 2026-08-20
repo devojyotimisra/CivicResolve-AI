@@ -132,7 +132,7 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
 
     res_resp = client.post(
         f"/api/officer/ticket/{complaint_id}/resolve",
-        json={"resolution_note": "Pipe repaired and pressure tested successfully", "resolution_photo_url": "/uploads/resolutions/fixed.jpg"},
+        data={"resolution_note": "Pipe repaired and pressure tested successfully"},
         headers=off_headers
     )
     assert res_resp.status_code == 200
@@ -143,7 +143,7 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     track_data = track_resp.json()
     assert track_data["complaint"]["status"] == "Resolved"
     assert track_data["complaint"]["resolutionNote"] == "Pipe repaired and pressure tested successfully"
-    assert track_data["complaint"]["resolutionPhoto"] == "/uploads/resolutions/fixed.jpg"
+    assert track_data["complaint"]["resolutionPhotos"] == []
 
     timeline_statuses = [u["newStatus"] for u in track_data["updates"]]
     assert "Assigned" in timeline_statuses

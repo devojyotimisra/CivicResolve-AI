@@ -42,7 +42,7 @@ export const CommissionerLoginTab = () => {
           <Input
             id="comm-email"
             type="text"
-            placeholder="e.g., COM-001 or commissioner1@civicresolveai.org"
+            placeholder="e.g., COM-001 or comm@cr.com"
             value={emailOrBadge}
             onChange={(e) => setEmailOrBadge(e.target.value)}
             className="pl-9"
