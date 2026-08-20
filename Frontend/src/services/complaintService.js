@@ -139,6 +139,21 @@ export const complaintService = {
     }
   },
 
+  respondToResolution: async (token, accept, note) => {
+    try {
+      const response = await client.put(`/complaint/track/${token}/resolution`, {
+        accept,
+        note
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error("Failed to submit resolution response.");
+    }
+  },
+
   getOfficerComplaints: async (officerId) => {
     try {
       const response = await client.get("/officer/history");

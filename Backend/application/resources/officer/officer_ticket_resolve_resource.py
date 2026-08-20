@@ -53,7 +53,12 @@ async def officer_resolve_ticket(
 
     old_status = complaint.status
     complaint.status = 'Resolved'
-    complaint.resolution_photos = [resolution_photo_url] if resolution_photo_url else []
+    
+    existing_photos = list(complaint.resolution_photos or [])
+    if resolution_photo_url:
+        existing_photos.append(resolution_photo_url)
+    complaint.resolution_photos = existing_photos
+    
     complaint.resolution_note = resolution_note_str
     complaint.resolved_at = datetime.now(IST)
     complaint.updated_at = datetime.now(IST)
@@ -78,4 +83,4 @@ async def officer_resolve_ticket(
 
     db.commit()
 
-    return {"message": "Ticket resolved successfully", "resolutionPhotoUrl": resolution_photo_url or ""}
+    return {"message": "Ticket resolved successfully", "resolutionPhotos": existing_photos}

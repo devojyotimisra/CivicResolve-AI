@@ -36,10 +36,10 @@ export const TrackComplaint = () => {
   const [error, setError] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
 
-  const fetchComplaint = async (tokenStr, updateUrl = true) => {
+  const fetchComplaint = async (tokenStr, updateUrl = true, forceRefetch = false) => {
     if (!tokenStr || !tokenStr.trim()) return;
     const cleanToken = tokenStr.trim().toUpperCase();
-    if (complaint && complaint.token?.toUpperCase() === cleanToken) return;
+    if (!forceRefetch && complaint && complaint.token?.toUpperCase() === cleanToken) return;
     setLoading(true);
     setError(null);
     try {
@@ -110,17 +110,19 @@ export const TrackComplaint = () => {
       : "Citizen rejected resolution proof and requested re-opening.";
 
     try {
-      const updated = await complaintService.updateComplaintStatus(
-        complaint.id,
-        newStatus,
-        note,
+      await complaintService.respondToResolution(
+        complaint.token,
+        accept,
+        note
       );
-      setComplaint({ ...updated });
+      setComplaint({ ...complaint, status: newStatus });
       toast.success(
         accept
           ? "Resolution accepted! Thank you for your feedback."
-          : "Case re-opened and flagged to department supervisor.",
+          : "Case re-opened.",
       );
+      // Fetch latest updates
+      fetchComplaint(complaint.token, false, true);
     } catch {
       toast.error("Failed to update status");
     }

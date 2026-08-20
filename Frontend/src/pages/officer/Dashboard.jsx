@@ -187,10 +187,10 @@ export const OfficerDashboard = () => {
       toast.success("Ticket successfully marked as RESOLVED! Proof uploaded.");
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === selectedTicket.id ? { ...t, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotoUrl ? [updated.resolutionPhotoUrl] : [], resolutionNote: resolutionNote.trim() } : t,
+          t.id === selectedTicket.id ? { ...t, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotos || [], resolutionNote: resolutionNote.trim() } : t,
         ),
       );
-      setSelectedTicket({ ...selectedTicket, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotoUrl ? [updated.resolutionPhotoUrl] : [], resolutionNote: resolutionNote.trim() });
+      setSelectedTicket({ ...selectedTicket, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotos || [], resolutionNote: resolutionNote.trim() });
       setShowResolveForm(false);
       setTicketDrafts((prev) => {
         const next = { ...prev };
@@ -316,7 +316,7 @@ export const OfficerDashboard = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[150px]">Token Code</TableHead>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Hazard Summary</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead className="w-[200px]">
@@ -328,10 +328,10 @@ export const OfficerDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeTickets.map((t) => (
+                      {activeTickets.map((t, index) => (
                         <TableRow key={t.id} className="hover:bg-muted/50">
-                          <TableCell className="font-mono font-bold text-xs text-primary">
-                            {t.token}
+                          <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                            {index + 1}
                           </TableCell>
                           <TableCell className="font-medium text-sm max-w-[280px] xl:max-w-[360px] truncate">
                             {t.title}
@@ -400,7 +400,7 @@ export const OfficerDashboard = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[110px]">Token Code</TableHead>
+                        <TableHead className="w-[50px]">#</TableHead>
                         <TableHead>Hazard Summary</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead className="w-[160px]">
@@ -412,10 +412,10 @@ export const OfficerDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {resolvedTickets.map((t) => (
+                      {resolvedTickets.map((t, index) => (
                         <TableRow key={t.id} className="hover:bg-muted/50">
-                          <TableCell className="font-mono font-bold text-xs text-primary">
-                            {t.token}
+                          <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                            {index + 1}
                           </TableCell>
                           <TableCell className="font-medium text-sm max-w-[320px] xl:max-w-[450px] truncate">
                             {t.title}
@@ -463,12 +463,6 @@ export const OfficerDashboard = () => {
               <DialogHeader className="border-b pb-4 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="font-mono text-xs font-bold px-2.5 py-0.5 bg-primary/10 text-primary border-primary/30"
-                    >
-                      {selectedTicket.token}
-                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       Submitted on{" "}
                       {selectedTicket.createdAt &&

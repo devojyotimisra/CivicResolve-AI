@@ -200,7 +200,7 @@ export const CommissionerComplaints = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Token Code</TableHead>
+                    <TableHead>#</TableHead>
                     <TableHead>Severity</TableHead>
                     <TableHead>Hazard Summary</TableHead>
                     <TableHead>Department</TableHead>
@@ -210,10 +210,10 @@ export const CommissionerComplaints = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((comp) => (
+                  {filtered.map((comp, index) => (
                     <TableRow key={comp.id} className="hover:bg-muted/50">
-                      <TableCell className="font-mono font-bold text-xs text-primary">
-                        {comp.token}
+                      <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                        {index + 1}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -295,12 +295,7 @@ export const CommissionerComplaints = () => {
               <span>Reassign Field Officer</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Select an operational field officer to dispatch for critical
-              ticket{" "}
-              <strong className="font-mono font-bold text-foreground">
-                {selectedComplaint?.token}
-              </strong>
-              .
+              Select an operational field officer to dispatch for the critical ticket.
             </DialogDescription>
           </DialogHeader>
 

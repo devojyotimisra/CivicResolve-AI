@@ -13,6 +13,7 @@ from application.resources.general.signup_resource import router as signup_route
 from application.resources.general.password_update_resource import router as password_update_router
 from application.resources.general.anonymous_complaint_resource import router as anon_complaint_router
 from application.resources.general.track_complaint_resource import router as track_complaint_router
+from application.resources.general.citizen_resolution_resource import router as citizen_resolution_router
 from application.resources.general.notification_list_resource import router as notification_list_router
 from application.resources.general.notification_mark_read_resource import router as notification_mark_read_router
 from application.resources.general.notification_mark_unread_resource import router as notification_mark_unread_router
@@ -96,6 +97,7 @@ def create_app():
     app.include_router(password_update_router, prefix=prefix, tags=["auth"])
     app.include_router(anon_complaint_router, prefix=prefix, tags=["public"])
     app.include_router(track_complaint_router, prefix=prefix, tags=["public"])
+    app.include_router(citizen_resolution_router, prefix=prefix, tags=["public"])
     app.include_router(notification_list_router, prefix=prefix, tags=["notifications"])
     app.include_router(notification_mark_read_router, prefix=prefix, tags=["notifications"])
     app.include_router(notification_mark_unread_router, prefix=prefix, tags=["notifications"])

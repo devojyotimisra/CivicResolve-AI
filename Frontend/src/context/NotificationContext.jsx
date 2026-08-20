@@ -38,6 +38,10 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000); // Poll every 30 seconds
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   const markAsRead = useCallback(async (id) => {
