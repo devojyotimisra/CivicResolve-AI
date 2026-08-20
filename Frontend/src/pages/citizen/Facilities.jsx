@@ -593,7 +593,7 @@ export const CitizenFacilities = () => {
         open={!!selectedFacility}
         onOpenChange={(open) => !open && setSelectedFacility(null)}
       >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
               <Building2 className="w-5 h-5 text-primary" />

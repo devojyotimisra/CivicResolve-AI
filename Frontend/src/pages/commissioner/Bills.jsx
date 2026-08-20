@@ -245,7 +245,7 @@ export const CommissionerBills = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               <Receipt className="w-5 h-5" /> Generate New Bill

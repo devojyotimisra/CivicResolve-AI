@@ -182,10 +182,12 @@ export const CommissionerFacilities = () => {
   const handleToggle = async (fac) => {
     setToggling(fac.id);
     try {
-      await facilityService.toggleFacilityStatus(fac.id);
-      toast.success(
-        `"${fac.name}" is now ${fac.isActive ? "Inactive" : "Active"}.`,
-      );
+      await facilityService.toggleFacilityStatus(fac.id, fac.isActive);
+      if (fac.isActive) {
+        toast.error(`"${fac.name}" is now Inactive.`);
+      } else {
+        toast.success(`"${fac.name}" is now Active.`);
+      }
       load();
     } catch {
       toast.error("Failed to update facility status");
@@ -239,7 +241,7 @@ export const CommissionerFacilities = () => {
     setIsDeletingFacility(true);
     try {
       await facilityService.deleteFacility(deletingFacility.id);
-      toast.success(`Facility "${deletingFacility.name}" deleted!`);
+      toast.error(`Facility "${deletingFacility.name}" deleted!`);
       setDeletingFacility(null);
       load();
     } catch (err) {
@@ -585,7 +587,7 @@ export const CommissionerFacilities = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               {editing ? (

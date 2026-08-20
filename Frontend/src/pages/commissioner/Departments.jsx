@@ -86,7 +86,7 @@ export const CommissionerDepartments = () => {
     setIsDeleting(true);
     try {
       await adminService.deleteDepartment(deletingDept.id);
-      toast.success(`Department "${deletingDept.name}" deleted successfully!`);
+      toast.error(`Department "${deletingDept.name}" deleted successfully!`);
       setDeletingDept(null);
       load();
     } catch (err) {
@@ -168,7 +168,7 @@ export const CommissionerDepartments = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               {editing ? (

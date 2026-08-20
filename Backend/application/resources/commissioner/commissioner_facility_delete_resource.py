@@ -21,7 +21,7 @@ def commissioner_delete_facility(
     if not facility:
         raise HTTPException(status_code=404, detail="Facility not found")
 
-    facility.is_active = False
+    db.delete(facility)
     db.commit()
 
-    return {"message": "Facility deactivated"}
+    return {"message": "Facility deleted"}

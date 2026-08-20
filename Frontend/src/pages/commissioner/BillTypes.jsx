@@ -86,7 +86,7 @@ export const CommissionerBillTypes = () => {
     setIsDeleting(true);
     try {
       await billService.deleteBillType(deletingType.id);
-      toast.success(`Bill Type "${deletingType.name}" deleted successfully!`);
+      toast.error(`Bill Type "${deletingType.name}" deleted successfully!`);
       setDeletingType(null);
       load();
     } catch (err) {
@@ -168,7 +168,7 @@ export const CommissionerBillTypes = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               {editing ? (

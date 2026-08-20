@@ -32,7 +32,7 @@ class User(Base):
     badge_id = Column(String(50), unique=True, nullable=True, index=True)
     department_id = Column(Integer, ForeignKey('departments.id', ondelete='SET NULL'), nullable=True, index=True)
     _department = Column('department', String(100), nullable=True, index=True)
-    phone = Column(String(50),  nullable=True)
+    phone = Column(String(50),  unique=True, nullable=True)
     address = Column(String(500), nullable=True)
     pincode = Column(String(20),  nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)

@@ -78,6 +78,8 @@ export const facilityService = {
         if (facilityData.address) payload.address = facilityData.address;
         if (facilityData.pincode) payload.pincode = facilityData.pincode;
         if (facilityData.pricePerDay) payload.pricePerDay = facilityData.pricePerDay;
+        if (facilityData.capacity !== undefined) payload.capacity = facilityData.capacity;
+        if (facilityData.amenities !== undefined) payload.amenities = facilityData.amenities;
         if (facilityData.description !== undefined) payload.description = facilityData.description;
         if (facilityData.isActive !== undefined) payload.isActive = facilityData.isActive;
 
@@ -99,15 +101,8 @@ export const facilityService = {
     }
   },
 
-  toggleFacilityStatus: async (facilityId) => {
+  toggleFacilityStatus: async (facilityId, currentActive) => {
     try {
-
-      const detailResponse = await client.get(`/citizen/facility/${facilityId}`);
-      const facilityData = detailResponse.data.facility || detailResponse.data;
-      // API always returns isActive (camelCase) via CamelModel
-      const currentActive = facilityData.isActive ?? true;
-
-
       const updateResponse = await client.put(`/commissioner/facility/${facilityId}`, {
         isActive: !currentActive
       });

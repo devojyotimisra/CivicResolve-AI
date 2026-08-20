@@ -50,6 +50,8 @@ def commissioner_add_facility(
         address=address,
         pincode=pincode,
         price_per_day=price_per_day,
+        capacity=data.capacity,
+        amenities=data.amenities,
         description=(data.description or "").strip(),
         is_active=True
     )

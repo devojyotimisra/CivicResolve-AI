@@ -273,6 +273,8 @@ class CommissionerFacilityRequest(CamelModel):
     address: Optional[str] = None
     pincode: Optional[str] = None
     price_per_day: Optional[str | float] = None
+    capacity: Optional[int] = None
+    amenities: Optional[Any] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
 

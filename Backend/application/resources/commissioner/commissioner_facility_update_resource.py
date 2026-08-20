@@ -37,6 +37,10 @@ def commissioner_update_facility(
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         facility.price_per_day = result
+    if data.capacity is not None:
+        facility.capacity = data.capacity
+    if data.amenities is not None:
+        facility.amenities = data.amenities
     if data.description is not None:
         facility.description = data.description.strip()
     if data.is_active is not None:

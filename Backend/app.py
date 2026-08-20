@@ -1,12 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import IntegrityError
 import os
 
 from application.middlewares.init_config import init_config
 from application.helpers.config import Config
 from application.middlewares.init_db import initialize_database
 from application.middlewares.init_token_refresh import refresh_token_middleware
+from application.middlewares.init_exceptions import init_exceptions
 
 from application.resources.general.login_resource import router as login_router
 from application.resources.general.signup_resource import router as signup_router
@@ -85,6 +88,8 @@ def create_app():
     initialize_database(app)
 
     app.middleware("http")(refresh_token_middleware)
+
+    init_exceptions(app)
 
     os.makedirs("uploads/complaints", exist_ok=True)
     os.makedirs("uploads/resolutions", exist_ok=True)

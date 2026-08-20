@@ -50,7 +50,7 @@ export const PhotoViewerModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-3xl p-0 overflow-hidden bg-black/95 border-none">
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl p-0 overflow-hidden bg-black/95 border-none">
         <DialogHeader className="p-4 bg-background border-b absolute top-0 w-full z-10 flex flex-row items-center justify-between">
           <div className="flex flex-col space-y-1">
             <DialogTitle className="flex items-center gap-2 text-foreground">

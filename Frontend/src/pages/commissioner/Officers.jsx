@@ -132,7 +132,7 @@ export const CommissionerOfficers = () => {
     setIsDeleting(true);
     try {
       await adminService.deleteOfficer(deletingOfficer.id);
-      toast.success(`Officer "${deletingOfficer.name}" deleted!`);
+      toast.error(`Officer "${deletingOfficer.name}" deleted!`);
       setDeletingOfficer(null);
       load();
     } catch (err) {
@@ -280,7 +280,7 @@ export const CommissionerOfficers = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               {editing ? (

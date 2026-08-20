@@ -293,7 +293,7 @@ export const OfficerDashboard = () => {
                 eye icon to view details and update live status.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-5">
               {loading ? (
                 <div className="p-12 text-center text-muted-foreground text-sm">
                   Loading assigned tickets...
@@ -306,10 +306,6 @@ export const OfficerDashboard = () => {
                       ? "No active tickets match your search criteria."
                       : "You have cleared all assigned maintenance tickets! Excellent job."
                   }
-                  icon={CheckSquare}
-                  actionLabel={searchQuery ? "Clear Search" : undefined}
-                  onAction={searchQuery ? () => setSearchQuery("") : undefined}
-                  inCard
                 />
               ) : (
                 <div className="overflow-x-auto">
@@ -390,10 +386,6 @@ export const OfficerDashboard = () => {
                       ? "No resolved tickets match your search criteria."
                       : "No resolved tickets found in your history yet."
                   }
-                  icon={CheckCircle2}
-                  actionLabel={searchQuery ? "Clear Search" : undefined}
-                  onAction={searchQuery ? () => setSearchQuery("") : undefined}
-                  inCard
                 />
               ) : (
                 <div className="overflow-x-auto">
@@ -457,7 +449,7 @@ export const OfficerDashboard = () => {
           if (!open && !viewingImage) setSelectedTicket(null);
         }}
       >
-        <DialogContent className="max-w-4xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
           {selectedTicket && (
             <div className="max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-6">
               <DialogHeader className="border-b pb-4 space-y-2">

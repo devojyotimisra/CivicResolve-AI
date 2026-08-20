@@ -288,7 +288,7 @@ export const CommissionerComplaints = () => {
         open={!!selectedComplaint}
         onOpenChange={(open) => !open && setSelectedComplaint(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               <UserPlus className="w-5 h-5" />

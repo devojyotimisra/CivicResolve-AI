@@ -49,10 +49,12 @@ export const NotificationModal = ({
     markAsUnread,
     markAllAsRead,
     deleteNotification,
+    clearAll,
   } = useNotifications();
   const { user } = useAuth();
   const [internalOpen, setInternalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const ignoreOutsideRef = useRef(false);
   const open = propOpen !== undefined ? propOpen : internalOpen;
   const setOpen =
@@ -231,6 +233,7 @@ export const NotificationModal = ({
         </DialogTrigger>
 
         <DialogContent
+          onOpenAutoFocus={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => {
             if (ignoreOutsideRef.current) e.preventDefault();
           }}
@@ -250,24 +253,43 @@ export const NotificationModal = ({
                 {unreadCount > 0 && (
                   <Badge
                     variant="secondary"
-                    className="bg-primary/15 text-primary font-bold text-xs px-2 py-0.5 rounded-full shadow-2xs animate-pulse"
+                    className="bg-primary/15 text-primary font-bold text-xs px-2 py-0.5 rounded-full shadow-2xs animate-pulse whitespace-nowrap shrink-0"
                   >
                     {unreadCount} New
                   </Badge>
                 )}
               </DialogTitle>
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => markAllAsRead()}
-                  className="h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 transition-colors"
-                  title="Mark all as read"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                  Mark all read
-                </Button>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => markAllAsRead()}
+                    className="h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+                    title="Mark all as read"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1 shrink-0" />
+                    <span className="hidden sm:inline">Mark all read</span>
+                    <span className="sm:hidden">Read all</span>
+                  </Button>
+                )}
+                {notifications.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      ignoreOutsideRef.current = true;
+                      setConfirmDeleteAll(true);
+                    }}
+                    className="h-8 px-2 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                    title="Delete all notifications"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1 shrink-0" />
+                    <span className="hidden sm:inline">Delete all</span>
+                    <span className="sm:hidden">Delete</span>
+                  </Button>
+                )}
+              </div>
             </div>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
               Stay updated with your latest civic activities, alerts, and{" "}
@@ -326,7 +348,7 @@ export const NotificationModal = ({
         open={!!confirmDelete}
         onOpenChange={(val) => !val && closeConfirm()}
       >
-        <DialogContent className="w-[90vw] sm:w-full max-w-md bg-card/95 border shadow-2xl rounded-2xl p-6 z-[60] text-foreground">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[90vw] sm:w-full max-w-md bg-card/95 border shadow-2xl rounded-2xl p-6 z-[60] text-foreground">
           <DialogHeader className="text-left">
             <DialogTitle className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl shrink-0 shadow-sm border">
@@ -361,6 +383,57 @@ export const NotificationModal = ({
               className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDeleteAll}
+        onOpenChange={(val) => {
+          if (!val) {
+            setConfirmDeleteAll(false);
+            setTimeout(() => {
+              ignoreOutsideRef.current = false;
+            }, 500);
+          }
+        }}
+      >
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[90vw] sm:w-full max-w-md bg-card/95 border shadow-2xl rounded-2xl p-6 z-[60] text-foreground">
+          <DialogHeader className="text-left">
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl shrink-0 shadow-sm border bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <span>Delete All Notifications?</span>
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
+              Are you sure you want to permanently delete all your notifications? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-5 flex flex-row justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setConfirmDeleteAll(false);
+                setTimeout(() => { ignoreOutsideRef.current = false; }, 500);
+              }}
+              className="rounded-xl font-semibold hover:bg-accent"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                clearAll();
+                setConfirmDeleteAll(false);
+                setTimeout(() => { ignoreOutsideRef.current = false; }, 500);
+              }}
+              className="rounded-xl font-semibold shadow-sm"
+            >
+              Delete All
             </Button>
           </DialogFooter>
         </DialogContent>

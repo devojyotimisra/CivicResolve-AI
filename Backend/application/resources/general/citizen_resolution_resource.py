@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from application.extensions.db_extn import get_db
 from application.helpers.models import Complaint, ComplaintUpdate, Notification, IST
+from application.helpers.notification_helper import create_notification
 
 router = APIRouter()
 
@@ -39,14 +40,29 @@ def citizen_respond_resolution(
         default_note = "Citizen rejected resolution proof and requested re-opening."
         
         if complaint.assigned_officer_id:
-            notification = Notification(
+            create_notification(
+                db=db,
                 user_id=complaint.assigned_officer_id,
                 title="Ticket Re-opened",
                 message=f"Citizen rejected resolution for complaint #{complaint.token}.",
                 notif_type="warning",
             )
-            db.add(notification)
-
+        else:
+            create_notification(
+                db=db,
+                target_role="Officer",
+                title="Ticket Re-opened",
+                message=f"Citizen rejected resolution for complaint #{complaint.token}.",
+                notif_type="warning",
+            )
+            
+        create_notification(
+            db=db,
+            target_role="commissioner",
+            title="Ticket Re-opened",
+            message=f"Citizen rejected resolution for complaint #{complaint.token}.",
+            notif_type="warning",
+        )
     complaint.status = new_status
     complaint.updated_at = datetime.now(IST)
 

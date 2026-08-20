@@ -21,7 +21,7 @@ def commissioner_delete_officer(
     if not officer or not officer.has_role('field_officer'):
         raise HTTPException(status_code=404, detail="Officer not found")
 
-    officer.is_active = False
+    db.delete(officer)
     db.commit()
 
-    return {"message": "Officer deactivated successfully"}
+    return {"message": "Officer deleted successfully"}

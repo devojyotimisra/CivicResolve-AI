@@ -131,7 +131,7 @@ export const AnonymousComplaint = () => {
       </div>
 
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent className="max-w-3xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-3xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
           <div className="max-h-[85vh] overflow-y-auto p-6 sm:p-8 flex flex-col gap-6">
             <DialogHeader className="border-b pb-4 space-y-2">
               <DialogTitle className="text-2xl font-extrabold text-foreground text-left leading-tight">
@@ -278,7 +278,7 @@ export const AnonymousComplaint = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md border-2 border-primary/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 overflow-hidden">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border-2 border-primary/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 overflow-hidden">
           <DialogHeader className="text-center space-y-3 pt-2">
             <DialogTitle className="text-2xl font-extrabold tracking-tight text-foreground text-center">
               Official Tracking Token

@@ -307,7 +307,7 @@ export const CitizenBills = () => {
         open={!!receiptBill}
         onOpenChange={(open) => !open && setReceiptBill(null)}
       >
-        <DialogContent className="sm:max-w-md border">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border">
           <DialogHeader className="text-center pb-2 border-b">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-1">
               <CheckCircle2 className="h-8 w-8" />

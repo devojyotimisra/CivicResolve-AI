@@ -42,7 +42,7 @@ export const ConfirmationModal = ({
       open={isOpen}
       onOpenChange={(val) => !val && !isLoading && onClose()}
     >
-      <DialogContent className="w-[90vw] sm:w-full max-w-md bg-card/95 border shadow-2xl rounded-2xl p-6 z-[60] text-foreground">
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[90vw] sm:w-full max-w-md bg-card/95 border shadow-2xl rounded-2xl p-6 z-[60] text-foreground">
         <DialogHeader className="text-left">
           <DialogTitle className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground">
             <div

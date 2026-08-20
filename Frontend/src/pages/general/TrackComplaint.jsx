@@ -178,7 +178,7 @@ export const TrackComplaint = () => {
           if (!open) setError(null);
         }}
       >
-        <DialogContent className="sm:max-w-md border-2 border-destructive/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 text-center">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border-2 border-destructive/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 text-center">
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-xl font-bold text-foreground">
               Token Not Found or Spam
@@ -200,7 +200,7 @@ export const TrackComplaint = () => {
           }
         }}
       >
-        <DialogContent className="max-w-4xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
           <div className="max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-4">
             <DialogHeader className="border-b pb-4 space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
