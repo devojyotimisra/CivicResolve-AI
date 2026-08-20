@@ -109,5 +109,24 @@ export const authService = {
       }
       throw new Error("Failed to update profile.");
     }
+  },
+
+  updatePassword: async (currentPassword, newPassword) => {
+    try {
+      const session = authService.getCurrentSession();
+      if (!session) throw new Error("No active session");
+
+      const response = await client.put("/update_password", {
+        currentPassword,
+        newPassword
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error("Failed to update password.");
+    }
   }
 };

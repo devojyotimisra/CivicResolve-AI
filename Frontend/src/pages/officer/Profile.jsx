@@ -10,7 +10,7 @@ import { Phone, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 export const OfficerProfile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updatePassword } = useAuth();
   const [formData, setFormData] = useState({
     phone: user?.phone || ""
   });
@@ -38,20 +38,16 @@ export const OfficerProfile = () => {
       setPassError("Both fields are required.");
       return;
     }
-    if (passForm.current !== user?.password) {
-      setPassError("Current password is incorrect.");
-      return;
-    }
     if (passForm.newPass.length < 8) {
       setPassError("New password must be at least 8 characters.");
       return;
     }
     setPassLoading(true);
     try {
-      await updateProfile({ password: passForm.newPass });
+      await updatePassword(passForm.current, passForm.newPass);
       setPassForm({ current: "", newPass: "" });
-    } catch {
-      // Errors handled by context toast
+    } catch (error) {
+      setPassError(error.message);
     } finally {
       setPassLoading(false);
     }
@@ -171,7 +167,7 @@ export const OfficerProfile = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-pass" className="text-xs">
-                  New Security Password
+                  New Password
                 </Label>
                 <Input
                   id="new-pass"

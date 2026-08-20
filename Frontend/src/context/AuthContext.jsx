@@ -81,6 +81,19 @@ export const AuthProvider = ({ children }) => {
     [user],
   );
 
+  const updatePassword = useCallback(
+    async (currentPassword, newPassword) => {
+      try {
+        await authService.updatePassword(currentPassword, newPassword);
+        toast.success("Password updated successfully!");
+      } catch (error) {
+        toast.error(error.message || "Failed to update password");
+        throw error;
+      }
+    },
+    []
+  );
+
   const value = useMemo(
     () => ({
       user,
@@ -92,8 +105,9 @@ export const AuthProvider = ({ children }) => {
       signup,
       logout,
       updateProfile,
+      updatePassword,
     }),
-    [user, token, loading, updateProfile],
+    [user, token, loading, updateProfile, updatePassword],
   );
 
   return (
