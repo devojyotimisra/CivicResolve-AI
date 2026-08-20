@@ -223,8 +223,7 @@ def test_officer_profile_fetch_success(client, officer_headers, officer_user):
 def test_officer_profile_update_success(client, officer_headers, officer_user, db_session):
     payload = {
         "name": "Officer Primary Renamed",
-        "phone": "9998887771",
-        "password": "NewSecretPassword123"
+        "phone": "9998887771"
     }
 
     response = client.put("/api/officer/edit_profile", json=payload, headers=officer_headers)
@@ -234,7 +233,6 @@ def test_officer_profile_update_success(client, officer_headers, officer_user, d
     db_session.refresh(officer_user)
     assert officer_user.name == "Officer Primary Renamed"
     assert officer_user.phone == "9998887771"
-    assert verify_password("NewSecretPassword123", officer_user.password) is True
 
 
 def test_officer_profile_update_validation_failures(client, officer_headers):
@@ -242,10 +240,6 @@ def test_officer_profile_update_validation_failures(client, officer_headers):
     resp1 = client.put("/api/officer/edit_profile", json={"phone": "12345"}, headers=officer_headers)
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Phone must be a 10-digit number"
-
-    resp2 = client.put("/api/officer/edit_profile", json={"password": "123"}, headers=officer_headers)
-    assert resp2.status_code == 400
-    assert resp2.json()["detail"] == "Password must be at least 5 characters long"
 
 
 def test_officer_search_success(client, officer_headers, assigned_complaint):

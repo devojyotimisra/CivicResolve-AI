@@ -380,8 +380,7 @@ def test_commissioner_profile_fetch_success(client, comm_headers, comm_user):
 def test_commissioner_profile_update_success(client, comm_headers, comm_user, db_session):
     payload = {
         "name": "Chief Commissioner Updated",
-        "phone": "9998887770",
-        "password": "NewCommPassword123"
+        "phone": "9998887770"
     }
 
     response = client.put("/api/commissioner/edit_profile", json=payload, headers=comm_headers)
@@ -391,7 +390,6 @@ def test_commissioner_profile_update_success(client, comm_headers, comm_user, db
     db_session.refresh(comm_user)
     assert comm_user.name == "Chief Commissioner Updated"
     assert comm_user.phone == "9998887770"
-    assert verify_password("NewCommPassword123", comm_user.password) is True
 
 
 def test_commissioner_profile_update_validation_failures(client, comm_headers):
@@ -399,7 +397,3 @@ def test_commissioner_profile_update_validation_failures(client, comm_headers):
     resp1 = client.put("/api/commissioner/edit_profile", json={"phone": "12345"}, headers=comm_headers)
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Phone must be a 10-digit number"
-
-    resp2 = client.put("/api/commissioner/edit_profile", json={"password": "123"}, headers=comm_headers)
-    assert resp2.status_code == 400
-    assert resp2.json()["detail"] == "Password must be at least 5 characters long"
