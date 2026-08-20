@@ -136,12 +136,19 @@ class AuthUserResponse(CamelModel):
     badge_id: Optional[str] = None
     phone: Optional[str] = None
     department: Optional[str] = None
+    address: Optional[str] = None
+    pincode: Optional[str] = None
 
 
 class AuthResponse(CamelModel):
     message: str
     token: str
     user: AuthUserResponse
+
+
+class PasswordUpdateRequest(CamelModel):
+    current_password: str
+    new_password: str
 
 
 class CitizenDashboardResponse(CamelModel):

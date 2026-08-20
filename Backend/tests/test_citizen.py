@@ -162,8 +162,7 @@ def test_citizen_profile_update_success(client, citizen_headers, citizen_user, d
         "name": "John Citizen Updated",
         "address": "999 Updated Boulevard",
         "pincode": "110005",
-        "phone": "9998887775",
-        "password": "NewSecretPass123!"
+        "phone": "9998887775"
     }
 
     response = client.put("/api/citizen/edit_profile", json=payload, headers=citizen_headers)
@@ -176,7 +175,6 @@ def test_citizen_profile_update_success(client, citizen_headers, citizen_user, d
     assert citizen_user.address == "999 Updated Boulevard"
     assert citizen_user.pincode == "110005"
     assert citizen_user.phone == "9998887775"
-    assert verify_password("NewSecretPass123!", citizen_user.password) is True
 
 
 def test_citizen_profile_update_duplicate_email(client, citizen_headers, second_citizen_user):
@@ -207,10 +205,6 @@ def test_citizen_profile_update_validation_failures(client, citizen_headers):
     resp5 = client.put("/api/citizen/edit_profile", json={"phone": "12345"}, headers=citizen_headers)
     assert resp5.status_code == 400
     assert resp5.json()["detail"] == "Phone must be a 10-digit number"
-
-    resp6 = client.put("/api/citizen/edit_profile", json={"password": "123"}, headers=citizen_headers)
-    assert resp6.status_code == 400
-    assert resp6.json()["detail"] == "Password must be at least 5 characters long"
 
 
 def test_citizen_search_success(client, citizen_headers, db_session):

@@ -2,9 +2,8 @@ from application.helpers.schemas import CitizenProfileUpdateRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.extensions.security_extn import hash_password
 from application.helpers.models import User
-from application.helpers.validators import validate_email, validate_password, validate_name, validate_address, validate_pincode, validate_phone
+from application.helpers.validators import validate_email, validate_name, validate_address, validate_pincode, validate_phone
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -52,12 +51,6 @@ def citizen_profile_update(
         if not is_valid:
             raise HTTPException(status_code=400, detail=result)
         user.phone = result
-
-    if data.password:
-        is_valid, result = validate_password(data.password)
-        if not is_valid:
-            raise HTTPException(status_code=400, detail=result)
-        user.password = hash_password(result)
 
     db.commit()
 
