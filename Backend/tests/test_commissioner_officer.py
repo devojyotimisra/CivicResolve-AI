@@ -300,13 +300,13 @@ def test_update_non_existent_officer(client, comm_headers):
     assert response.json()["detail"] == "Officer not found"
 
 
-def test_delete_officer_soft_delete(client, comm_headers, existing_officer, db_session):
+def test_delete_officer_success(client, comm_headers, existing_officer, db_session):
     response = client.delete(f"/api/commissioner/officer/{existing_officer.id}", headers=comm_headers)
     assert response.status_code == 200
-    assert response.json()["message"] == "Officer deactivated successfully"
+    assert response.json()["message"] == "Officer deleted successfully"
 
-    db_session.refresh(existing_officer)
-    assert existing_officer.is_active is False
+    deleted = db_session.get(User, existing_officer.id)
+    assert deleted is None
 
 
 def test_delete_non_existent_officer(client, comm_headers):

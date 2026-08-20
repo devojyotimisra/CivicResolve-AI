@@ -295,13 +295,13 @@ def test_commissioner_update_facility_invalid_price(client, comm_headers, active
     assert response.json()["detail"] == "Price must be greater than 0"
 
 
-def test_commissioner_delete_facility_soft_deactivation(client, comm_headers, active_facility, db_session):
+def test_commissioner_delete_facility_success(client, comm_headers, active_facility, db_session):
     response = client.delete(f"/api/commissioner/facility/{active_facility.id}", headers=comm_headers)
     assert response.status_code == 200
-    assert response.json()["message"] == "Facility deactivated"
+    assert response.json()["message"] == "Facility deleted"
 
-    db_session.refresh(active_facility)
-    assert active_facility.is_active is False
+    deleted = db_session.get(Facility, active_facility.id)
+    assert deleted is None
 
 
 def test_commissioner_delete_facility_not_found(client, comm_headers):
