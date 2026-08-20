@@ -53,6 +53,7 @@ export const OfficerDashboard = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
   const [resolutionPhoto, setResolutionPhoto] = useState("");
+  const [resolutionFile, setResolutionFile] = useState(null);
   const [resolutionNote, setResolutionNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showResolveForm, setShowResolveForm] = useState(false);
@@ -82,8 +83,10 @@ export const OfficerDashboard = () => {
     setSelectedTicket(ticket);
     const draft = ticketDrafts[ticket.id] || {};
     const photoVal = draft.photo || "";
+    const fileVal = draft.file || null;
     const noteVal = draft.note !== undefined ? draft.note : "";
     setResolutionPhoto(photoVal);
+    setResolutionFile(fileVal);
     setResolutionNote(noteVal);
     setShowResolveForm(
       ticket.status === "In Progress" ||
@@ -101,10 +104,10 @@ export const OfficerDashboard = () => {
       );
       toast.success(`Ticket status advanced to: ${nextStatus}!`);
       setTickets((prev) =>
-        prev.map((t) => (t.id === ticketId ? { ...t, ...updated } : t)),
+        prev.map((t) => (t.id === ticketId ? { ...t, ...updated, status: nextStatus } : t)),
       );
       if (selectedTicket && selectedTicket.id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, ...updated });
+        setSelectedTicket({ ...selectedTicket, ...updated, status: nextStatus });
         if (nextStatus === "In Progress") setShowResolveForm(true);
       }
     } catch {
@@ -115,6 +118,7 @@ export const OfficerDashboard = () => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      setResolutionFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setResolutionPhoto(reader.result);
@@ -124,6 +128,7 @@ export const OfficerDashboard = () => {
             [selectedTicket.id]: {
               ...prev[selectedTicket.id],
               photo: reader.result,
+              file: file,
             },
           }));
         }
@@ -147,12 +152,14 @@ export const OfficerDashboard = () => {
 
   const handleRemovePhoto = () => {
     setResolutionPhoto("");
+    setResolutionFile(null);
     if (selectedTicket) {
       setTicketDrafts((prev) => ({
         ...prev,
         [selectedTicket.id]: {
           ...prev[selectedTicket.id],
           photo: "",
+          file: null,
         },
       }));
     }
@@ -161,7 +168,7 @@ export const OfficerDashboard = () => {
   const handleResolveSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTicket) return;
-    if (!resolutionPhoto || !resolutionNote.trim()) {
+    if (!resolutionFile || !resolutionNote.trim()) {
       toast.error(
         "Please provide both photographic proof and an engineering resolution note.",
       );
@@ -174,16 +181,16 @@ export const OfficerDashboard = () => {
         "Resolved",
         `Resolved by Officer ${user?.name || "Field Officer"}: ${resolutionNote.trim()}`,
         user?.id,
-        resolutionPhoto,
+        resolutionFile,
         resolutionNote.trim(),
       );
       toast.success("Ticket successfully marked as RESOLVED! Proof uploaded.");
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === selectedTicket.id ? { ...t, ...updated } : t,
+          t.id === selectedTicket.id ? { ...t, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotoUrl ? [updated.resolutionPhotoUrl] : [], resolutionNote: resolutionNote.trim() } : t,
         ),
       );
-      setSelectedTicket({ ...selectedTicket, ...updated });
+      setSelectedTicket({ ...selectedTicket, ...updated, status: "Resolved", resolutionPhotos: updated.resolutionPhotoUrl ? [updated.resolutionPhotoUrl] : [], resolutionNote: resolutionNote.trim() });
       setShowResolveForm(false);
       setTicketDrafts((prev) => {
         const next = { ...prev };
@@ -527,35 +534,23 @@ export const OfficerDashboard = () => {
                             Original hazard evidence submitted by reporter
                           </p>
                         </div>
-                        {selectedTicket?.submittedPhoto ? (
+                        {selectedTicket?.submittedPhotos?.length > 0 ? (
                           <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-                            {(() => {
-                              const uniquePhotos = [
-                                ...new Set(
-                                  [
-                                    selectedTicket.submittedPhoto,
-                                    ...(selectedTicket.additionalPhotos || []),
-                                  ].filter(Boolean),
-                                ),
-                              ];
-                              return (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="h-10 px-4 font-bold shadow-sm"
-                                  onClick={() =>
-                                    setViewingImage({
-                                      photos: uniquePhotos,
-                                      initialIndex: 0,
-                                      title: "Evidence Gallery",
-                                    })
-                                  }
-                                >
-                                  <Camera className="w-4 h-4 mr-2" />
-                                  View ({uniquePhotos.length})
-                                </Button>
-                              );
-                            })()}
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-10 px-4 font-bold shadow-sm"
+                              onClick={() =>
+                                setViewingImage({
+                                  photos: selectedTicket.submittedPhotos,
+                                  initialIndex: 0,
+                                  title: "Evidence Gallery",
+                                })
+                              }
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              View ({selectedTicket.submittedPhotos.length})
+                            </Button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
@@ -583,20 +578,20 @@ export const OfficerDashboard = () => {
                             </p>
                           )}
                         </div>
-                        {selectedTicket.resolutionPhoto ? (
+                        {selectedTicket?.resolutionPhotos?.length > 0 ? (
                           <Button
                             type="button"
                             size="lg"
                             className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
                             onClick={() =>
                               setViewingImage({
-                                photos: [selectedTicket.resolutionPhoto],
+                                photos: selectedTicket.resolutionPhotos,
                                 initialIndex: 0,
                                 title: "Evidence Uploaded by Field Officer",
                               })
                             }
                           >
-                            View
+                            View ({selectedTicket.resolutionPhotos.length})
                           </Button>
                         ) : (
                           <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">

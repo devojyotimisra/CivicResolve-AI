@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, Complaint, Department, ComplaintUpdate, ComplaintMedia
+from application.helpers.models import User, Complaint, Department, ComplaintUpdate
 from application.middlewares.init_jwt import get_current_user_id
 from application.helpers.schemas import CommissionerComplaintDetailResponse, ComplaintSchema, ComplaintUpdateSchema
 
@@ -27,13 +27,12 @@ def commissioner_complaint_detail(
 
     updates_orm = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
 
-    media_records = db.query(ComplaintMedia).filter_by(complaint_id=complaint.id, media_type='photo').all()
-    additional_photos = [m.media_url for m in media_records]
+
 
     complaint_schema = ComplaintSchema.model_validate({
         "id": complaint.id,
         "token": complaint.token,
-        "master_complaint_id": complaint.master_complaint_id,
+        "related_tokens": complaint.related_tokens or [],
         "assigned_officer_id": complaint.assigned_officer_id,
         "assigned_officer_name": officer.name if officer else complaint.assigned_officer_name,
         "department_id": complaint.department_id,
@@ -41,11 +40,10 @@ def commissioner_complaint_detail(
         "title": complaint.title,
         "description": complaint.description,
         "location": complaint.location,
-        "submitted_photo": complaint.submitted_photo,
-        "additional_photos": additional_photos,
+        "submitted_photos": complaint.submitted_photos or [],
         "status": complaint.status,
         "severity": complaint.severity,
-        "resolution_photo": complaint.resolution_photo,
+        "resolution_photos": complaint.resolution_photos or [],
         "resolution_note": complaint.resolution_note,
         "created_at": complaint.created_at,
         "updated_at": complaint.updated_at,

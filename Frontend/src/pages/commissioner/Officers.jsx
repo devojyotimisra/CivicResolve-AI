@@ -313,7 +313,7 @@ export const CommissionerOfficers = () => {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="john@example.com"
+                placeholder="officer@cr.com"
                 className="text-xs"
                 required
               />
@@ -343,12 +343,12 @@ export const CommissionerOfficers = () => {
                 disabled={!departments || departments.length === 0}
               >
                 <SelectTrigger className="text-xs">
-                  <SelectValue 
+                  <SelectValue
                     placeholder={
-                      !departments || departments.length === 0 
-                        ? "No departments available" 
+                      !departments || departments.length === 0
+                        ? "No departments available"
                         : "Select Department"
-                    } 
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>

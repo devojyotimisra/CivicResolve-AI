@@ -6,7 +6,6 @@ from groq import AsyncGroq
 from application.helpers.config import Config
 import re
 
-logger = logging.getLogger(__name__)
 
 MODEL = Config.GROQ_MODEL
 
@@ -18,16 +17,16 @@ def _get_client():
 
 def _parse_json_response(text: str) -> dict | None:
     text = text.strip()
-    
+
     text = re.sub(r"<think>.*?(</think>|$)", "", text, flags=re.DOTALL).strip()
-    
+
     if text.startswith("```"):
         lines = text.split("\n")
         lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         text = "\n".join(lines).strip()
-    
+
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -85,7 +84,6 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
         )
         return _parse_json_response(response.choices[0].message.content)
     except Exception as e:
-        logger.error("detect_spam failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -125,7 +123,6 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
         )
         return _parse_json_response(response.choices[0].message.content)
     except Exception as e:
-        logger.error("translate_text failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -151,7 +148,8 @@ WHAT TO KEEP:
 
 OUTPUT REQUIREMENTS:
 - Professional third-person tone suitable for a government work order
-- Single paragraph, 50-200 words
+- Single paragraph, 2-3 sentences, maximum 80 words
+- Be concise — capture only the core issue, location, and severity
 - No markdown formatting
 
 Respond ONLY with valid JSON:
@@ -166,16 +164,13 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "user", "content": f"Original complaint:\n{description}"},
             ],
             temperature=0.2,
-            max_completion_tokens=1500,
+            max_completion_tokens=500,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
-        logger.debug("[sanitize] Raw response: %s", response.choices[0].message.content[:200])
         result = _parse_json_response(response.choices[0].message.content)
-        logger.debug("[sanitize] Parsed result: %s", result)
         return result
     except Exception as e:
-        logger.error("sanitize_complaint failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -245,23 +240,17 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
-        logger.debug("[auto_route] Raw response: %s", response.choices[0].message.content[:200])
         result = _parse_json_response(response.choices[0].message.content)
-        logger.debug("[auto_route] Parsed result: %s", result)
 
         if result and result.get("department") not in department_names:
-            logger.debug("[auto_route] Department '%s' NOT in %s, trying case-insensitive match",
-                         result.get("department"), department_names)
             dept_lower = {d.lower(): d for d in department_names}
             matched = dept_lower.get(result["department"].lower())
             if matched:
                 result["department"] = matched
             else:
-                logger.debug("[auto_route] No match found, returning None")
                 return None
         return result
     except Exception as e:
-        logger.error("auto_route_complaint failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -331,7 +320,6 @@ EXISTING OPEN COMPLAINTS:
         print(response.choices[0].message.content)
         return _parse_json_response(response.choices[0].message.content)
     except Exception as e:
-        logger.error("find_duplicate_complaints failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -373,7 +361,6 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error("generate_description_from_photo failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -390,9 +377,10 @@ RULES:
 2. If both mention the same fact differently, combine logically (e.g., "200 cm" + "large" → "a large pothole measuring approximately 200 cm")
 3. If one provides details the other doesn't, include both
 4. Remove any emotional language, personal info, or redundant content
-5. Output a SINGLE professional paragraph, 50-250 words
-6. Do NOT add any information not present in either description
-7. Do NOT use markdown formatting or bullet points
+5. Output a SINGLE professional paragraph, 2-3 sentences, maximum 80 words
+6. Be concise — prioritize the most important facts
+7. Do NOT add any information not present in either description
+8. Do NOT use markdown formatting or bullet points
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT ONLY THE MERGED TEXT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
 
@@ -406,10 +394,9 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.2,
-            max_completion_tokens=800,
+            max_completion_tokens=400,
             extra_body={"reasoning_effort": "none"},
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error("merge_duplicate_descriptions failed: %s: %s", type(e).__name__, e)
         return None

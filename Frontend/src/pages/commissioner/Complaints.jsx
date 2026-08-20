@@ -336,15 +336,6 @@ export const CommissionerComplaints = () => {
                           {off.name} (Badge: {off.badgeId})
                         </SelectItem>
                       ))}
-                    {officers
-                      .filter(
-                        (o) => o.department !== selectedComplaint.department,
-                      )
-                      .map((off) => (
-                        <SelectItem key={off.id} value={off.id}>
-                          {off.name} ({off.department})
-                        </SelectItem>
-                      ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -47,6 +47,7 @@ export const NotificationModal = ({
     unreadCount,
     markAsRead,
     markAsUnread,
+    markAllAsRead,
     deleteNotification,
   } = useNotifications();
   const { user } = useAuth();
@@ -255,6 +256,18 @@ export const NotificationModal = ({
                   </Badge>
                 )}
               </DialogTitle>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => markAllAsRead()}
+                  className="h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Mark all as read"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                  Mark all read
+                </Button>
+              )}
             </div>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
               Stay updated with your latest civic activities, alerts, and{" "}

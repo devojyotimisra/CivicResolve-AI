@@ -25,8 +25,6 @@ def initialize_database(app):
                 email=config.COMMISSIONER_MAIL,
                 password=hash_password(config.COMMISSIONER_PASSWORD),
                 name=config.COMMISSIONER_NAME,
-                pincode=config.COMMISSIONER_PINCODE,
-                address=config.COMMISSIONER_ADDRESS,
                 role='commissioner',
                 badge_id='COM-001',
                 is_active=True

@@ -63,16 +63,13 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
         spam_result = await detect_spam(title, description)
         if spam_result and spam_result.get("is_spam"):
             complaint.status = 'Rejected'
-            spam_reason = spam_result.get("reason", "Flagged as spam")
-            complaint.resolution_note = f"Auto-rejected: {spam_reason}"
             complaint.updated_at = datetime.now(IST)
-
             update = ComplaintUpdate(
                 complaint_id=complaint.id,
                 updated_by_id=None,
                 old_status='Processing',
                 new_status='Rejected',
-                note=f'Auto-rejected by AI: {spam_reason}',
+                note=f"Rejected as spam: {spam_result.get('reason', 'Automated detection')}"
             )
             db.add(update)
             db.commit()
@@ -198,31 +195,17 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
                             if re_sanitized and re_sanitized.get("sanitized_text"):
                                 master.description = re_sanitized["sanitized_text"]
 
-                        from application.helpers.models import ComplaintMedia
                         if photo_url:
-                            media = ComplaintMedia(
-                                complaint_id=master.id,
-                                media_url=photo_url,
-                                media_type='photo',
-                                source='citizen'
-                            )
-                            db.add(media)
+                            photos = list(master.submitted_photos or [])
+                            if photo_url not in photos:
+                                photos.append(photo_url)
+                            master.submitted_photos = photos
 
-                        if photo_url and not master.submitted_photo:
-                            master.submitted_photo = photo_url
+                        tokens = list(master.related_tokens or [])
+                        tokens.append(complaint.token)
+                        master.related_tokens = tokens
 
                         master.updated_at = datetime.now(IST)
-
-                        complaint.department_id = None
-                        complaint.department = None
-                        complaint.assigned_officer_id = None
-                        complaint.assigned_officer_name = None
-                        complaint.status = 'Merged'
-                        complaint.master_complaint_id = master.id
-                        complaint.resolution_note = f'Duplicate merged into complaint #{master.token}'
-                        complaint.updated_at = datetime.now(IST)
-                        complaint.resolved_at = datetime.now(IST)
-                        complaint.closed_at = datetime.now(IST)
 
                         dup_update = ComplaintUpdate(
                             complaint_id=master.id,
@@ -232,6 +215,8 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
                             note=f'Additional citizen report merged from {complaint.token}. Details added and severity escalated.',
                         )
                         db.add(dup_update)
+
+                        db.delete(complaint)
                         db.commit()
                         return
 
@@ -366,7 +351,7 @@ async def file_anonymous_complaint(
         title=title,
         description=description,
         department_id=category_id,
-        submitted_photo=photo_url,
+        submitted_photos=[photo_url] if photo_url else [],
         location=location_text,
         status='Processing',
         severity='Normal',

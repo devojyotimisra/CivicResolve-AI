@@ -77,7 +77,7 @@ class Complaint(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     token = Column(String(20), unique=True, nullable=False, index=True)
-    master_complaint_id = Column(Integer, ForeignKey('complaints.id', ondelete='SET NULL'), nullable=True)
+    related_tokens = Column(JSON, default=list, nullable=False)
     assigned_officer_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     assigned_officer_name = Column(String(100), nullable=True)
     department_id = Column(Integer, ForeignKey('departments.id', ondelete='SET NULL'), nullable=True)
@@ -85,10 +85,10 @@ class Complaint(Base):
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=False)
     location = Column(String(500), nullable=True)
-    submitted_photo = Column(String(500), nullable=True)
+    submitted_photos = Column(JSON, default=list, nullable=True)
     status = Column(String(50),  default='Submitted', nullable=False)
     severity = Column(String(50),  default='Normal',    nullable=False)
-    resolution_photo = Column(String(500), nullable=True)
+    resolution_photos = Column(JSON, default=list, nullable=True)
     resolution_note = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
     updated_at = Column(DateTime, default=lambda: datetime.now(IST), onupdate=lambda: datetime.now(IST))
@@ -100,23 +100,6 @@ class Complaint(Base):
     updates = relationship('ComplaintUpdate', backref='complaint',
                            order_by='ComplaintUpdate.created_at.asc()',
                            cascade='all, delete-orphan')
-
-    @property
-    def additional_photos(self):
-        return [m.media_url for m in self.media if m.media_type == 'photo']
-
-
-class ComplaintMedia(Base):
-    __tablename__ = 'complaint_media'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    complaint_id = Column(Integer, ForeignKey('complaints.id', ondelete='CASCADE'), nullable=False)
-    media_url = Column(String(500), nullable=False)
-    media_type = Column(String(50), default='photo')
-    source = Column(String(50), default='citizen')
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
-
-    complaint = relationship('Complaint', backref='media')
 
 
 class ComplaintUpdate(Base):

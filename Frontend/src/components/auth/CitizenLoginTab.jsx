@@ -42,7 +42,7 @@ export const CitizenLoginTab = () => {
           <Input
             id="citizen-email"
             type="text"
-            placeholder="e.g., citizen@civic.org"
+            placeholder="e.g., citizen@cr.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="pl-9"

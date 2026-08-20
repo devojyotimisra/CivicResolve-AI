@@ -70,13 +70,15 @@ export const complaintService = {
     }
   },
 
-  updateComplaintStatus: async (complaintId, newStatus, note, officerId = null, resolutionPhoto = null, resolutionNote = null) => {
+  updateComplaintStatus: async (complaintId, newStatus, note, officerId = null, resolutionFile = null, resolutionNote = null) => {
     try {
       if (newStatus === "Resolved") {
-        const response = await client.post(`/officer/ticket/${complaintId}/resolve`, {
-          resolutionNote: resolutionNote || note,
-          resolutionPhotoUrl: resolutionPhoto
-        });
+        const formData = new FormData();
+        formData.append("resolution_note", resolutionNote || note);
+        if (resolutionFile) {
+          formData.append("resolution_photo", resolutionFile);
+        }
+        const response = await client.post(`/officer/ticket/${complaintId}/resolve`, formData);
         return response.data;
       } else {
         const response = await client.put(`/officer/ticket/${complaintId}/status`, {

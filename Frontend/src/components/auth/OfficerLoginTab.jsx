@@ -42,7 +42,7 @@ export const OfficerLoginTab = () => {
           <Input
             id="officer-badge"
             type="text"
-            placeholder="e.g., OFF-104 or officer@civic.org"
+            placeholder="e.g., OFF-101 or officer@cr.com"
             value={badgeId}
             onChange={(e) => setBadgeId(e.target.value)}
             className="pl-9"

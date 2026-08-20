@@ -331,14 +331,14 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
     assert res_data["trackingToken"] != "CRA-MASTER01"
 
     db_session.expire_all()
-    created = db_session.query(Complaint).filter_by(token=res_data["trackingToken"]).first()
-    assert created.status == "Merged"
-    assert "CRA-MASTER01" in created.resolution_note
-    db_session.expire_all()
+    deleted = db_session.query(Complaint).filter_by(token=res_data["trackingToken"]).first()
+    assert deleted is None
+
     master_refreshed = db_session.get(Complaint, master.id)
     assert master_refreshed.severity == "Critical"
+    assert res_data["trackingToken"] in master_refreshed.related_tokens
 
-    assert db_session.query(Complaint).count() == 2
+    assert db_session.query(Complaint).count() == 1
 
 
 def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_session):
@@ -351,7 +351,7 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
         location="2nd Cross Road",
         status="Submitted",
         severity="Normal",
-        submitted_photo=None,
+        submitted_photos=None,
         created_at=datetime.now(IST) - timedelta(hours=2)
     )
     db_session.add(master)
@@ -375,8 +375,8 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
 
     assert response.status_code == 200
     db_session.refresh(master)
-    assert master.submitted_photo is not None
-    assert master.submitted_photo.startswith("/uploads/complaints/")
+    assert len(master.submitted_photos) > 0
+    assert master.submitted_photos[0].startswith("/uploads/complaints/")
 
 
 def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_session):
@@ -390,7 +390,7 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
         location="4th Street",
         status="Submitted",
         severity="Normal",
-        submitted_photo=existing_photo_url,
+        submitted_photos=[existing_photo_url],
         created_at=datetime.now(IST) - timedelta(hours=1)
     )
     db_session.add(master)
@@ -418,13 +418,11 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
 
     assert response.status_code == 200
     db_session.refresh(master)
-    assert master.submitted_photo == existing_photo_url
+    assert existing_photo_url in master.submitted_photos
     assert os.path.exists(expected_filepath) is True
 
-    from application.helpers.models import ComplaintMedia
-    media = db_session.query(ComplaintMedia).filter_by(complaint_id=master.id).first()
-    assert media is not None
-    assert media.media_url == f"/uploads/complaints/99999999-8888-7777-6666-555555555555.jpg"
+    new_photo_url = "/uploads/complaints/99999999-8888-7777-6666-555555555555.jpg"
+    assert new_photo_url in master.submitted_photos
 
 
 def test_ai_failure_detect_spam_fallback(client, db_session):

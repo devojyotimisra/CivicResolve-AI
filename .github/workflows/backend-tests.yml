@@ -19,8 +19,6 @@ jobs:
       COMMISSIONER_MAIL: commissioner@test.local
       COMMISSIONER_PASSWORD: test-password
       COMMISSIONER_NAME: Test Commissioner
-      COMMISSIONER_PINCODE: "110001"
-      COMMISSIONER_ADDRESS: Test Municipal Office
 
       FRONTEND_URL: http://localhost:5173
       HOST: 0.0.0.0
