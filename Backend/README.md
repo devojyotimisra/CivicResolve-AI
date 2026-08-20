@@ -1,9 +1,10 @@
 ---
 title: CS3001
 emoji: 💻
-colorFrom: orange
+colorFrom: red
 colorTo: blue
 sdk: docker
+app_file: app.py
 pinned: false
 ---
 
