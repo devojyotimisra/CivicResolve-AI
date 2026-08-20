@@ -1,3 +1,12 @@
+---
+title: CS3001
+emoji: 💻
+colorFrom: orange
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # CivicResolve AI — Backend
 
 A robust, secure REST API for municipal administration, civic issue reporting, and public facility management. Built with **Python 3.12**, **FastAPI**, and **SQLAlchemy**.
