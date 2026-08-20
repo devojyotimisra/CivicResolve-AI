@@ -27,7 +27,7 @@ import { useNotifications } from "@/context/NotificationContext";
 
 export const Navbar = () => {
   const { user, role, isAuthenticated, logout } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, refetch } = useNotifications();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -35,6 +35,12 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isDashboardRoute = location.pathname.startsWith("/dash");
+
+  React.useEffect(() => {
+    if (isDashboardRoute && refetch) {
+      refetch();
+    }
+  }, [location.pathname, isDashboardRoute, refetch]);
 
   const handleLogout = async () => {
     await logout();
