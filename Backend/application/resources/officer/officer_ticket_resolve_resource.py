@@ -12,7 +12,7 @@ from application.helpers.notification_helper import create_notification
 router = APIRouter()
 
 
-@router.post("/officer/ticket/{complaint_id}/resolve", response_model=dict[str, str])
+@router.post("/officer/ticket/{complaint_id}/resolve")
 async def officer_resolve_ticket(
     complaint_id: int,
     resolution_note: Optional[str] = Form(None),
