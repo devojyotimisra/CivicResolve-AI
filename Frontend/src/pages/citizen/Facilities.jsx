@@ -38,6 +38,9 @@ import {
   Users,
   Calendar as CalendarIcon,
   Download,
+  CreditCard,
+  CheckCircle2,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
@@ -56,11 +59,13 @@ export const CitizenFacilities = () => {
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDateStr, setSelectedDateStr] = useState("");
-  const [purpose, setPurpose] = useState(
-    "Community Wedding & Cultural Gathering",
-  );
+  const [purpose, setPurpose] = useState("");
   const [bookingLoading, setBookingLoading] = useState(false);
   const [confirmBooking, setConfirmBooking] = useState(false);
+  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
 
   const initBookSubmit = () => {
     if (!selectedDateStr || !selectedFacility) {
@@ -184,6 +189,33 @@ export const CitizenFacilities = () => {
       return;
     }
 
+    if (!cardName.trim()) {
+      toast.error("Please enter the cardholder name.");
+      return;
+    }
+    const cleanCardNumber = cardNumber.replace(/\s+/g, "");
+    if (!/^\d{16}$/.test(cleanCardNumber)) {
+      toast.error("Please enter a valid 16-digit card number.");
+      return;
+    }
+    if (!cardExpiry) {
+      toast.error("Please select an expiry date.");
+      return;
+    }
+    const today = new Date();
+    const [expYear, expMonth] = cardExpiry.split("-").map(Number);
+    if (
+      expYear < today.getFullYear() ||
+      (expYear === today.getFullYear() && expMonth < today.getMonth() + 1)
+    ) {
+      toast.error("Card expiry date cannot be in the past.");
+      return;
+    }
+    if (!/^\d{3,4}$/.test(cardCvv)) {
+      toast.error("Please enter a valid 3 or 4 digit CVV.");
+      return;
+    }
+
     setBookingLoading(true);
     try {
       const result = await facilityService.bookFacility({
@@ -194,7 +226,7 @@ export const CitizenFacilities = () => {
         purpose: purpose.trim() || "Community Gathering",
       });
       toast.success(
-        `Booking confirmed! Reference Code: ${result.bookingReference}`,
+        `Payment successful! Booking confirmed with Reference: ${result.bookingReference}`,
       );
       setSelectedFacility(null);
       setSelectedDate("");
@@ -202,6 +234,10 @@ export const CitizenFacilities = () => {
       await loadData();
       setMainTab("bookings");
       setConfirmBooking(false);
+      setCardName("");
+      setCardNumber("");
+      setCardExpiry("");
+      setCardCvv("");
     } catch (err) {
       toast.error(err.message || "Booking failed");
     } finally {
@@ -209,10 +245,50 @@ export const CitizenFacilities = () => {
     }
   };
 
-  const handleDownloadPermit = (bkg) => {
-    toast.success(
-      `Official Municipal Permit for ${bkg.bookingReference} downloaded!`,
-    );
+  const handleDownload = (bookingToDownload) => {
+    const targetBooking = bookingToDownload?.id ? bookingToDownload : receiptBooking;
+    if (!targetBooking) return;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (!printWindow) {
+      toast.error("Please allow popups to download the permit.");
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Permit - ${targetBooking.bookingReference}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #111; }
+            h2 { border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 30px; text-align: center; }
+            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+            .label { color: #555; }
+            .val { font-weight: 600; }
+            .total { font-weight: bold; font-size: 1.2em; border-top: 2px solid #222; margin-top: 20px; padding-top: 15px; }
+          </style>
+        </head>
+        <body>
+          <h2>Municipal Venue Permit</h2>
+          <div class="row"><span class="label">Transaction Ref:</span> <span class="val font-mono">${targetBooking.paymentRef || "TXN-N/A"}</span></div>
+          <div class="row"><span class="label">Booking Reference:</span> <span class="val font-mono">${targetBooking.bookingReference}</span></div>
+          <div class="row"><span class="label">Citizen Name:</span> <span class="val">${targetBooking.citizenName || user?.name || "Citizen"}</span></div>
+          <div class="row"><span class="label">Venue Name:</span> <span class="val">${targetBooking.facilityName}</span></div>
+          <div class="row"><span class="label">Reserved Date:</span> <span class="val">${new Date(targetBooking.bookedDate).toLocaleDateString()}</span></div>
+          <div class="row"><span class="label">Purpose:</span> <span class="val">${targetBooking.purpose}</span></div>
+          <div class="row"><span class="label">Booking Status:</span> <span class="val">${targetBooking.status || "Confirmed"}</span></div>
+          <div class="row total"><span class="label">Total Amount Paid:</span> <span class="val">Rs. ${targetBooking.amountPaid?.toLocaleString("en-IN")}</span></div>
+          
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    toast.success("Permit generated successfully!");
+    setReceiptBooking(null);
   };
 
   const disabledDates = [
@@ -368,7 +444,7 @@ export const CitizenFacilities = () => {
                         >
                           {fac.isActive !== false
                             ? "Accepting Reservations"
-                            : "Not Accepting Reservations"}
+                            : "Deactivated"}
                         </Badge>
                       </div>
                       <CardDescription className="text-xs flex items-center gap-1.5 text-muted-foreground pt-1">
@@ -412,9 +488,6 @@ export const CitizenFacilities = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Included Amenities
-                        </span>
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {fac.amenities?.map((am, idx) => (
                             <span
@@ -441,7 +514,7 @@ export const CitizenFacilities = () => {
                     >
                       <span>
                         {fac.isActive === false
-                          ? "Reservations Closed"
+                          ? "Deactivated"
                           : "Check Calendar & Book"}
                       </span>
                       {fac.isActive !== false && (
@@ -571,11 +644,10 @@ export const CitizenFacilities = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDownloadPermit(bkg)}
+                              onClick={() => handleDownload(bkg)}
                               className="h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10"
                             >
-                              <Download className="w-3.5 h-3.5 mr-1" /> Permit
-                              PDF
+                              <Printer className="w-3.5 h-3.5 mr-1" /> Print
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -649,7 +721,7 @@ export const CitizenFacilities = () => {
                       modifiers={bookedModifiers}
                       modifiersClassNames={{
                         booked:
-                          "bg-destructive/15 text-destructive font-bold line-through border border-destructive/30",
+                          "bg-destructive/20 !text-destructive font-bold line-through border border-destructive/40 !opacity-100",
                       }}
                       className="p-3"
                     />
@@ -734,17 +806,85 @@ export const CitizenFacilities = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ConfirmationModal
-        isOpen={confirmBooking}
-        onClose={() => setConfirmBooking(false)}
-        onConfirm={handleBookSubmit}
-        title="Confirm Venue Reservation"
-        description={`Are you sure you want to reserve ${selectedFacility?.name} on ${selectedDateStr} for ₹${selectedFacility?.pricePerDay?.toLocaleString("en-IN")}?`}
-        confirmText="Confirm & Pay"
-        isLoading={bookingLoading}
-        icon={CalendarIcon}
-      />
+      
+      <Dialog open={confirmBooking} onOpenChange={(open) => !open && !bookingLoading && setConfirmBooking(false)}>
+        <DialogContent className="sm:max-w-md border" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Secure Payment Gateway
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Complete your payment for booking {selectedFacility?.name} on {selectedDateStr}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between">
+              <span className="text-sm font-semibold text-primary/80">Total Amount Due</span>
+              <span className="text-2xl font-extrabold text-primary">₹{selectedFacility?.pricePerDay?.toLocaleString("en-IN")}</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Cardholder Name</Label>
+                <Input 
+                  value={cardName} 
+                  onChange={(e) => setCardName(e.target.value)} 
+                  placeholder="John Doe" 
+                  className="text-xs h-9" 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Card Number</Label>
+                <Input 
+                  value={cardNumber} 
+                  onChange={(e) => setCardNumber(e.target.value)} 
+                  placeholder="0000 0000 0000 0000" 
+                  maxLength={19} 
+                  className="text-xs h-9 font-mono" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Expiry Date</Label>
+                  <Input 
+                    type="month" 
+                    value={cardExpiry} 
+                    onChange={(e) => setCardExpiry(e.target.value)} 
+                    min={new Date().toISOString().slice(0, 7)}
+                    className="text-xs h-9 font-mono uppercase" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">CVV</Label>
+                  <Input 
+                    type="password" 
+                    value={cardCvv} 
+                    onChange={(e) => setCardCvv(e.target.value)} 
+                    placeholder="•••" 
+                    maxLength={4} 
+                    className="text-xs h-9 font-mono" 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button variant="outline" onClick={() => setConfirmBooking(false)} disabled={bookingLoading}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleBookSubmit} 
+              disabled={bookingLoading}
+              className="bg-primary hover:bg-primary/90 font-bold"
+            >
+              {bookingLoading ? "Processing..." : `Pay ₹${selectedFacility?.pricePerDay?.toLocaleString("en-IN")}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

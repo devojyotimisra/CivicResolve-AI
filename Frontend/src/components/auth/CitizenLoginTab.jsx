@@ -5,24 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Lock, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 export const CitizenLoginTab = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await login(email, password, "citizen");
       navigate("/dash/citizen");
     } catch (err) {
-      setError(err.message || "Invalid credentials. Please try again.");
+      // Errors handled by context toast
     } finally {
       setLoading(false);
     }
@@ -30,11 +29,6 @@ export const CitizenLoginTab = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-          {error}
-        </div>
-      )}
       <div className="space-y-2">
         <Label htmlFor="citizen-email">Email Address or Phone Number</Label>
         <div className="relative">

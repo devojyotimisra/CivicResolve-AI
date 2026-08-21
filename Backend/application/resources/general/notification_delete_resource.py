@@ -22,7 +22,7 @@ def delete_notification(
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")
 
-    if notif.user_id != current_user_id and notif.target_role != user.role:
+    if notif.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Access denied")
 
     db.delete(notif)

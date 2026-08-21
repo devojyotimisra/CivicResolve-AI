@@ -17,7 +17,6 @@ export const OfficerProfile = () => {
   const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [passForm, setPassForm] = useState({ current: "", newPass: "" });
-  const [passError, setPassError] = useState("");
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -33,13 +32,18 @@ export const OfficerProfile = () => {
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
-    setPassError("");
     if (!passForm.current || !passForm.newPass) {
-      setPassError("Both fields are required.");
+      toast.error("Both fields are required.");
       return;
     }
-    if (passForm.newPass.length < 8) {
-      setPassError("New password must be at least 8 characters.");
+    if (
+      passForm.newPass.length < 8 ||
+      !/\d/.test(passForm.newPass) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(passForm.newPass)
+    ) {
+      toast.error(
+        "Password must be at least 8 characters long and contain a number and a special character."
+      );
       return;
     }
     setPassLoading(true);
@@ -47,7 +51,7 @@ export const OfficerProfile = () => {
       await updatePassword(passForm.current, passForm.newPass);
       setPassForm({ current: "", newPass: "" });
     } catch (error) {
-      setPassError(error.message);
+      // Errors handled by context toast
     } finally {
       setPassLoading(false);
     }
@@ -145,11 +149,6 @@ export const OfficerProfile = () => {
               </h4>
             </div>
             <form onSubmit={handlePasswordUpdate} className="space-y-4 w-full">
-              {passError && (
-                <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-                  {passError}
-                </div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="curr-pass" className="text-xs">
                   Current Password

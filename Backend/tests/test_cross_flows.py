@@ -59,7 +59,6 @@ def officer_user(db_session: Session, test_department: Department) -> User:
         name="Cross Officer",
         role="field_officer",
         department_id=test_department.id,
-        department=test_department.name,
         badge_id="BADGE-CROSS-01",
         is_active=True
     )
@@ -169,7 +168,7 @@ def test_cross_flow_bill_issuance_payment_and_commissioner_reconciliation(client
     assert bill_resp.status_code == 200
     assert "issued to" in bill_resp.json()["message"]
 
-    issued_bill = db_session.query(UtilityBill).filter_by(user_id=citizen_user.id, bill_type=bill_type_name).first()
+    issued_bill = db_session.query(UtilityBill).filter(UtilityBill.user_id==citizen_user.id, UtilityBill._bill_type==bill_type_name).first()
     assert issued_bill is not None
     bill_id = issued_bill.id
 

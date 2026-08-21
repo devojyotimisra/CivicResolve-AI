@@ -23,7 +23,6 @@ def commissioner_complaint_detail(
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     category = db.get(Department, complaint.department_id) if complaint.department_id else None
-    officer = db.get(User, complaint.assigned_officer_id) if complaint.assigned_officer_id else None
 
     updates_orm = db.query(ComplaintUpdate).filter_by(complaint_id=complaint.id).order_by(ComplaintUpdate.created_at.asc()).all()
 
@@ -34,7 +33,7 @@ def commissioner_complaint_detail(
         "token": complaint.token,
         "related_tokens": complaint.related_tokens or [],
         "assigned_officer_id": complaint.assigned_officer_id,
-        "assigned_officer_name": officer.name if officer else complaint.assigned_officer_name,
+        "assigned_officer_name": complaint.assigned_officer_name,
         "department_id": complaint.department_id,
         "department": category.name if category else complaint.department,
         "title": complaint.title,
@@ -57,7 +56,6 @@ def commissioner_complaint_detail(
             "old_status": u.old_status,
             "new_status": u.new_status,
             "note": u.note,
-            "updated_by_name": u.updated_by_name if u.updated_by_name else (u.updated_by.name if u.updated_by else "System"),
             "created_at": u.created_at,
         })
         for u in updates_orm

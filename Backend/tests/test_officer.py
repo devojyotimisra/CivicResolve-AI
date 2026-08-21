@@ -32,7 +32,6 @@ def officer_user(db_session: Session, test_dept: Department) -> User:
         role="field_officer",
         badge_id="OFF-888",
         department_id=test_dept.id,
-        department=test_dept.name,
         phone="9876543210",
         address="Zone 2 HQ",
         pincode="110001",
@@ -62,7 +61,6 @@ def second_officer(db_session: Session, test_dept: Department) -> User:
         role="field_officer",
         badge_id="OFF-889",
         department_id=test_dept.id,
-        department=test_dept.name,
         phone="9876543211",
         address="Zone 2 HQ",
         pincode="110001",
@@ -111,7 +109,6 @@ def assigned_complaint(db_session: Session, officer_user: User, test_dept: Depar
         status="Assigned",
         severity="Normal",
         department_id=test_dept.id,
-        department=test_dept.name,
         assigned_officer_id=officer_user.id,
         assigned_officer_name=officer_user.name
     )
@@ -131,7 +128,6 @@ def in_progress_complaint(db_session: Session, officer_user: User, test_dept: De
         status="In Progress",
         severity="High",
         department_id=test_dept.id,
-        department=test_dept.name,
         assigned_officer_id=officer_user.id,
         assigned_officer_name=officer_user.name
     )
@@ -151,7 +147,6 @@ def resolved_complaint(db_session: Session, officer_user: User, test_dept: Depar
         status="Resolved",
         severity="Low",
         department_id=test_dept.id,
-        department=test_dept.name,
         assigned_officer_id=officer_user.id,
         assigned_officer_name=officer_user.name
     )

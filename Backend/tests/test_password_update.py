@@ -62,7 +62,7 @@ def test_password_update_invalid_new_password(client, auth_headers, test_user):
     }
     response = client.put("/api/update_password", json=payload, headers=auth_headers)
     assert response.status_code == 400
-    assert response.json()["detail"] == "Password must be at least 5 characters long"
+    assert response.json()["detail"] == "Password must be at least 8 characters long and contain a number and a special character."
 
 def test_password_update_unauthenticated(client):
     payload = {

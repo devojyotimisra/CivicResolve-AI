@@ -337,7 +337,7 @@ export const CommissionerOfficers = () => {
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Department *</Label>
               <Select
-                value={form.department}
+                value={form.department || undefined}
                 onValueChange={(val) => setForm({ ...form, department: val })}
                 required
                 disabled={!departments || departments.length === 0}

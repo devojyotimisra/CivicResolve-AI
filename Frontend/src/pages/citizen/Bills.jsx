@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   CreditCard,
   Download,
+  Printer,
   Clock,
   Search,
 } from "lucide-react";
@@ -42,6 +43,10 @@ export const CitizenBills = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [paying, setPaying] = useState(false);
   const [receiptBill, setReceiptBill] = useState(null);
+  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
 
   const loadBills = async () => {
     if (!user) return;
@@ -60,22 +65,106 @@ export const CitizenBills = () => {
     loadBills();
   }, [user]);
 
+  const validatePayment = () => {
+    if (!cardName.trim()) {
+      toast.error("Please enter the cardholder name.");
+      return false;
+    }
+    const cleanCardNumber = cardNumber.replace(/\s+/g, "");
+    if (!/^\d{16}$/.test(cleanCardNumber)) {
+      toast.error("Please enter a valid 16-digit card number.");
+      return false;
+    }
+    if (!cardExpiry) {
+      toast.error("Please select an expiry date.");
+      return false;
+    }
+    const today = new Date();
+    const [expYear, expMonth] = cardExpiry.split("-").map(Number);
+    if (
+      expYear < today.getFullYear() ||
+      (expYear === today.getFullYear() && expMonth < today.getMonth() + 1)
+    ) {
+      toast.error("Card expiry date cannot be in the past.");
+      return false;
+    }
+    if (!/^\d{3,4}$/.test(cardCvv)) {
+      toast.error("Please enter a valid 3 or 4 digit CVV.");
+      return false;
+    }
+    return true;
+  };
+
   const handlePayConfirm = async () => {
     if (!selectedBill) return;
+    if (!validatePayment()) return;
     setPaying(true);
     try {
-      const updated = await billService.payBill(selectedBill.id);
+      const receipt = await billService.payBill(selectedBill.id);
       toast.success(
         `Payment of ₹${selectedBill.amount} successful! Receipt generated.`,
       );
+      setReceiptBill({ 
+        ...selectedBill, 
+        paidAt: receipt.paidAt || new Date().toISOString(), 
+        paymentRef: receipt.transactionId || receipt.transaction_id 
+      });
       setSelectedBill(null);
-      setReceiptBill(updated);
+      setCardName("");
+      setCardNumber("");
+      setCardExpiry("");
+      setCardCvv("");
       loadBills();
     } catch (err) {
       toast.error(err.message || "Payment processing failed");
     } finally {
       setPaying(false);
     }
+  };
+
+  const handleDownload = (billToDownload) => {
+    const targetBill = billToDownload?.id ? billToDownload : receiptBill;
+    if (!targetBill) return;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (!printWindow) {
+      toast.error("Please allow popups to download the receipt.");
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt - ${targetBill.billNumber}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #111; }
+            h2 { border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 30px; text-align: center; }
+            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+            .label { color: #555; }
+            .val { font-weight: 600; }
+            .total { font-weight: bold; font-size: 1.2em; border-top: 2px solid #222; margin-top: 20px; padding-top: 15px; }
+          </style>
+        </head>
+        <body>
+          <h2>Municipal Receipt</h2>
+          <div class="row"><span class="label">Transaction Ref:</span> <span class="val font-mono">${targetBill.paymentRef || "TXN-N/A"}</span></div>
+          <div class="row"><span class="label">Citizen Name:</span> <span class="val">${targetBill.citizenName}</span></div>
+          <div class="row"><span class="label">Bill Number:</span> <span class="val font-mono">${targetBill.billNumber}</span></div>
+          <div class="row"><span class="label">Bill Type:</span> <span class="val">${targetBill.billType}</span></div>
+          <div class="row"><span class="label">Bill Note:</span> <span class="val">${targetBill.period || '-'}</span></div>
+          <div class="row"><span class="label">Paid Date:</span> <span class="val">${new Date(targetBill.paidAt || Date.now()).toLocaleString()}</span></div>
+          <div class="row total"><span class="label">Total Amount Paid:</span> <span class="val">Rs. ${targetBill.amount?.toLocaleString("en-IN")}</span></div>
+          
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    toast.success("Receipt generated successfully!");
+    setReceiptBill(null);
   };
 
   const searchedBills = bills.filter((b) => {
@@ -128,7 +217,7 @@ export const CitizenBills = () => {
             Municipal Utility Bills
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            View assessment periods, settle property/water dues online, and
+            View and settle bills online, and
             download tax payment receipts.
           </p>
         </div>
@@ -257,10 +346,10 @@ export const CitizenBills = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setReceiptBill(bill)}
+                            onClick={() => handleDownload(bill)}
                             className="h-8 text-xs font-semibold text-primary border-primary/30"
                           >
-                            <Download className="w-3.5 h-3.5 mr-1" /> Receipt
+                            <Printer className="w-3.5 h-3.5 mr-1" /> Print
                           </Button>
                         )}
                       </TableCell>
@@ -273,108 +362,80 @@ export const CitizenBills = () => {
         </CardContent>
       </Card>
 
-      <ConfirmationModal
-        isOpen={!!selectedBill}
-        onClose={() => setSelectedBill(null)}
-        onConfirm={handlePayConfirm}
-        title="Municipal Payment Gateway"
-        description={
-          selectedBill ? (
-            <div className="space-y-4 py-3 text-left">
-              <p>
-                Checkout for {selectedBill.billType} ({selectedBill.billNumber}
-                ).
-              </p>
-              <div className="p-4 rounded-xl bg-muted/60 border flex items-center justify-between">
-                <span className="text-sm text-muted-foreground font-semibold">
-                  Total Amount Due:
-                </span>
-                <span className="text-2xl font-extrabold text-foreground">
-                  ₹{selectedBill.amount.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-          ) : (
-            ""
-          )
-        }
-        confirmText={`Confirm Payment (₹${selectedBill?.amount})`}
-        isLoading={paying}
-        icon={CreditCard}
-      />
-
-      <Dialog
-        open={!!receiptBill}
-        onOpenChange={(open) => !open && setReceiptBill(null)}
-      >
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border">
-          <DialogHeader className="text-center pb-2 border-b">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-1">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <DialogTitle className="text-xl font-bold">
-              Official Municipal Receipt
+      <Dialog open={!!selectedBill} onOpenChange={(open) => !open && !paying && setSelectedBill(null)}>
+        <DialogContent className="sm:max-w-md border" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Secure Payment Gateway
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Transaction reference:{" "}
-              <span className="font-mono font-bold text-foreground">
-                {receiptBill?.paymentRef || "TXN_UPI_88910231"}
-              </span>
+              Complete your payment for {selectedBill?.billType} ({selectedBill?.billNumber}).
             </DialogDescription>
           </DialogHeader>
-
-          {receiptBill && (
-            <div className="space-y-3 py-4 text-xs">
-              <div className="flex justify-between py-1 border-b">
-                <span className="text-muted-foreground">Citizen Name:</span>
-                <span className="font-semibold text-foreground">
-                  {receiptBill.citizenName}
-                </span>
+          
+          <div className="space-y-4 py-2">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between">
+              <span className="text-sm font-semibold text-primary/80">Total Amount Due</span>
+              <span className="text-2xl font-extrabold text-primary">₹{selectedBill?.amount?.toLocaleString("en-IN")}</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Cardholder Name</label>
+                <Input 
+                  value={cardName} 
+                  onChange={(e) => setCardName(e.target.value)} 
+                  placeholder="John Doe" 
+                  className="text-xs h-9" 
+                />
               </div>
-              <div className="flex justify-between py-1 border-b">
-                <span className="text-muted-foreground">Bill Number:</span>
-                <span className="font-mono font-bold text-primary">
-                  {receiptBill.billNumber}
-                </span>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Card Number</label>
+                <Input 
+                  value={cardNumber} 
+                  onChange={(e) => setCardNumber(e.target.value)} 
+                  placeholder="0000 0000 0000 0000" 
+                  maxLength={19} 
+                  className="text-xs h-9 font-mono" 
+                />
               </div>
-              <div className="flex justify-between py-1 border-b">
-                <span className="text-muted-foreground">Utility Type:</span>
-                <span className="font-semibold text-foreground">
-                  {receiptBill.billType}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b">
-                <span className="text-muted-foreground">
-                  Assessment Period:
-                </span>
-                <span className="text-muted-foreground">
-                  {receiptBill.period}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b">
-                <span className="text-muted-foreground">Paid Date:</span>
-                <span className="font-semibold text-foreground">
-                  {new Date(receiptBill.paidAt || Date.now()).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 rounded bg-muted/60 px-2 font-bold text-sm">
-                <span>Total Amount Paid:</span>
-                <span className="text-primary">
-                  ₹{receiptBill.amount.toLocaleString("en-IN")}
-                </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold">Expiry Date</label>
+                  <Input 
+                    type="month" 
+                    value={cardExpiry} 
+                    onChange={(e) => setCardExpiry(e.target.value)} 
+                    min={new Date().toISOString().slice(0, 7)}
+                    className="text-xs h-9 font-mono uppercase" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold">CVV</label>
+                  <Input 
+                    type="password" 
+                    value={cardCvv} 
+                    onChange={(e) => setCardCvv(e.target.value)} 
+                    placeholder="•••" 
+                    maxLength={4} 
+                    className="text-xs h-9 font-mono" 
+                  />
+                </div>
               </div>
             </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                toast.success("Receipt downloaded as PDF!");
-                setReceiptBill(null);
-              }}
-              className="w-full font-bold"
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button variant="outline" onClick={() => setSelectedBill(null)} disabled={paying}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePayConfirm} 
+              disabled={paying}
+              className="bg-primary hover:bg-primary/90 font-bold"
             >
-              <Download className="mr-2 h-4 w-4" /> Download PDF Receipt
+              {paying ? "Processing..." : `Pay ₹${selectedBill?.amount?.toLocaleString("en-IN")}`}
             </Button>
           </DialogFooter>
         </DialogContent>

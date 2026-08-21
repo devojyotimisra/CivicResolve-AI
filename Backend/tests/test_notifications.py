@@ -66,7 +66,7 @@ def sample_notifications(db_session: Session, citizen_user: User, other_user: Us
         is_read=True
     )
     n3 = Notification(
-        target_role="citizen",
+        user_id=citizen_user.id,
         title="Role Notif",
         message="Message Role",
         notif_type="warning",
@@ -173,13 +173,14 @@ def test_delete_notification_forbidden(client, citizen_headers, sample_notificat
 
 def test_clear_all_notifications(client, citizen_headers, sample_notifications, db_session):
     n1, n2, n3, n4 = sample_notifications
+    n1_id, n2_id, n3_id, n4_id = n1.id, n2.id, n3.id, n4.id
 
     response = client.delete("/api/notifications", headers=citizen_headers)
     assert response.status_code == 200
     assert response.json()["message"] == "All notifications cleared"
 
-    assert db_session.get(Notification, n1.id) is None
-    assert db_session.get(Notification, n2.id) is None
-    assert db_session.get(Notification, n3.id) is None
+    assert db_session.get(Notification, n1_id) is None
+    assert db_session.get(Notification, n2_id) is None
+    assert db_session.get(Notification, n3_id) is None
 
-    assert db_session.get(Notification, n4.id) is not None
+    assert db_session.get(Notification, n4_id) is not None

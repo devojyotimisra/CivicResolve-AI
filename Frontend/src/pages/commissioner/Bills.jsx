@@ -37,7 +37,7 @@ import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 const BLANK = {
   userId: "",
   citizenName: "",
-  billType: "Property Tax",
+  billType: "",
   amount: "",
   dueDate: "",
   period: "",
@@ -54,6 +54,12 @@ export const CommissionerBills = () => {
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
+
+  const getMinDueDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  };
 
   const load = async () => {
     setLoading(true);
@@ -78,8 +84,8 @@ export const CommissionerBills = () => {
   }, []);
 
   const handleCitizenChange = (id) => {
-    const c = citizens.find((u) => u.id === id);
-    setForm({ ...form, userId: id, citizenName: c?.name || "" });
+    const c = citizens.find((u) => u.id === parseInt(id));
+    setForm({ ...form, userId: parseInt(id), citizenName: c?.name || "" });
   };
 
   const initGenerate = (e) => {
@@ -257,34 +263,65 @@ export const CommissionerBills = () => {
           <form onSubmit={initGenerate} className="space-y-4 py-2">
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Select Citizen *</Label>
-              <Select value={form.userId} onValueChange={handleCitizenChange}>
+              <Select 
+                value={form.userId ? String(form.userId) : undefined} 
+                onValueChange={handleCitizenChange}
+                required
+                disabled={!citizens || citizens.length === 0}
+              >
                 <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="Choose registered citizen..." />
+                  <SelectValue 
+                    placeholder={
+                      !citizens || citizens.length === 0
+                        ? "No citizens available"
+                        : "Choose registered citizen..."
+                    } 
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {citizens.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} ({c.email})
+                  {!citizens || citizens.length === 0 ? (
+                    <SelectItem value="no-citizen" disabled>
+                      No citizens available
                     </SelectItem>
-                  ))}
+                  ) : (
+                    citizens.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name} ({c.email})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Bill Type *</Label>
               <Select
-                value={form.billType}
+                value={form.billType || undefined}
                 onValueChange={(v) => setForm({ ...form, billType: v })}
+                required
+                disabled={!billTypes || billTypes.length === 0}
               >
                 <SelectTrigger className="text-xs">
-                  <SelectValue />
+                  <SelectValue
+                    placeholder={
+                      !billTypes || billTypes.length === 0
+                        ? "No bill types available"
+                        : "Select Bill Type"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {billTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.name}>
-                      {t.name}
+                  {!billTypes || billTypes.length === 0 ? (
+                    <SelectItem value="no-type" disabled>
+                      No bill types available
                     </SelectItem>
-                  ))}
+                  ) : (
+                    billTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.name}>
+                        {t.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -304,6 +341,7 @@ export const CommissionerBills = () => {
                 <Label className="text-xs font-semibold">Due Date *</Label>
                 <Input
                   type="date"
+                  min={getMinDueDate()}
                   value={form.dueDate}
                   onChange={(e) =>
                     setForm({ ...form, dueDate: e.target.value })
@@ -348,7 +386,7 @@ export const CommissionerBills = () => {
         onConfirm={handleGenerate}
         title="Broadcast Bill?"
         description={`Are you sure you want to generate a ${form.billType} bill of ₹${form.amount} for ${form.citizenName}? This will instantly notify the citizen.`}
-        confirmText="Generate & Broadcast"
+        confirmText="Generate"
         isLoading={saving}
         icon={Send}
       />

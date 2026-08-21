@@ -17,11 +17,9 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not identifier:
         raise HTTPException(status_code=400, detail="Email or Badge ID is required")
 
-    is_valid, result = validate_password(data.get("password"))
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=result)
-
-    password = result
+    password = (data.get("password") or "").strip()
+    if not password:
+        raise HTTPException(status_code=400, detail="Password is required")
 
     is_email = bool(re.match(r'^[^@ \t\r\n]+@[^@ \t\r\n]+$', identifier))
 

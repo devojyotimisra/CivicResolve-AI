@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, Phone, MapPin, Lock, ArrowRight } from "lucide-react";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
+import { toast } from "sonner";
 
 export const Signup = () => {
   const [formData, setFormData] = useState({
@@ -24,7 +25,6 @@ export const Signup = () => {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const { signup } = useAuth();
@@ -32,31 +32,30 @@ export const Signup = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
-    setError("");
   };
 
   const submitForm = (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
     const passwordRegex =
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
     if (!passwordRegex.test(formData.password)) {
-      setError(
+      toast.error(
         "Password must be at least 8 characters long and contain a number and a special character.",
       );
       return;
     }
     const phoneRegex = /^(\+\d{1,3}[- ]?)?\d{10}$/;
     if (!phoneRegex.test(formData.phone)) {
-      setError("Please enter a valid 10-digit phone number.");
+      toast.error("Please enter a valid 10-digit phone number.");
       return;
     }
     const pincodeRegex = /^[0-9]{6}$/;
     if (!pincodeRegex.test(formData.pincode)) {
-      setError("Please enter a valid 6-digit pincode.");
+      toast.error("Please enter a valid 6-digit pincode.");
       return;
     }
     setConfirmSubmit(true);
@@ -75,7 +74,6 @@ export const Signup = () => {
       });
       navigate("/dash/citizen");
     } catch (err) {
-      setError(err.message || "Registration failed");
       setConfirmSubmit(false);
     } finally {
       setLoading(false);
@@ -94,12 +92,6 @@ export const Signup = () => {
 
           <CardContent className="pt-2">
             <form onSubmit={submitForm} className="space-y-2">
-              {error && (
-                <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-                  {error}
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
@@ -140,7 +132,7 @@ export const Signup = () => {
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      placeholder="9876543210"
                       value={formData.phone}
                       onChange={handleChange}
                       className="pl-9"

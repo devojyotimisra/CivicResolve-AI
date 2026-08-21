@@ -19,10 +19,7 @@ def mark_all_as_read(
         raise HTTPException(status_code=404, detail="User not found")
 
     db.query(Notification).filter(
-        or_(
-            Notification.user_id == current_user_id,
-            Notification.target_role == user.role,
-        ),
+        Notification.user_id == current_user_id,
         Notification.is_read == False,
     ).update({Notification.is_read: True}, synchronize_session="fetch")
     db.commit()

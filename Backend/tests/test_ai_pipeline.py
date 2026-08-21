@@ -41,7 +41,6 @@ def officer_low_load(db_session: Session, ai_dept: Department) -> User:
         name="Officer Low Workload",
         role="field_officer",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         badge_id="BADGE-LOW-01",
         is_active=True
     )
@@ -66,7 +65,6 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
         name="Officer High Workload",
         role="field_officer",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         badge_id="BADGE-HIGH-01",
         is_active=True
     )
@@ -81,7 +79,6 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
             title=f"Active Ticket {i+1}",
             description="Ongoing maintenance issue",
             department_id=ai_dept.id,
-            department=ai_dept.name,
             assigned_officer_id=officer.id,
             assigned_officer_name=officer.name,
             status="In Progress",
@@ -303,7 +300,6 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
         status="Submitted",
         severity="Normal",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         created_at=datetime.now(IST) - timedelta(hours=1)
     )
     db_session.add(master)
@@ -677,7 +673,6 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         name="Officer A (Resolved History)",
         role="field_officer",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         badge_id="BADGE-RESOLVED-01",
         is_active=True
     )
@@ -691,7 +686,6 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
             title=f"Resolved Ticket {i+1}",
             description="Completed maintenance",
             department_id=ai_dept.id,
-            department=ai_dept.name,
             assigned_officer_id=officer_a.id,
             assigned_officer_name=officer_a.name,
             status="Resolved",
@@ -704,7 +698,6 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         name="Officer B (Active Ticket)",
         role="field_officer",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         badge_id="BADGE-ACTIVE-01",
         is_active=True
     )
@@ -716,7 +709,6 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         title="Active Ticket 1",
         description="Ongoing work",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         assigned_officer_id=officer_b.id,
         assigned_officer_name=officer_b.name,
         status="In Progress",
@@ -755,7 +747,6 @@ def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_
         status="Resolved",
         severity="Normal",
         department_id=ai_dept.id,
-        department=ai_dept.name,
         created_at=datetime.now(IST) - timedelta(hours=1)
     )
     db_session.add(resolved_complaint)

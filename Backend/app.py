@@ -31,6 +31,7 @@ from application.resources.citizen.citizen_facilities_list_resource import route
 from application.resources.citizen.citizen_facility_detail_resource import router as citizen_facility_detail_router
 from application.resources.citizen.citizen_facility_book_resource import router as citizen_facility_book_router
 from application.resources.citizen.citizen_bookings_list_resource import router as citizen_bookings_router
+from application.resources.citizen.citizen_all_bookings_list_resource import router as citizen_all_bookings_router
 from application.resources.citizen.citizen_search_resource import router as citizen_search_router
 from application.resources.citizen.citizen_profile_fetch_resource import router as citizen_profile_fetch_router
 from application.resources.citizen.citizen_profile_update_resource import router as citizen_profile_update_router
@@ -56,6 +57,11 @@ from application.resources.commissioner.commissioner_facilities_list_resource im
 from application.resources.commissioner.commissioner_facility_add_resource import router as comm_facility_add_router
 from application.resources.commissioner.commissioner_facility_update_resource import router as comm_facility_update_router
 from application.resources.commissioner.commissioner_facility_delete_resource import router as comm_facility_delete_router
+from application.resources.commissioner.commissioner_facility_types_list_resource import router as comm_facility_types_list_router
+from application.resources.commissioner.commissioner_facility_type_add_resource import router as comm_facility_type_add_router
+from application.resources.commissioner.commissioner_facility_type_update_resource import router as comm_facility_type_update_router
+from application.resources.commissioner.commissioner_facility_type_delete_resource import router as comm_facility_type_delete_router
+from application.resources.commissioner.commissioner_bookings_list_resource import router as comm_bookings_list_router
 from application.resources.commissioner.commissioner_categories_list_resource import router as comm_categories_list_router
 from application.resources.commissioner.commissioner_category_add_resource import router as comm_category_add_router
 from application.resources.commissioner.commissioner_category_delete_resource import router as comm_category_delete_router
@@ -117,6 +123,7 @@ def create_app():
     app.include_router(citizen_facility_detail_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_facility_book_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bookings_router, prefix=prefix, tags=["citizen"])
+    app.include_router(citizen_all_bookings_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_search_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_fetch_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_update_router, prefix=prefix, tags=["citizen"])
@@ -142,6 +149,11 @@ def create_app():
     app.include_router(comm_facility_add_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_facility_update_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_facility_delete_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_facility_types_list_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_facility_type_add_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_facility_type_update_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_facility_type_delete_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_bookings_list_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_categories_list_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_category_add_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_category_delete_router, prefix=prefix, tags=["commissioner"])

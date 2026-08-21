@@ -15,7 +15,6 @@ export const CommissionerProfile = () => {
   const [passLoading, setPassLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passForm, setPassForm] = useState({ current: "", newPass: "" });
-  const [passError, setPassError] = useState("");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
@@ -54,14 +53,19 @@ export const CommissionerProfile = () => {
   };
 
   const handlePasswordUpdate = async () => {
-    setPassError("");
     if (!passForm.current || !passForm.newPass) {
-      setPassError("Both fields are required.");
+      toast.error("Both fields are required.");
       setConfirmPassword(false);
       return;
     }
-    if (passForm.newPass.length < 8) {
-      setPassError("New password must be at least 8 characters.");
+    if (
+      passForm.newPass.length < 8 ||
+      !/\d/.test(passForm.newPass) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(passForm.newPass)
+    ) {
+      toast.error(
+        "Password must be at least 8 characters long and contain a number and a special character."
+      );
       setConfirmPassword(false);
       return;
     }
@@ -71,7 +75,6 @@ export const CommissionerProfile = () => {
       setConfirmPassword(false);
       setPassForm({ current: "", newPass: "" });
     } catch (error) {
-      setPassError(error.message);
       setConfirmPassword(false);
     } finally {
       setPassLoading(false);
@@ -184,11 +187,6 @@ export const CommissionerProfile = () => {
               </h4>
             </div>
             <form onSubmit={initPasswordUpdate} className="space-y-4 w-full">
-              {passError && (
-                <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-                  {passError}
-                </div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="curr-pass" className="text-xs">
                   Current Password

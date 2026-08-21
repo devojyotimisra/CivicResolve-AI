@@ -84,6 +84,9 @@ export const adminService = {
         return response.data;
       }
     } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
       throw new Error("Failed to save department/category.");
     }
   },

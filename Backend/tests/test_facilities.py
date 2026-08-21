@@ -155,7 +155,6 @@ def sample_booking(db_session: Session, active_facility: Facility, citizen_user:
     booking = FacilityBooking(
         user_id=citizen_user.id,
         facility_id=active_facility.id,
-        citizen_name=citizen_user.name,
         facility_name=active_facility.name,
         booking_reference="BKG-TEST-1234",
         booked_date=booking_date,
@@ -310,7 +309,7 @@ def test_commissioner_delete_facility_not_found(client, comm_headers):
     assert response.json()["detail"] == "Facility not found"
 
 
-def test_citizen_facilities_list_only_active(client, citizen_headers, active_facility, inactive_facility):
+def test_citizen_facilities_list_includes_inactive(client, citizen_headers, active_facility, inactive_facility):
     response = client.get("/api/citizen/facilities", headers=citizen_headers)
     assert response.status_code == 200
 
@@ -318,7 +317,7 @@ def test_citizen_facilities_list_only_active(client, citizen_headers, active_fac
     assert "facilities" in data
     facility_ids = [f["id"] for f in data["facilities"]]
     assert active_facility.id in facility_ids
-    assert inactive_facility.id not in facility_ids
+    assert inactive_facility.id in facility_ids
 
 
 def test_citizen_facility_detail_success(client, citizen_headers, active_facility, sample_booking):

@@ -85,7 +85,6 @@ def existing_officer(db_session: Session, test_department: Department) -> User:
         role="field_officer",
         badge_id="OFF-101",
         department_id=test_department.id,
-        department=test_department.name,
         phone="9876543210",
         address="Zone 1 HQ",
         is_active=True
@@ -452,7 +451,6 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
         role="field_officer",
         badge_id="OFF-102",
         department_id=test_department.id,
-        department=test_department.name,
         is_active=True
     )
     role = db_session.query(Role).filter_by(name="field_officer").first()

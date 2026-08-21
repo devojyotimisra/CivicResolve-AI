@@ -64,8 +64,21 @@ export const facilityService = {
   },
 
   getAllBookings: async () => {
+    try {
+      const session = authService.getCurrentSession();
+      if (!session) throw new Error("No active session");
 
-    return [];
+      let endpoint = "/citizen/all_bookings";
+      if (session.user.role === "commissioner") {
+        endpoint = "/commissioner/bookings";
+      }
+
+      const response = await client.get(endpoint);
+      return response.data.bookings || [];
+    } catch (error) {
+      console.error("Error fetching all bookings:", error);
+      return [];
+    }
   },
 
   saveFacility: async (facilityData) => {
@@ -118,6 +131,45 @@ export const facilityService = {
       return true;
     } catch (error) {
       throw new Error("Failed to delete facility.");
+    }
+  },
+
+  getFacilityTypes: async () => {
+    try {
+      const response = await client.get("/commissioner/facility-types");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching facility types:", error);
+      throw error;
+    }
+  },
+
+  saveFacilityType: async (typeData) => {
+    try {
+      if (typeData.id) {
+        const response = await client.put(`/commissioner/facility-type/${typeData.id}`, typeData);
+        return response.data;
+      } else {
+        const response = await client.post("/commissioner/facility-type", typeData);
+        return response.data;
+      }
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error("Failed to save facility type.");
+    }
+  },
+
+  deleteFacilityType: async (typeId) => {
+    try {
+      await client.delete(`/commissioner/facility-type/${typeId}`);
+      return true;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      throw new Error("Failed to delete facility type.");
     }
   },
 
