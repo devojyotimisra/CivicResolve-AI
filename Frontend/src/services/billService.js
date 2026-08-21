@@ -86,6 +86,9 @@ export const billService = {
       await client.delete(`/commissioner/bill_type/${typeId}`);
       return true;
     } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
       throw new Error("Failed to delete bill type.");
     }
   }

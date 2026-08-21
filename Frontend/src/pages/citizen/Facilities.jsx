@@ -55,7 +55,7 @@ export const CitizenFacilities = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [reservationQuery, setReservationQuery] = useState("");
-  const [reservationFilter, setReservationFilter] = useState("all");
+
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDateStr, setSelectedDateStr] = useState("");
@@ -150,14 +150,12 @@ export const CitizenFacilities = () => {
           .includes(query);
         const matchFac = (bkg.facilityName || "").toLowerCase().includes(query);
         const matchPurpose = (bkg.purpose || "").toLowerCase().includes(query);
-        const matchStatus = (bkg.status || "").toLowerCase().includes(query);
         const matchAmount = (bkg.amountPaid || "").toString().includes(query);
         const matchDate = (bkg.bookedDate || "").includes(query);
         return (
           matchRef ||
           matchFac ||
           matchPurpose ||
-          matchStatus ||
           matchAmount ||
           matchDate
         );
@@ -166,12 +164,7 @@ export const CitizenFacilities = () => {
     return true;
   });
 
-  const filteredBookings = searchedBookings.filter((bkg) => {
-    if (reservationFilter === "all") return true;
-    if (reservationFilter === "confirmed") return bkg.status === "Confirmed";
-    if (reservationFilter === "completed") return bkg.status === "Completed";
-    return true;
-  });
+  const filteredBookings = searchedBookings;
 
   const handleBookSubmit = async () => {
     if (!selectedDateStr || !selectedFacility) {
@@ -181,8 +174,7 @@ export const CitizenFacilities = () => {
     const isBooked = allBookings.some(
       (b) =>
         b.facilityId === selectedFacility.id &&
-        b.bookedDate === selectedDateStr &&
-        b.status !== "Cancelled",
+        b.bookedDate === selectedDateStr
     );
     if (isBooked) {
       toast.error("This date is already booked. Please choose another date.");
@@ -223,7 +215,7 @@ export const CitizenFacilities = () => {
         citizenName: user?.name || "Citizen",
         facilityId: selectedFacility.id,
         bookedDate: selectedDateStr,
-        purpose: purpose.trim() || "Community Gathering",
+        purpose: purpose.trim(),
       });
       toast.success(
         `Payment successful! Booking confirmed with Reference: ${result.bookingReference}`,
@@ -258,24 +250,55 @@ export const CitizenFacilities = () => {
         <head>
           <title>Permit - ${targetBooking.bookingReference}</title>
           <style>
-            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #111; }
-            h2 { border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 30px; text-align: center; }
-            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
-            .label { color: #555; }
-            .val { font-weight: 600; }
-            .total { font-weight: bold; font-size: 1.2em; border-top: 2px solid #222; margin-top: 20px; padding-top: 15px; }
+            body { font-family: 'Inter', system-ui, -apple-system, sans-serif; padding: 40px; color: #111; line-height: 1.5; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 15px; }
+            h2 { color: #2563eb; margin: 0 0 5px 0; font-size: 24px; }
+            .subtitle { color: #64748b; font-size: 14px; }
+            .section-title { font-size: 16px; font-weight: bold; color: #334155; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .field { display: flex; flex-direction: column; }
+            .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+            .val { font-size: 14px; font-weight: 600; color: #0f172a; }
+            .val.mono { font-family: monospace; }
+            .total-box { margin-top: 30px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
+            .total-label { font-size: 14px; color: #64748b; }
+            .total-val { font-size: 24px; font-weight: bold; color: #2563eb; margin-left: 15px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; }
           </style>
         </head>
         <body>
-          <h2>Municipal Venue Permit</h2>
-          <div class="row"><span class="label">Transaction Ref:</span> <span class="val font-mono">${targetBooking.paymentRef || "TXN-N/A"}</span></div>
-          <div class="row"><span class="label">Booking Reference:</span> <span class="val font-mono">${targetBooking.bookingReference}</span></div>
-          <div class="row"><span class="label">Citizen Name:</span> <span class="val">${targetBooking.citizenName || user?.name || "Citizen"}</span></div>
-          <div class="row"><span class="label">Venue Name:</span> <span class="val">${targetBooking.facilityName}</span></div>
-          <div class="row"><span class="label">Reserved Date:</span> <span class="val">${new Date(targetBooking.bookedDate).toLocaleDateString()}</span></div>
-          <div class="row"><span class="label">Purpose:</span> <span class="val">${targetBooking.purpose}</span></div>
-          <div class="row"><span class="label">Booking Status:</span> <span class="val">${targetBooking.status || "Confirmed"}</span></div>
-          <div class="row total"><span class="label">Total Amount Paid:</span> <span class="val">Rs. ${targetBooking.amountPaid?.toLocaleString("en-IN")}</span></div>
+          <div class="header">
+            <h2>Municipal Venue Permit</h2>
+            <div class="subtitle">Booking Confirmation</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 8px;">123 Civic Center, Municipal Headquarters, City District - 400001</div>
+          </div>
+          
+          <div class="section-title">Citizen Details</div>
+          <div class="grid">
+            <div class="field"><span class="label">Name</span><span class="val">${targetBooking.citizenName || user?.name || "Citizen"}</span></div>
+            <div class="field"><span class="label">Email</span><span class="val">${user?.email || "N/A"}</span></div>
+            <div class="field"><span class="label">Phone</span><span class="val">${user?.phone || "N/A"}</span></div>
+            <div class="field"><span class="label">Address</span><span class="val">${user?.address || "N/A"}${user?.pincode ? ', ' + user.pincode : ''}</span></div>
+          </div>
+
+          <div class="section-title">Booking Details</div>
+          <div class="grid">
+            <div class="field"><span class="label">Transaction Ref</span><span class="val mono">${targetBooking.paymentRef || "TXN-N/A"}</span></div>
+            <div class="field"><span class="label">Booking Reference</span><span class="val mono">${targetBooking.bookingReference}</span></div>
+            <div class="field"><span class="label">Venue Name</span><span class="val">${targetBooking.facilityName}</span></div>
+            <div class="field"><span class="label">Reserved Date</span><span class="val">${new Date(targetBooking.bookedDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
+            <div class="field" style="grid-column: span 2;"><span class="label">Purpose</span><span class="val">${targetBooking.purpose}</span></div>
+            <div class="field"><span class="label">Booking Status</span><span class="val" style="color: #059669;">${targetBooking.status || "Confirmed"}</span></div>
+          </div>
+          
+          <div class="total-box">
+            <span class="total-label">Total Amount Paid</span>
+            <span class="total-val">₹${targetBooking.amountPaid?.toLocaleString("en-IN")}</span>
+          </div>
+
+          <div class="footer">
+            This is a computer-generated document. No signature is required.
+          </div>
           
           <script>
             window.onload = () => {
@@ -449,7 +472,7 @@ export const CitizenFacilities = () => {
                       </div>
                       <CardDescription className="text-xs flex items-center gap-1.5 text-muted-foreground pt-1">
                         <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-                        <span className="truncate">{fac.address}</span>
+                        <span className="truncate">{fac.address}{fac.pincode ? ` - ${fac.pincode}` : ""}</span>
                       </CardDescription>
                     </CardHeader>
 
@@ -533,51 +556,11 @@ export const CitizenFacilities = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by reference code, venue name, date, purpose, amount, or status..."
+                placeholder="Search by reference code, venue name, date, purpose, or amount..."
                 value={reservationQuery}
                 onChange={(e) => setReservationQuery(e.target.value)}
                 className="pl-9 h-9 text-xs sm:text-sm bg-card w-full"
               />
-            </div>
-            <div className="flex gap-2 shrink-0 overflow-x-auto pb-1 sm:pb-0">
-              <Button
-                variant={reservationFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setReservationFilter("all")}
-                className="text-xs font-semibold"
-              >
-                All Reservations ({searchedBookings.length})
-              </Button>
-              <Button
-                variant={
-                  reservationFilter === "confirmed" ? "default" : "outline"
-                }
-                size="sm"
-                onClick={() => setReservationFilter("confirmed")}
-                className="text-xs font-semibold"
-              >
-                Confirmed (
-                {
-                  searchedBookings.filter((b) => b.status === "Confirmed")
-                    .length
-                }
-                )
-              </Button>
-              <Button
-                variant={
-                  reservationFilter === "completed" ? "default" : "outline"
-                }
-                size="sm"
-                onClick={() => setReservationFilter("completed")}
-                className="text-xs font-semibold"
-              >
-                Completed (
-                {
-                  searchedBookings.filter((b) => b.status === "Completed")
-                    .length
-                }
-                )
-              </Button>
             </div>
           </div>
 
@@ -608,7 +591,7 @@ export const CitizenFacilities = () => {
                         <TableHead>Reserved Date</TableHead>
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount Paid</TableHead>
-                        <TableHead>Status</TableHead>
+
                         <TableHead className="text-right">
                           Permit Action
                         </TableHead>
@@ -632,14 +615,7 @@ export const CitizenFacilities = () => {
                           <TableCell className="font-extrabold text-sm text-primary">
                             ₹{bkg.amountPaid.toLocaleString("en-IN")}
                           </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className="bg-primary/10 text-primary border-primary/20 font-bold"
-                            >
-                              {bkg.status}
-                            </Badge>
-                          </TableCell>
+
                           <TableCell className="text-right">
                             <Button
                               variant="outline"

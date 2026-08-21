@@ -86,7 +86,7 @@ export const CommissionerDepartments = () => {
     setIsDeleting(true);
     try {
       await adminService.deleteDepartment(deletingDept.id);
-      toast.error(`Department "${deletingDept.name}" deleted successfully!`);
+      toast.success(`Department "${deletingDept.name}" deleted successfully!`);
       setDeletingDept(null);
       load();
     } catch (err) {

@@ -73,7 +73,7 @@ export const CommissionerFacilities = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [reservationQuery, setReservationQuery] = useState("");
-  const [reservationFilter, setReservationFilter] = useState("all");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK_FORM);
@@ -133,14 +133,12 @@ export const CommissionerFacilities = () => {
           .includes(query);
         const matchFac = (bkg.facilityName || "").toLowerCase().includes(query);
         const matchPurpose = (bkg.purpose || "").toLowerCase().includes(query);
-        const matchStatus = (bkg.status || "").toLowerCase().includes(query);
         const matchAmount = (bkg.amountPaid || "").toString().includes(query);
         const matchDate = (bkg.bookedDate || "").includes(query);
         return (
           matchRef ||
           matchFac ||
           matchPurpose ||
-          matchStatus ||
           matchAmount ||
           matchDate
         );
@@ -149,12 +147,7 @@ export const CommissionerFacilities = () => {
     return true;
   });
 
-  const filteredBookings = searchedBookings.filter((bkg) => {
-    if (reservationFilter === "all") return true;
-    if (reservationFilter === "confirmed") return bkg.status === "Confirmed";
-    if (reservationFilter === "completed") return bkg.status === "Completed";
-    return true;
-  });
+  const filteredBookings = searchedBookings;
 
   const openNew = () => {
     setEditing(null);
@@ -241,7 +234,7 @@ export const CommissionerFacilities = () => {
     setIsDeletingFacility(true);
     try {
       await facilityService.deleteFacility(deletingFacility.id);
-      toast.error(`Facility "${deletingFacility.name}" deleted!`);
+      toast.success(`Facility "${deletingFacility.name}" deleted!`);
       setDeletingFacility(null);
       load();
     } catch (err) {
@@ -383,7 +376,7 @@ export const CommissionerFacilities = () => {
                       </CardTitle>
                       <CardDescription className="text-xs flex items-center gap-1.5 text-muted-foreground pt-1">
                         <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-                        <span className="truncate">{fac.address}</span>
+                        <span className="truncate">{fac.address}{fac.pincode ? ` - ${fac.pincode}` : ""}</span>
                       </CardDescription>
                     </CardHeader>
 
@@ -429,9 +422,9 @@ export const CommissionerFacilities = () => {
                             {fac.amenities?.map((am, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
                               >
-                                {am}
+                                ✓ {am}
                               </span>
                             ))}
                           </div>
@@ -486,33 +479,17 @@ export const CommissionerFacilities = () => {
         </>
       ) : (
         <div className="space-y-6">
-          <Card className="bg-card/80 border shadow-sm">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by reference code, venue name, date, purpose, amount, or status..."
-                  value={reservationQuery}
-                  onChange={(e) => setReservationQuery(e.target.value)}
-                  className="pl-9 text-xs h-9"
-                />
-              </div>
-
-              <Select
-                value={reservationFilter}
-                onValueChange={setReservationFilter}
-              >
-                <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder="Filter by Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reservations</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by reference code, venue name, date, purpose, or amount..."
+                value={reservationQuery}
+                onChange={(e) => setReservationQuery(e.target.value)}
+                className="pl-9 h-9 text-xs sm:text-sm bg-card w-full"
+              />
+            </div>
+          </div>
 
           <Card className="border shadow-md">
             <CardContent className="p-0">
@@ -542,7 +519,7 @@ export const CommissionerFacilities = () => {
                         <TableHead>Reserved Date</TableHead>
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount Paid</TableHead>
-                        <TableHead>Status</TableHead>
+
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -566,14 +543,7 @@ export const CommissionerFacilities = () => {
                           <TableCell className="font-extrabold text-sm text-primary">
                             ₹{bkg.amountPaid.toLocaleString("en-IN")}
                           </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className="bg-primary/10 text-primary border-primary/20 font-bold"
-                            >
-                              {bkg.status}
-                            </Badge>
-                          </TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>

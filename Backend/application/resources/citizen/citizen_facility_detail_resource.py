@@ -28,7 +28,6 @@ def citizen_facility_detail(
 
     bookings = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
-        FacilityBooking.status == 'Confirmed',
         FacilityBooking.booked_date >= today,
         FacilityBooking.booked_date <= end_date
     ).all()

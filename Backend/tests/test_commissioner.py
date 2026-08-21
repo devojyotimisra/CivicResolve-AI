@@ -129,8 +129,7 @@ def sample_confirmed_booking(db_session: Session) -> FacilityBooking:
     booking = FacilityBooking(
         booking_reference="BK-TEST-99",
         booked_date=date.today(),
-        amount_paid=500.0,
-        status="Confirmed"
+        amount_paid=500.0
     )
     db_session.add(booking)
     db_session.commit()

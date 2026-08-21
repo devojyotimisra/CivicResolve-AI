@@ -17,8 +17,13 @@ export const adminService = {
       const response = await client.post("/commissioner/officer", officerData);
       return response.data;
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.error) {
-        throw new Error(error.response.data.error);
+      if (error.response && error.response.data) {
+        if (error.response.data.detail) {
+          throw new Error(error.response.data.detail);
+        }
+        if (error.response.data.error) {
+          throw new Error(error.response.data.error);
+        }
       }
       throw new Error("Failed to provision officer.");
     }
@@ -29,8 +34,13 @@ export const adminService = {
       const response = await client.put(`/commissioner/officer/${officerId}`, officerData);
       return response.data;
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.error) {
-        throw new Error(error.response.data.error);
+      if (error.response && error.response.data) {
+        if (error.response.data.detail) {
+          throw new Error(error.response.data.detail);
+        }
+        if (error.response.data.error) {
+          throw new Error(error.response.data.error);
+        }
       }
       throw new Error("Failed to update officer.");
     }
@@ -41,8 +51,13 @@ export const adminService = {
       const response = await client.delete(`/commissioner/officer/${officerId}`);
       return response.data;
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.error) {
-        throw new Error(error.response.data.error);
+      if (error.response && error.response.data) {
+        if (error.response.data.detail) {
+          throw new Error(error.response.data.detail);
+        }
+        if (error.response.data.error) {
+          throw new Error(error.response.data.error);
+        }
       }
       throw new Error("Failed to deactivate officer.");
     }
@@ -96,6 +111,9 @@ export const adminService = {
       await client.delete(`/commissioner/category/${departmentId}`);
       return true;
     } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
       throw new Error("Failed to delete department.");
     }
   },
@@ -142,7 +160,7 @@ export const adminService = {
         bookingRevenue: data.bookingRevenue ?? 0,
         byDepartment: data.complaintsByCategory ?? [],
         byStatus: data.complaintsByStatus ?? [],
-        trend: []
+        trend: data.trend ?? []
       };
     } catch (error) {
       console.error("Error fetching system analytics:", error);

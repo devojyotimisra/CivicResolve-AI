@@ -48,8 +48,7 @@ def citizen_book_facility(
 
     existing = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
-        FacilityBooking.booked_date == booking_date,
-        FacilityBooking.status != 'Cancelled'
+        FacilityBooking.booked_date == booking_date
     ).first()
 
     if existing:
@@ -59,7 +58,7 @@ def citizen_book_facility(
     while db.query(FacilityBooking).filter_by(booking_reference=booking_ref).first():
         booking_ref = generate_booking_ref()
 
-    purpose = (data.purpose or "Community Gathering").strip()
+    purpose = data.purpose.strip() if data.purpose else ""
 
     booking = FacilityBooking(
         user_id=current_user_id,
@@ -69,8 +68,7 @@ def citizen_book_facility(
         booking_reference=booking_ref,
         amount_paid=facility.price_per_day,
         payment_ref="TXN-" + secrets.token_hex(5).upper(),
-        purpose=purpose,
-        status='Confirmed'
+        purpose=purpose
     )
 
     db.add(booking)

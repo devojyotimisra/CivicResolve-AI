@@ -384,7 +384,7 @@ export const CommissionerBills = () => {
         isOpen={confirmGenerate}
         onClose={() => setConfirmGenerate(false)}
         onConfirm={handleGenerate}
-        title="Broadcast Bill?"
+        title="Generate Bill?"
         description={`Are you sure you want to generate a ${form.billType} bill of ₹${form.amount} for ${form.citizenName}? This will instantly notify the citizen.`}
         confirmText="Generate"
         isLoading={saving}

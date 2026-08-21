@@ -34,7 +34,7 @@ def commissioner_dashboard(
     total_citizens = db.query(User).filter(User.roles.any(name='citizen')).count()
 
     bill_revenue = db.query(func.sum(UtilityBill.amount)).filter_by(status='Paid').scalar() or 0
-    booking_revenue = db.query(func.sum(FacilityBooking.amount_paid)).filter_by(status='Confirmed').scalar() or 0
+    booking_revenue = db.query(func.sum(FacilityBooking.amount_paid)).scalar() or 0
     total_revenue = bill_revenue + booking_revenue
 
     by_category = db.query(
@@ -51,6 +51,31 @@ def commissioner_dashboard(
 
     status_data = [{"status": status, "count": count} for status, count in by_status]
 
+    from datetime import datetime, timedelta
+
+    # Trend calculation for last 7 days
+    today = datetime.now().date()
+    trend_data = []
+    
+    for i in range(6, -1, -1):
+        day_date = today - timedelta(days=i)
+        
+        # Tickets filed on this day
+        filed = db.query(Complaint).filter(
+            func.date(Complaint.created_at) == day_date
+        ).count()
+        
+        # Tickets resolved on this day (status="Resolved" or closed, using resolved_at)
+        resolved = db.query(Complaint).filter(
+            func.date(Complaint.resolved_at) == day_date
+        ).count()
+        
+        trend_data.append({
+            "day": day_date.strftime("%a"),
+            "filed": filed,
+            "resolved": resolved
+        })
+
     return {
         "total_complaints": total_complaints,
         "pending_complaints": pending_complaints,
@@ -64,4 +89,5 @@ def commissioner_dashboard(
         "booking_revenue": booking_revenue,
         "complaints_by_category": category_data,
         "complaints_by_status": status_data,
+        "trend": trend_data,
     }
