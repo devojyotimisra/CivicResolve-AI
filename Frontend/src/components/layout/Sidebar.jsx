@@ -49,6 +49,7 @@ export const getCommissionerLinks = () => [
   { label: "Bills", path: "/dash/commissioner/bills", icon: Receipt },
   { label: "Departments", path: "/dash/commissioner/departments", icon: Tags },
   { label: "Bill Types", path: "/dash/commissioner/bill-types", icon: Tags },
+  { label: "Facility Types", path: "/dash/commissioner/facility-types", icon: Tags },
   { label: "Profile", path: "/dash/commissioner/profile", icon: User },
 ];
 

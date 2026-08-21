@@ -47,13 +47,14 @@ import {
   Search,
   CalendarIcon,
   Trash2,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
 const BLANK_FORM = {
   name: "",
-  facilityType: "Community Hall",
+  facilityType: "",
   address: "",
   pincode: "",
   pricePerDay: "",
@@ -65,6 +66,7 @@ const BLANK_FORM = {
 export const CommissionerFacilities = () => {
   const [mainTab, setMainTab] = useState("facilities");
   const [facilities, setFacilities] = useState([]);
+  const [facilityTypes, setFacilityTypes] = useState([]);
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,12 +85,14 @@ export const CommissionerFacilities = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const [facData, bkgData] = await Promise.all([
+      const [facData, bkgData, typeData] = await Promise.all([
         facilityService.getAllFacilities(),
         facilityService.getAllBookings(),
+        facilityService.getFacilityTypes(),
       ]);
       setFacilities(facData);
       setAllBookings(bkgData);
+      setFacilityTypes(typeData);
     } catch {
       toast.error("Failed to load municipal data");
     } finally {
@@ -99,10 +103,6 @@ export const CommissionerFacilities = () => {
   useEffect(() => {
     load();
   }, []);
-
-  const facilityTypes = Array.from(
-    new Set(facilities.map((f) => f.facilityType).filter(Boolean)),
-  );
 
   const filtered = facilities.filter((f) => {
     const matchesSearch =
@@ -166,7 +166,7 @@ export const CommissionerFacilities = () => {
     setEditing(fac);
     setForm({
       name: fac.name || "",
-      facilityType: fac.facilityType || "Community Hall",
+      facilityType: fac.facilityType || "",
       address: fac.address || "",
       pincode: fac.pincode || "",
       pricePerDay: fac.pricePerDay || "",
@@ -198,7 +198,7 @@ export const CommissionerFacilities = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.address || !form.pricePerDay || !form.capacity) {
+    if (!form.name || !form.address || !form.pricePerDay || !form.capacity || !form.facilityType) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -317,8 +317,8 @@ export const CommissionerFacilities = () => {
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
                     {facilityTypes.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
+                      <SelectItem key={t.id} value={t.name}>
+                        {t.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -357,76 +357,84 @@ export const CommissionerFacilities = () => {
               {filtered.map((fac) => (
                 <Card
                   key={fac.id}
-                  className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between bg-card"
+                  className="flex flex-col justify-between overflow-hidden border shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-300 bg-card"
                 >
                   <div>
-                    <CardHeader className="pb-3 border-b bg-muted/20">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <Badge
-                            variant="outline"
-                            className="mb-1.5 text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
-                          >
-                            {fac.facilityType}
-                          </Badge>
-                          <CardTitle className="text-base font-bold leading-tight text-foreground">
-                            {fac.name}
-                          </CardTitle>
-                        </div>
+                    <CardHeader className="pb-3 pt-4 border-b bg-muted/20">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-semibold text-primary border-primary/30 bg-primary/5"
+                        >
+                          {fac.facilityType}
+                        </Badge>
                         <Badge
                           className={
                             fac.isActive
                               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold text-[10px] shrink-0"
-                              : "bg-muted text-muted-foreground font-bold text-[10px] shrink-0"
+                              : "bg-destructive/15 text-destructive border-destructive/30 font-bold text-[10px] shrink-0"
                           }
                         >
                           {fac.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
-                      <CardDescription className="text-xs text-muted-foreground pt-1 truncate">
-                        {fac.address}
+                      <CardTitle className="text-lg font-bold leading-tight text-foreground">
+                        {fac.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs flex items-center gap-1.5 text-muted-foreground pt-1">
+                        <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+                        <span className="truncate">{fac.address}</span>
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="space-y-4 pt-4 pb-4">
                       {fac.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                           {fac.description}
                         </p>
                       )}
 
-                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-muted/40 border text-xs">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Users className="w-3.5 h-3.5 text-primary" />
-                          <span className="font-semibold text-foreground">
-                            {fac.capacity}
-                          </span>{" "}
-                          capacity
+                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-muted/50 border text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                            <Users className="w-4 h-4 shrink-0" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block">
+                              Max Capacity
+                            </span>
+                            <span className="font-bold text-foreground">
+                              {fac.capacity} Guests
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <BadgeDollarSign className="w-3.5 h-3.5 text-primary" />
-                          <span className="font-semibold text-foreground">
-                            ₹{fac.pricePerDay?.toLocaleString()}
-                          </span>
-                          /day
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                            <CalendarIcon className="w-4 h-4 shrink-0" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block">
+                              Daily Tariff
+                            </span>
+                            <span className="font-bold text-foreground">
+                              ₹{fac.pricePerDay?.toLocaleString("en-IN")}/day
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       {fac.amenities && fac.amenities.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-0.5">
-                          {fac.amenities.slice(0, 4).map((am, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
-                            >
-                              {am}
-                            </span>
-                          ))}
-                          {fac.amenities.length > 4 && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                              +{fac.amenities.length - 4} more
-                            </span>
-                          )}
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {fac.amenities?.map((am, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                              >
+                                {am}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </CardContent>
@@ -624,17 +632,17 @@ export const CommissionerFacilities = () => {
                   onValueChange={(val) =>
                     setForm({ ...form, facilityType: val })
                   }
+                  disabled={facilityTypes.length === 0}
                 >
                   <SelectTrigger className="w-full h-9 text-xs">
-                    <SelectValue placeholder="Select Type" />
+                    <SelectValue placeholder={facilityTypes.length === 0 ? "No facility type available" : "Select Type"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Community Hall">
-                      Community Hall
-                    </SelectItem>
-                    <SelectItem value="Park">Park</SelectItem>
-                    <SelectItem value="Sports Arena">Sports Arena</SelectItem>
-                    <SelectItem value="Library">Library</SelectItem>
+                    {facilityTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.name}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

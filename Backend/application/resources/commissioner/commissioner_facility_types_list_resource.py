@@ -1,23 +1,22 @@
-from typing import List
-from application.helpers.schemas import UtilityBillSchema
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, UtilityBill
 from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.models import FacilityType, User
+from application.helpers.schemas import FacilityTypeSchema
+from typing import List
 
 router = APIRouter()
 
-
-@router.get("/commissioner/bills", response_model=dict[str, List[UtilityBillSchema]])
-def commissioner_bills_list(
+@router.get("/commissioner/facility-types", response_model=List[FacilityTypeSchema])
+def get_commissioner_facility_types(
     current_user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     user = db.get(User, current_user_id)
     if not user or not user.has_role('commissioner'):
+        from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Commissioner access required")
-
-    bills = db.query(UtilityBill).order_by(UtilityBill.created_at.desc()).all()
-
-    return {"bills": bills}
+        
+    types = db.query(FacilityType).order_by(FacilityType.name).all()
+    return types

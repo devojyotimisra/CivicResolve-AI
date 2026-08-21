@@ -15,11 +15,17 @@ def validate_email(email):
 def validate_password(password):
     if not password or not isinstance(password, str):
         return False, "Password is required"
-
     password = password.strip()
-    if len(password) < 5:
-        return False, "Password must be at least 5 characters long"
-
+    
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long and contain a number and a special character."
+    
+    if not re.search(r'\d', password):
+        return False, "Password must be at least 8 characters long and contain a number and a special character."
+        
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, "Password must be at least 8 characters long and contain a number and a special character."
+        
     return True, password
 
 

@@ -281,7 +281,7 @@ export const AnonymousComplaint = () => {
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border-2 border-primary/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 overflow-hidden">
           <DialogHeader className="text-center space-y-3 pt-2">
             <DialogTitle className="text-2xl font-extrabold tracking-tight text-foreground text-center">
-              Official Tracking Token
+              Tracking Token
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto text-center">
               Save this code immediately. It is your ONLY key to track

@@ -49,7 +49,7 @@ def citizen_book_facility(
     existing = db.query(FacilityBooking).filter(
         FacilityBooking.facility_id == facility_id,
         FacilityBooking.booked_date == booking_date,
-        FacilityBooking.status.in_(['Confirmed', 'confirmed'])
+        FacilityBooking.status != 'Cancelled'
     ).first()
 
     if existing:
@@ -64,11 +64,11 @@ def citizen_book_facility(
     booking = FacilityBooking(
         user_id=current_user_id,
         facility_id=facility_id,
-        citizen_name=user.name,
         facility_name=facility.name,
         booked_date=booking_date,
         booking_reference=booking_ref,
         amount_paid=facility.price_per_day,
+        payment_ref="TXN-" + secrets.token_hex(5).upper(),
         purpose=purpose,
         status='Confirmed'
     )

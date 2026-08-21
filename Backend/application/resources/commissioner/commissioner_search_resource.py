@@ -37,8 +37,6 @@ def commissioner_search(
 
     for c in complaints:
         category = db.get(Department, c.department_id) if c.department_id else None
-        officer = db.get(User, c.assigned_officer_id) if c.assigned_officer_id else None
         c.department = category.name if category else c.department
-        c.assigned_officer_name = officer.name if officer else None
 
     return {"complaints": complaints}

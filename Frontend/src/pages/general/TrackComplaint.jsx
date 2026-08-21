@@ -33,7 +33,6 @@ export const TrackComplaint = () => {
   const [complaint, setComplaint] = useState(null);
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
 
   const fetchComplaint = async (tokenStr, updateUrl = true, forceRefetch = false) => {
@@ -41,7 +40,6 @@ export const TrackComplaint = () => {
     const cleanToken = tokenStr.trim().toUpperCase();
     if (!forceRefetch && complaint && complaint.token?.toUpperCase() === cleanToken) return;
     setLoading(true);
-    setError(null);
     try {
       const data = await complaintService.getComplaintByToken(cleanToken);
 
@@ -72,7 +70,7 @@ export const TrackComplaint = () => {
         setSearchParams({ token: cleanToken }, { replace: true });
       }
     } catch {
-      setError(
+      toast.error(
         "No civic report found matching this 12-character tracking token due to wrong token or spam detection",
       );
       setComplaint(null);
@@ -172,23 +170,7 @@ export const TrackComplaint = () => {
         </Card>
       </div>
 
-      <Dialog
-        open={!!error}
-        onOpenChange={(open) => {
-          if (!open) setError(null);
-        }}
-      >
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md border-2 border-destructive/30 shadow-2xl bg-card/95 backdrop-blur-xl p-6 text-center">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="text-xl font-bold text-foreground">
-              Token Not Found or Spam
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              {error}
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+
 
       <Dialog
         open={!!complaint}

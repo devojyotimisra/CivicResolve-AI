@@ -41,7 +41,6 @@ class ComplaintUpdateSchema(CamelModel):
     old_status: Optional[str] = None
     new_status: str
     note: Optional[str] = None
-    updated_by_name: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
@@ -76,7 +75,6 @@ class TrackComplaintResponse(CamelModel):
 class NotificationSchema(CamelModel):
     id: int
     user_id: Optional[int] = None
-    target_role: Optional[str] = None
     title: str
     message: str
     notif_type: str
@@ -123,6 +121,7 @@ class FacilityBookingSchema(CamelModel):
     booking_reference: str
     booked_date: date
     amount_paid: float
+    payment_ref: Optional[str] = None
     purpose: Optional[str] = None
     status: str
     created_at: Optional[datetime] = None
@@ -228,6 +227,21 @@ class CommissionerBillTypeResponse(CamelModel):
 
 
 class BillTypeSchema(CamelModel):
+    id: int
+    name: str
+
+
+class CommissionerFacilityTypeRequest(CamelModel):
+    name: Optional[str] = None
+
+
+class CommissionerFacilityTypeResponse(CamelModel):
+    message: str
+    id: int
+    name: str
+
+
+class FacilityTypeSchema(CamelModel):
     id: int
     name: str
 

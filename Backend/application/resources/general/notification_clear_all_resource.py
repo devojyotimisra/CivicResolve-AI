@@ -18,12 +18,7 @@ def clear_all_notifications(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.query(Notification).filter(
-        or_(
-            Notification.user_id == current_user_id,
-            Notification.target_role == user.role,
-        )
-    ).delete(synchronize_session="fetch")
+    db.query(Notification).filter(Notification.user_id == current_user_id).delete(synchronize_session=False)
     db.commit()
 
     return {"message": "All notifications cleared"}

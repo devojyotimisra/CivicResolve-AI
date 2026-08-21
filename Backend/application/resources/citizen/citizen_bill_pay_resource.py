@@ -34,18 +34,22 @@ def citizen_pay_bill(
     bill.status = 'Paid'
     bill.paid_at = datetime.now(IST)
 
+    import uuid
+    payment_ref = f"TXN-{uuid.uuid4().hex[:10].upper()}"
+    bill.payment_ref = payment_ref
+
     create_notification(
         db,
         target_role="commissioner",
         title="Bill Payment Received",
-        message=f"{user.name} paid bill {bill.bill_number} ({bill.bill_type}) — ₹{bill.amount:.2f}",
+        message=f"{user.name} paid bill {bill.bill_number} ({bill.bill_type}) — ₹{bill.amount:.2f} (Ref: {payment_ref})",
         notif_type="success",
     )
     create_notification(
         db,
         user_id=current_user_id,
         title="Payment Successful",
-        message=f"Your payment of ₹{bill.amount:.2f} for {bill.bill_type} ({bill.bill_number}) was successful.",
+        message=f"Your payment of ₹{bill.amount:.2f} for {bill.bill_type} ({bill.bill_number}) was successful. Reference: {payment_ref}",
         notif_type="success",
     )
 
@@ -58,6 +62,6 @@ def citizen_pay_bill(
             "bill_type": bill.bill_type,
             "amount": bill.amount,
             "paid_at": bill.paid_at.isoformat(),
-            "transaction_id": f"TXN-{bill.id:06d}",
+            "transaction_id": payment_ref,
         }
     }

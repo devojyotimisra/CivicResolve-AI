@@ -59,7 +59,6 @@ def officer_ticket_detail(
             "old_status": u.old_status,
             "new_status": u.new_status,
             "note": u.note,
-            "updated_by_name": u.updated_by_name if u.updated_by_name else (u.updated_by.name if u.updated_by else "System"),
             "created_at": u.created_at,
         })
         for u in updates_orm

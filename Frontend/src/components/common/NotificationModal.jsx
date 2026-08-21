@@ -244,7 +244,7 @@ export const NotificationModal = ({
           className="w-[95vw] sm:w-full max-w-lg max-h-[88vh] flex flex-col p-4 sm:p-6 bg-card border-border shadow-2xl rounded-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
         >
           <DialogHeader className="pb-2 border-b border-border/40 text-left">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-2">
               <DialogTitle className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-xs">
                   <Bell className="h-4 w-4" />
@@ -269,7 +269,7 @@ export const NotificationModal = ({
                     title="Mark all as read"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5 mr-1 shrink-0" />
-                    <span className="hidden sm:inline">Mark all read</span>
+                    <span className="hidden sm:inline">Read all</span>
                     <span className="sm:hidden">Read all</span>
                   </Button>
                 )}

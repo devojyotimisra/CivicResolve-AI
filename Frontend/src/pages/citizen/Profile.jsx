@@ -31,7 +31,6 @@ export const CitizenProfile = () => {
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmPass, setConfirmPass] = useState(false);
   const [passForm, setPassForm] = useState({ current: "", newPass: "" });
-  const [passError, setPassError] = useState("");
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -45,14 +44,19 @@ export const CitizenProfile = () => {
   };
 
   const handlePasswordUpdate = async () => {
-    setPassError("");
     if (!passForm.current || !passForm.newPass) {
-      setPassError("Both fields are required.");
+      toast.error("Both fields are required.");
       setConfirmPass(false);
       return;
     }
-    if (passForm.newPass.length < 8) {
-      setPassError("New password must be at least 8 characters.");
+    if (
+      passForm.newPass.length < 8 ||
+      !/\d/.test(passForm.newPass) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(passForm.newPass)
+    ) {
+      toast.error(
+        "Password must be at least 8 characters long and contain a number and a special character."
+      );
       setConfirmPass(false);
       return;
     }
@@ -62,7 +66,6 @@ export const CitizenProfile = () => {
       setConfirmPass(false);
       setPassForm({ current: "", newPass: "" });
     } catch (error) {
-      setPassError(error.message);
       setConfirmPass(false);
     } finally {
       setPassLoading(false);
@@ -127,11 +130,6 @@ export const CitizenProfile = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={submitPassForm} className="space-y-4">
-                {passError && (
-                  <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
-                    {passError}
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="curr-pass">Current Password</Label>
                   <Input

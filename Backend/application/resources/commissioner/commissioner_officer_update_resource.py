@@ -43,7 +43,6 @@ def commissioner_update_officer(
             raise HTTPException(status_code=400, detail="Invalid department")
 
         officer.department_id = dept_obj.id
-        officer.department = dept_obj.name
 
     if data.jurisdiction_zone:
         officer.address = data.jurisdiction_zone.strip()

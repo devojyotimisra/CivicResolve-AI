@@ -21,12 +21,7 @@ def list_notifications(
 
     notifs = (
         db.query(Notification)
-        .filter(
-            or_(
-                Notification.user_id == current_user_id,
-                Notification.target_role == user.role,
-            )
-        )
+        .filter(Notification.user_id == current_user_id)
         .order_by(Notification.created_at.desc())
         .all()
     )

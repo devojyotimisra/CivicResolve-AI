@@ -151,7 +151,7 @@ def test_login_missing_required_fields(client):
 def test_signup_success(client, db_session):
     payload = {
         "email": "new.citizen@example.com",
-        "password": "SecurePassword123",
+        "password": "SecurePassword123!",
         "name": "Jane Citizen",
         "address": "456 Civic Blvd",
         "pincode": "110002",
@@ -174,7 +174,7 @@ def test_signup_success(client, db_session):
 def test_signup_duplicate_email(client, active_citizen):
     payload = {
         "email": "citizen.auth@example.com",
-        "password": "SecurePassword123",
+        "password": "SecurePassword123!",
         "name": "Another Citizen",
         "address": "789 Another St",
         "pincode": "110003"
@@ -187,12 +187,12 @@ def test_signup_duplicate_email(client, active_citizen):
 
 
 @pytest.mark.parametrize("invalid_field, payload, expected_detail", [
-    ("email_format", {"email": "invalid-email", "password": "Pass123", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Invalid email format"),
-    ("short_password", {"email": "valid@example.com", "password": "123", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Password must be at least 5 characters long"),
-    ("short_name", {"email": "valid@example.com", "password": "Password123", "name": "A", "address": "Address 123", "pincode": "110001"}, "Name must be at least 2 characters long"),
-    ("short_address", {"email": "valid@example.com", "password": "Password123", "name": "Valid Name", "address": "123", "pincode": "110001"}, "Address must be at least 5 characters long"),
-    ("invalid_pincode", {"email": "valid@example.com", "password": "Password123", "name": "Valid Name", "address": "Address 123", "pincode": "1234"}, "Pincode must be a 6-digit number"),
-    ("invalid_phone", {"email": "valid@example.com", "password": "Password123", "name": "Valid Name", "address": "Address 123", "pincode": "110001", "phone": "12345"}, "Phone must be a 10-digit number")
+    ("email_format", {"email": "invalid-email", "password": "Pass123!", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Invalid email format"),
+    ("short_password", {"email": "valid@example.com", "password": "123", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Password must be at least 8 characters long and contain a number and a special character."),
+    ("short_name", {"email": "valid@example.com", "password": "Password123!", "name": "A", "address": "Address 123", "pincode": "110001"}, "Name must be at least 2 characters long"),
+    ("short_address", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "123", "pincode": "110001"}, "Address must be at least 5 characters long"),
+    ("invalid_pincode", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "Address 123", "pincode": "1234"}, "Pincode must be a 6-digit number"),
+    ("invalid_phone", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "Address 123", "pincode": "110001", "phone": "12345"}, "Phone must be a 10-digit number")
 ])
 def test_signup_validation_failures(client, invalid_field, payload, expected_detail):
     response = client.post("/api/signup", json=payload)

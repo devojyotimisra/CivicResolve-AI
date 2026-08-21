@@ -33,7 +33,7 @@ export const billService = {
   payBill: async (billId) => {
     try {
       const response = await client.post(`/citizen/pay_bill/${billId}`);
-      return response.data.bill;
+      return response.data.receipt;
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         throw new Error(error.response.data.error);
@@ -74,6 +74,9 @@ export const billService = {
         return response.data;
       }
     } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
       throw new Error("Failed to save bill type.");
     }
   },

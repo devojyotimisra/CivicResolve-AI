@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.extensions.security_extn import hash_password
 from application.helpers.models import User, Role, Department
-from application.helpers.validators import validate_email, validate_name
+from application.helpers.validators import validate_email, validate_name, validate_password
 from application.middlewares.init_jwt import get_current_user_id
 from application.helpers.schemas import CommissionerOfficerAddRequest
 
@@ -52,7 +52,12 @@ def commissioner_add_officer(
 
     password_raw = (data.password or "").strip()
     if not password_raw:
-        password_raw = badge_id if badge_id else "officer123"
+        password_raw = f"{badge_id}@123" if badge_id else "Officer@123"
+        
+    is_valid, result = validate_password(password_raw)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=result)
+    password_raw = result
 
     if db.query(User).filter_by(email=email).first():
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -70,7 +75,6 @@ def commissioner_add_officer(
         address=data.address or jurisdiction_zone or dept_obj.name,
         pincode=data.pincode,
         department_id=dept_obj.id,
-        department=dept_obj.name,
         badge_id=badge_id,
         role='field_officer',
         is_active=True
