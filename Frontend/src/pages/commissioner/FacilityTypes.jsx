@@ -86,7 +86,7 @@ export const CommissionerFacilityTypes = () => {
     setIsDeleting(true);
     try {
       await facilityService.deleteFacilityType(deletingType.id);
-      toast.error(`Facility Type "${deletingType.name}" deleted successfully!`);
+      toast.success(`Facility Type "${deletingType.name}" deleted successfully!`);
       setDeletingType(null);
       load();
     } catch (err) {

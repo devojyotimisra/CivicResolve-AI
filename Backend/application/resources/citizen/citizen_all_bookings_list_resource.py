@@ -17,5 +17,5 @@ def citizen_all_bookings_list(
     if not user or not user.has_role('citizen'):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
-    bookings = db.query(FacilityBooking).filter(FacilityBooking.status != 'Cancelled').all()
+    bookings = db.query(FacilityBooking).all()
     return {"bookings": bookings}

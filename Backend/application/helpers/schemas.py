@@ -123,7 +123,6 @@ class FacilityBookingSchema(CamelModel):
     amount_paid: float
     payment_ref: Optional[str] = None
     purpose: Optional[str] = None
-    status: str
     created_at: Optional[datetime] = None
 
 
@@ -266,6 +265,12 @@ class StatusCount(CamelModel):
     count: int
 
 
+class TrendData(CamelModel):
+    day: str
+    filed: int
+    resolved: int
+
+
 class CommissionerDashboardResponse(CamelModel):
     total_complaints: int
     pending_complaints: int
@@ -279,6 +284,7 @@ class CommissionerDashboardResponse(CamelModel):
     booking_revenue: float
     complaints_by_category: List[NameCount]
     complaints_by_status: List[StatusCount]
+    trend: List[TrendData]
 
 
 class CommissionerFacilityRequest(CamelModel):

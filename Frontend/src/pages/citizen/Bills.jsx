@@ -135,23 +135,54 @@ export const CitizenBills = () => {
         <head>
           <title>Receipt - ${targetBill.billNumber}</title>
           <style>
-            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #111; }
-            h2 { border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 30px; text-align: center; }
-            .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
-            .label { color: #555; }
-            .val { font-weight: 600; }
-            .total { font-weight: bold; font-size: 1.2em; border-top: 2px solid #222; margin-top: 20px; padding-top: 15px; }
+            body { font-family: 'Inter', system-ui, -apple-system, sans-serif; padding: 40px; color: #111; line-height: 1.5; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 15px; }
+            h2 { color: #2563eb; margin: 0 0 5px 0; font-size: 24px; }
+            .subtitle { color: #64748b; font-size: 14px; }
+            .section-title { font-size: 16px; font-weight: bold; color: #334155; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .field { display: flex; flex-direction: column; }
+            .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+            .val { font-size: 14px; font-weight: 600; color: #0f172a; }
+            .val.mono { font-family: monospace; }
+            .total-box { margin-top: 30px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
+            .total-label { font-size: 14px; color: #64748b; }
+            .total-val { font-size: 24px; font-weight: bold; color: #2563eb; margin-left: 15px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; }
           </style>
         </head>
         <body>
-          <h2>Municipal Receipt</h2>
-          <div class="row"><span class="label">Transaction Ref:</span> <span class="val font-mono">${targetBill.paymentRef || "TXN-N/A"}</span></div>
-          <div class="row"><span class="label">Citizen Name:</span> <span class="val">${targetBill.citizenName}</span></div>
-          <div class="row"><span class="label">Bill Number:</span> <span class="val font-mono">${targetBill.billNumber}</span></div>
-          <div class="row"><span class="label">Bill Type:</span> <span class="val">${targetBill.billType}</span></div>
-          <div class="row"><span class="label">Bill Note:</span> <span class="val">${targetBill.period || '-'}</span></div>
-          <div class="row"><span class="label">Paid Date:</span> <span class="val">${new Date(targetBill.paidAt || Date.now()).toLocaleString()}</span></div>
-          <div class="row total"><span class="label">Total Amount Paid:</span> <span class="val">Rs. ${targetBill.amount?.toLocaleString("en-IN")}</span></div>
+          <div class="header">
+            <h2>Municipal Tax Receipt</h2>
+            <div class="subtitle">Official Payment Acknowledgement</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 8px;">123 Civic Center, Municipal Headquarters, City District - 400001</div>
+          </div>
+          
+          <div class="section-title">Citizen Details</div>
+          <div class="grid">
+            <div class="field"><span class="label">Name</span><span class="val">${targetBill.citizenName || user?.name || "Citizen"}</span></div>
+            <div class="field"><span class="label">Email</span><span class="val">${user?.email || "N/A"}</span></div>
+            <div class="field"><span class="label">Phone</span><span class="val">${user?.phone || "N/A"}</span></div>
+            <div class="field"><span class="label">Address</span><span class="val">${user?.address || "N/A"}${user?.pincode ? ', ' + user.pincode : ''}</span></div>
+          </div>
+
+          <div class="section-title">Payment Details</div>
+          <div class="grid">
+            <div class="field"><span class="label">Transaction Ref</span><span class="val mono">${targetBill.paymentRef || "TXN-N/A"}</span></div>
+            <div class="field"><span class="label">Bill Number</span><span class="val mono">${targetBill.billNumber}</span></div>
+            <div class="field"><span class="label">Bill Type</span><span class="val">${targetBill.billType}</span></div>
+            <div class="field"><span class="label">Bill Note / Period</span><span class="val">${targetBill.period || '-'}</span></div>
+            <div class="field"><span class="label">Paid Date</span><span class="val">${new Date(targetBill.paidAt || Date.now()).toLocaleString('en-IN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
+          </div>
+          
+          <div class="total-box">
+            <span class="total-label">Total Amount Paid</span>
+            <span class="total-val">₹${targetBill.amount?.toLocaleString("en-IN")}</span>
+          </div>
+
+          <div class="footer">
+            This is a computer-generated document. No signature is required.
+          </div>
           
           <script>
             window.onload = () => {

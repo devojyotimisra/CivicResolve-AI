@@ -86,7 +86,7 @@ export const CommissionerBillTypes = () => {
     setIsDeleting(true);
     try {
       await billService.deleteBillType(deletingType.id);
-      toast.error(`Bill Type "${deletingType.name}" deleted successfully!`);
+      toast.success(`Bill Type "${deletingType.name}" deleted successfully!`);
       setDeletingType(null);
       load();
     } catch (err) {

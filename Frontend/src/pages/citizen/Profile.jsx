@@ -109,15 +109,6 @@ export const CitizenProfile = () => {
                 </h3>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
-
-              <div className="pt-4 border-t text-left text-xs space-y-2 text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Citizen ID:</span>
-                  <span className="font-mono font-bold text-foreground">
-                    {user?.id}
-                  </span>
-                </div>
-              </div>
             </CardContent>
           </Card>
 

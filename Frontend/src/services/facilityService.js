@@ -39,7 +39,7 @@ export const facilityService = {
     try {
       const response = await client.post(`/citizen/book_facility/${bookingData.facilityId}`, {
         bookedDate: bookingData.bookedDate,
-        purpose: bookingData.purpose || "Community Gathering"
+        purpose: bookingData.purpose
       });
       return response.data.booking;
     } catch (error) {
@@ -130,6 +130,9 @@ export const facilityService = {
       await client.delete(`/commissioner/facility/${facilityId}`);
       return true;
     } catch (error) {
+      if (error.response && error.response.data && error.response.data.detail) {
+        throw new Error(error.response.data.detail);
+      }
       throw new Error("Failed to delete facility.");
     }
   },

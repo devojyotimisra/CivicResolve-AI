@@ -21,6 +21,10 @@ def commissioner_delete_officer(
     if not officer or not officer.has_role('field_officer'):
         raise HTTPException(status_code=404, detail="Officer not found")
 
+    has_open_issues = any(c.status != 'Closed' for c in officer.assigned_complaints)
+    if has_open_issues:
+        raise HTTPException(status_code=400, detail="Cannot delete officer associated with an open issue")
+
     db.delete(officer)
     db.commit()
 

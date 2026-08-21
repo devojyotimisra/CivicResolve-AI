@@ -132,7 +132,7 @@ export const CommissionerOfficers = () => {
     setIsDeleting(true);
     try {
       await adminService.deleteOfficer(deletingOfficer.id);
-      toast.error(`Officer "${deletingOfficer.name}" deleted!`);
+      toast.success(`Officer "${deletingOfficer.name}" deleted!`);
       setDeletingOfficer(null);
       load();
     } catch (err) {

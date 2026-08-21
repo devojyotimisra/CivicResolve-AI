@@ -159,8 +159,7 @@ def sample_booking(db_session: Session, active_facility: Facility, citizen_user:
         booking_reference="BKG-TEST-1234",
         booked_date=booking_date,
         amount_paid=active_facility.price_per_day,
-        purpose="Town Hall Meeting",
-        status="Confirmed"
+        purpose="Town Hall Meeting"
     )
     db_session.add(booking)
     db_session.commit()
@@ -359,7 +358,6 @@ def test_citizen_book_facility_success(client, citizen_headers, active_facility,
     assert "booking" in data
     assert data["booking"]["facilityName"] == active_facility.name
     assert data["booking"]["amountPaid"] == active_facility.price_per_day
-    assert data["booking"]["status"] == "Confirmed"
     assert data["booking"]["bookingReference"].startswith("BKG-")
 
     created_booking = db_session.query(FacilityBooking).filter_by(booking_reference=data["booking"]["bookingReference"]).first()
@@ -367,7 +365,6 @@ def test_citizen_book_facility_success(client, citizen_headers, active_facility,
     assert created_booking.user_id == citizen_user.id
     assert created_booking.facility_id == active_facility.id
     assert created_booking.booked_date == target_date
-    assert created_booking.status == "Confirmed"
 
 
 def test_citizen_book_facility_past_date_fails(client, citizen_headers, active_facility):
@@ -427,4 +424,3 @@ def test_citizen_bookings_list_success(client, citizen_headers, sample_booking):
     assert matched is not None
     assert matched["bookingReference"] == sample_booking.booking_reference
     assert matched["facilityName"] == sample_booking.facility.name
-    assert matched["status"] == "Confirmed"

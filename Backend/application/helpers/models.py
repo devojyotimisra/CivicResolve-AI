@@ -197,7 +197,6 @@ class FacilityBooking(Base):
     amount_paid = Column(Float, nullable=False)
     payment_ref = Column(String(100), nullable=True)
     purpose = Column(String(500), nullable=True)
-    status = Column(String(50),  default='Confirmed', nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship('User',     backref='bookings')
