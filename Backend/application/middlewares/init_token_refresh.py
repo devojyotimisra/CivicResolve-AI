@@ -1,7 +1,8 @@
 from fastapi import Request
-from application.middlewares.init_jwt import create_access_token
-from jose import jwt, JWTError
+from jose import JWTError, jwt
+
 from application.helpers.config import Config
+from application.middlewares.init_jwt import create_access_token
 
 
 async def refresh_token_middleware(request: Request, call_next):

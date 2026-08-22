@@ -29,11 +29,8 @@ jobs:
           git clone https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_NAME /tmp/hf_space
           
           echo "Syncing Backend folder to Space..."
-          # Clear the existing files in the HF space (excluding .git hidden folder)
           find /tmp/hf_space -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitattributes' -exec rm -rf {} +
           
-          # Copy the contents of the Backend folder to the HF space
-          # Also make sure we get hidden files like Dockerfile and .env.sample if needed
           cp -r Backend/* /tmp/hf_space/
           cp -r Backend/.* /tmp/hf_space/ 2>/dev/null || true
           

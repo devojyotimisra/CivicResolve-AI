@@ -1,14 +1,12 @@
-from os import getenv
 from datetime import timedelta
-from dotenv import load_dotenv
+from os import getenv
 
+from dotenv import load_dotenv
 
 load_dotenv()
 
 
 class Config:
-    SECRET_KEY = getenv("SECRET_KEY")
-
     SQLALCHEMY_DATABASE_URI = getenv("SQLALCHEMY_DATABASE_URI")
 
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=int(getenv("JWT_ACCESS_TOKEN_EXPIRES_DAYS")))

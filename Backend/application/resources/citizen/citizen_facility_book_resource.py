@@ -1,12 +1,14 @@
-from application.helpers.schemas import CitizenFacilityBookRequest, CitizenFacilityBookResponse
 import secrets
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date, timedelta
+
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, Facility, FacilityBooking
-from application.middlewares.init_jwt import get_current_user_id
+from application.helpers.models import Facility, FacilityBooking, User
 from application.helpers.notification_helper import create_notification
+from application.helpers.schemas import CitizenFacilityBookRequest, CitizenFacilityBookResponse
+from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
@@ -20,10 +22,10 @@ def citizen_book_facility(
     facility_id: int,
     data: CitizenFacilityBookRequest,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('citizen'):
+    if not user or not user.has_role("citizen"):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
     facility = db.get(Facility, facility_id)
@@ -46,10 +48,13 @@ def citizen_book_facility(
     if booking_date > today + timedelta(days=90):
         raise HTTPException(status_code=400, detail="Cannot book more than 90 days in advance")
 
-    existing = db.query(FacilityBooking).filter(
-        FacilityBooking.facility_id == facility_id,
-        FacilityBooking.booked_date == booking_date
-    ).first()
+    existing = (
+        db.query(FacilityBooking)
+        .filter(
+            FacilityBooking.facility_id == facility_id, FacilityBooking.booked_date == booking_date
+        )
+        .first()
+    )
 
     if existing:
         raise HTTPException(status_code=400, detail="This date is already booked")
@@ -68,7 +73,7 @@ def citizen_book_facility(
         booking_reference=booking_ref,
         amount_paid=facility.price_per_day,
         payment_ref="TXN-" + secrets.token_hex(5).upper(),
-        purpose=purpose
+        purpose=purpose,
     )
 
     db.add(booking)
@@ -91,7 +96,4 @@ def citizen_book_facility(
     db.commit()
     db.refresh(booking)
 
-    return {
-        "message": "Booking confirmed",
-        "booking": booking
-    }
+    return {"message": "Booking confirmed", "booking": booking}

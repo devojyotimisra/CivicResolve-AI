@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, BillType
+from application.helpers.models import BillType, User
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -11,10 +12,10 @@ router = APIRouter()
 def commissioner_delete_bill_type(
     bill_type_id: int,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('commissioner'):
+    if not user or not user.has_role("commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
     bill_type = db.get(BillType, bill_type_id)
@@ -24,6 +25,13 @@ def commissioner_delete_bill_type(
     has_unpaid_bills = any(bill.status.lower() != 'paid' for bill in bill_type.bills)
     if has_unpaid_bills:
         raise HTTPException(status_code=400, detail="Cannot delete this bill type because there are unpaid bills associated with it.")
+
+    has_unpaid_bills = any(bill.status.lower() != "paid" for bill in bill_type.bills)
+    if has_unpaid_bills:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete this bill type because there are unpaid bills associated with it.",
+        )
 
     db.delete(bill_type)
     db.commit()

@@ -1,9 +1,16 @@
-from application.helpers.schemas import CitizenProfileUpdateRequest
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.helpers.models import User
-from application.helpers.validators import validate_email, validate_name, validate_address, validate_pincode, validate_phone
+from application.helpers.schemas import CitizenProfileUpdateRequest
+from application.helpers.validators import (
+    validate_address,
+    validate_email,
+    validate_name,
+    validate_phone,
+    validate_pincode,
+)
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -13,10 +20,10 @@ router = APIRouter()
 def citizen_profile_update(
     data: CitizenProfileUpdateRequest,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('citizen'):
+    if not user or not user.has_role("citizen"):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
     if data.email:

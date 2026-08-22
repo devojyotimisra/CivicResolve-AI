@@ -1,8 +1,10 @@
-import pytest
 from datetime import date, timedelta
+
+import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Facility, FacilityBooking
+from application.helpers.models import Facility, FacilityBooking, Role, User
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -23,7 +25,7 @@ def comm_user(db_session: Session) -> User:
         name="Facility Commissioner",
         role="commissioner",
         badge_id="COM-FAC-1",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -50,7 +52,7 @@ def citizen_user(db_session: Session) -> User:
         phone="9876543210",
         address="100 Civic Lane",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -77,7 +79,7 @@ def second_citizen_user(db_session: Session) -> User:
         phone="9876543211",
         address="101 Civic Lane",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -102,7 +104,7 @@ def officer_headers(db_session: Session) -> dict:
         name="Officer Facility Test",
         role="field_officer",
         badge_id="OFF-FAC-1",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -123,7 +125,7 @@ def active_facility(db_session: Session) -> Facility:
         price_per_day=500.0,
         capacity=200,
         description="Spacious venue for public and private events",
-        is_active=True
+        is_active=True,
     )
     db_session.add(facility)
     db_session.commit()
@@ -141,7 +143,7 @@ def inactive_facility(db_session: Session) -> Facility:
         price_per_day=200.0,
         capacity=50,
         description="Under renovation",
-        is_active=False
+        is_active=False,
     )
     db_session.add(facility)
     db_session.commit()
@@ -150,7 +152,9 @@ def inactive_facility(db_session: Session) -> Facility:
 
 
 @pytest.fixture
-def sample_booking(db_session: Session, active_facility: Facility, citizen_user: User) -> FacilityBooking:
+def sample_booking(
+    db_session: Session, active_facility: Facility, citizen_user: User
+) -> FacilityBooking:
     booking_date = date.today() + timedelta(days=5)
     booking = FacilityBooking(
         user_id=citizen_user.id,
@@ -159,7 +163,7 @@ def sample_booking(db_session: Session, active_facility: Facility, citizen_user:
         booking_reference="BKG-TEST-1234",
         booked_date=booking_date,
         amount_paid=active_facility.price_per_day,
-        purpose="Town Hall Meeting"
+        purpose="Town Hall Meeting",
     )
     db_session.add(booking)
     db_session.commit()
@@ -181,26 +185,38 @@ def test_citizen_facility_endpoints_unauthorized(client):
     assert client.get("/api/citizen/bookings").status_code == 401
 
 
-def test_commissioner_facility_endpoints_forbidden_for_citizen_and_officer(client, citizen_headers, officer_headers):
+def test_commissioner_facility_endpoints_forbidden_for_citizen_and_officer(
+    client, citizen_headers, officer_headers
+):
     for headers in [citizen_headers, officer_headers]:
         res_get = client.get("/api/commissioner/facilities", headers=headers)
         assert res_get.status_code == 403
         assert res_get.json()["detail"] == "Commissioner access required"
 
-        assert client.post("/api/commissioner/facility", json={}, headers=headers).status_code == 403
-        assert client.put("/api/commissioner/facility/1", json={}, headers=headers).status_code == 403
+        assert (
+            client.post("/api/commissioner/facility", json={}, headers=headers).status_code == 403
+        )
+        assert (
+            client.put("/api/commissioner/facility/1", json={}, headers=headers).status_code == 403
+        )
         assert client.delete("/api/commissioner/facility/1", headers=headers).status_code == 403
 
 
-def test_citizen_facility_endpoints_forbidden_for_commissioner_and_officer(client, comm_headers, officer_headers):
+def test_citizen_facility_endpoints_forbidden_for_commissioner_and_officer(
+    client, comm_headers, officer_headers
+):
     for headers in [comm_headers, officer_headers]:
         assert client.get("/api/citizen/facilities", headers=headers).status_code == 403
         assert client.get("/api/citizen/facility/1", headers=headers).status_code == 403
-        assert client.post("/api/citizen/book_facility/1", json={}, headers=headers).status_code == 403
+        assert (
+            client.post("/api/citizen/book_facility/1", json={}, headers=headers).status_code == 403
+        )
         assert client.get("/api/citizen/bookings", headers=headers).status_code == 403
 
 
-def test_commissioner_facilities_list_success(client, comm_headers, active_facility, inactive_facility):
+def test_commissioner_facilities_list_success(
+    client, comm_headers, active_facility, inactive_facility
+):
     response = client.get("/api/commissioner/facilities", headers=comm_headers)
     assert response.status_code == 200
 
@@ -218,7 +234,7 @@ def test_commissioner_add_facility_success(client, comm_headers, db_session):
         "address": "50 Ring Road",
         "pincode": "110005",
         "pricePerDay": 750.0,
-        "description": "State-of-the-art sports complex"
+        "description": "State-of-the-art sports complex",
     }
 
     response = client.post("/api/commissioner/facility", json=payload, headers=comm_headers)
@@ -234,44 +250,54 @@ def test_commissioner_add_facility_success(client, comm_headers, db_session):
 
 def test_commissioner_add_facility_validation_failures(client, comm_headers):
 
-    resp1 = client.post("/api/commissioner/facility", json={
-        "name": "A",
-        "facilityType": "Type",
-        "address": "Valid Address 123",
-        "pincode": "110001",
-        "pricePerDay": 100.0
-    }, headers=comm_headers)
+    resp1 = client.post(
+        "/api/commissioner/facility",
+        json={
+            "name": "A",
+            "facilityType": "Type",
+            "address": "Valid Address 123",
+            "pincode": "110001",
+            "pricePerDay": 100.0,
+        },
+        headers=comm_headers,
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Name must be at least 2 characters long"
 
-    resp2 = client.post("/api/commissioner/facility", json={
-        "name": "Valid Name",
-        "facilityType": "Type",
-        "address": "Valid Address 123",
-        "pincode": "123",
-        "pricePerDay": 100.0
-    }, headers=comm_headers)
+    resp2 = client.post(
+        "/api/commissioner/facility",
+        json={
+            "name": "Valid Name",
+            "facilityType": "Type",
+            "address": "Valid Address 123",
+            "pincode": "123",
+            "pricePerDay": 100.0,
+        },
+        headers=comm_headers,
+    )
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Pincode must be a 6-digit number"
 
-    resp3 = client.post("/api/commissioner/facility", json={
-        "name": "Valid Name",
-        "address": "Valid Address 123",
-        "pincode": "110001",
-        "pricePerDay": 100.0
-    }, headers=comm_headers)
+    resp3 = client.post(
+        "/api/commissioner/facility",
+        json={
+            "name": "Valid Name",
+            "address": "Valid Address 123",
+            "pincode": "110001",
+            "pricePerDay": 100.0,
+        },
+        headers=comm_headers,
+    )
     assert resp3.status_code == 400
     assert resp3.json()["detail"] == "Facility type is required"
 
 
 def test_commissioner_update_facility_success(client, comm_headers, active_facility, db_session):
-    payload = {
-        "name": "Town Hall Auditorium Renamed",
-        "pricePerDay": 600.0,
-        "isActive": False
-    }
+    payload = {"name": "Town Hall Auditorium Renamed", "pricePerDay": 600.0, "isActive": False}
 
-    response = client.put(f"/api/commissioner/facility/{active_facility.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/facility/{active_facility.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Facility updated successfully"
 
@@ -282,19 +308,27 @@ def test_commissioner_update_facility_success(client, comm_headers, active_facil
 
 
 def test_commissioner_update_facility_not_found(client, comm_headers):
-    response = client.put("/api/commissioner/facility/99999", json={"name": "Ghost"}, headers=comm_headers)
+    response = client.put(
+        "/api/commissioner/facility/99999", json={"name": "Ghost"}, headers=comm_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Facility not found"
 
 
 def test_commissioner_update_facility_invalid_price(client, comm_headers, active_facility):
-    response = client.put(f"/api/commissioner/facility/{active_facility.id}", json={"pricePerDay": -50.0}, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/facility/{active_facility.id}",
+        json={"pricePerDay": -50.0},
+        headers=comm_headers,
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Price must be greater than 0"
 
 
 def test_commissioner_delete_facility_success(client, comm_headers, active_facility, db_session):
-    response = client.delete(f"/api/commissioner/facility/{active_facility.id}", headers=comm_headers)
+    response = client.delete(
+        f"/api/commissioner/facility/{active_facility.id}", headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Facility deleted"
 
@@ -308,7 +342,9 @@ def test_commissioner_delete_facility_not_found(client, comm_headers):
     assert response.json()["detail"] == "Facility not found"
 
 
-def test_citizen_facilities_list_includes_inactive(client, citizen_headers, active_facility, inactive_facility):
+def test_citizen_facilities_list_includes_inactive(
+    client, citizen_headers, active_facility, inactive_facility
+):
     response = client.get("/api/citizen/facilities", headers=citizen_headers)
     assert response.status_code == 200
 
@@ -343,14 +379,15 @@ def test_citizen_facility_detail_inactive_or_not_found(client, citizen_headers, 
     assert resp2.json()["detail"] == "Facility not found"
 
 
-def test_citizen_book_facility_success(client, citizen_headers, active_facility, db_session, citizen_user):
+def test_citizen_book_facility_success(
+    client, citizen_headers, active_facility, db_session, citizen_user
+):
     target_date = date.today() + timedelta(days=10)
-    payload = {
-        "bookedDate": target_date.isoformat(),
-        "purpose": "Birthday Party Gathering"
-    }
+    payload = {"bookedDate": target_date.isoformat(), "purpose": "Birthday Party Gathering"}
 
-    response = client.post(f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -360,7 +397,11 @@ def test_citizen_book_facility_success(client, citizen_headers, active_facility,
     assert data["booking"]["amountPaid"] == active_facility.price_per_day
     assert data["booking"]["bookingReference"].startswith("BKG-")
 
-    created_booking = db_session.query(FacilityBooking).filter_by(booking_reference=data["booking"]["bookingReference"]).first()
+    created_booking = (
+        db_session.query(FacilityBooking)
+        .filter_by(booking_reference=data["booking"]["bookingReference"])
+        .first()
+    )
     assert created_booking is not None
     assert created_booking.user_id == citizen_user.id
     assert created_booking.facility_id == active_facility.id
@@ -371,7 +412,9 @@ def test_citizen_book_facility_past_date_fails(client, citizen_headers, active_f
     past_date = date.today() - timedelta(days=1)
     payload = {"booked_date": past_date.isoformat()}
 
-    response = client.post(f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot book a past date"
 
@@ -380,26 +423,38 @@ def test_citizen_book_facility_too_far_in_future_fails(client, citizen_headers, 
     far_future = date.today() + timedelta(days=95)
     payload = {"booked_date": far_future.isoformat()}
 
-    response = client.post(f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot book more than 90 days in advance"
 
 
-def test_citizen_book_facility_duplicate_date_fails(client, citizen_headers, active_facility, sample_booking):
+def test_citizen_book_facility_duplicate_date_fails(
+    client, citizen_headers, active_facility, sample_booking
+):
     payload = {"booked_date": sample_booking.booked_date.isoformat()}
 
-    response = client.post(f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}", json=payload, headers=citizen_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "This date is already booked"
 
 
 def test_citizen_book_facility_missing_or_invalid_date(client, citizen_headers, active_facility):
 
-    resp1 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={}, headers=citizen_headers)
+    resp1 = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}", json={}, headers=citizen_headers
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Date is required"
 
-    resp2 = client.post(f"/api/citizen/book_facility/{active_facility.id}", json={"bookedDate": "invalid-date"}, headers=citizen_headers)
+    resp2 = client.post(
+        f"/api/citizen/book_facility/{active_facility.id}",
+        json={"bookedDate": "invalid-date"},
+        headers=citizen_headers,
+    )
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Invalid date format. Use YYYY-MM-DD"
 
@@ -408,7 +463,9 @@ def test_citizen_book_facility_inactive_facility_fails(client, citizen_headers, 
     target_date = date.today() + timedelta(days=2)
     payload = {"booked_date": target_date.isoformat()}
 
-    response = client.post(f"/api/citizen/book_facility/{inactive_facility.id}", json=payload, headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/book_facility/{inactive_facility.id}", json=payload, headers=citizen_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Facility not found"
 

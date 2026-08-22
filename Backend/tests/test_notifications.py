@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Notification
+from application.helpers.models import Notification, Role, User
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -20,7 +21,7 @@ def citizen_user(db_session: Session) -> User:
         password=hash_password("Pass123!"),
         name="Notif User",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -41,7 +42,7 @@ def other_user(db_session: Session) -> User:
         password=hash_password("Pass123!"),
         name="Other User",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -56,28 +57,28 @@ def sample_notifications(db_session: Session, citizen_user: User, other_user: Us
         title="Notif 1",
         message="Message 1",
         notif_type="info",
-        is_read=False
+        is_read=False,
     )
     n2 = Notification(
         user_id=citizen_user.id,
         title="Notif 2",
         message="Message 2",
         notif_type="success",
-        is_read=True
+        is_read=True,
     )
     n3 = Notification(
         user_id=citizen_user.id,
         title="Role Notif",
         message="Message Role",
         notif_type="warning",
-        is_read=False
+        is_read=False,
     )
     n4 = Notification(
         user_id=other_user.id,
         title="Other Notif",
         message="Other Message",
         notif_type="error",
-        is_read=False
+        is_read=False,
     )
     db_session.add_all([n1, n2, n3, n4])
     db_session.commit()

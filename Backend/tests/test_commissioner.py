@@ -1,7 +1,16 @@
 import pytest
 from sqlalchemy.orm import Session
-from application.extensions.security_extn import hash_password, verify_password
-from application.helpers.models import User, Role, Department, Complaint, ComplaintUpdate, UtilityBill, FacilityBooking
+
+from application.extensions.security_extn import hash_password
+from application.helpers.models import (
+    Complaint,
+    ComplaintUpdate,
+    Department,
+    FacilityBooking,
+    Role,
+    User,
+    UtilityBill,
+)
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -25,7 +34,7 @@ def comm_user(db_session: Session) -> User:
         phone="9876543200",
         address="Municipal HQ",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         comm.roles.append(role)
@@ -50,7 +59,7 @@ def officer_headers(db_session: Session) -> dict:
         name="Officer Role Test",
         role="field_officer",
         badge_id="OFF-701",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -69,7 +78,7 @@ def citizen_headers(db_session: Session) -> dict:
         password=hash_password("Pass123!"),
         name="Citizen Role Test",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -99,7 +108,7 @@ def sample_complaint(db_session: Session, sample_department: Department) -> Comp
         status="Submitted",
         severity="Critical",
         department_id=sample_department.id,
-        department=sample_department.name
+        department=sample_department.name,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -110,12 +119,13 @@ def sample_complaint(db_session: Session, sample_department: Department) -> Comp
 @pytest.fixture
 def sample_paid_bill(db_session: Session) -> UtilityBill:
     from datetime import date
+
     bill = UtilityBill(
         bill_type="Water",
         bill_number="UB-TEST-99",
         amount=150.0,
         due_date=date.today(),
-        status="Paid"
+        status="Paid",
     )
     db_session.add(bill)
     db_session.commit()
@@ -126,10 +136,9 @@ def sample_paid_bill(db_session: Session) -> UtilityBill:
 @pytest.fixture
 def sample_confirmed_booking(db_session: Session) -> FacilityBooking:
     from datetime import date
+
     booking = FacilityBooking(
-        booking_reference="BK-TEST-99",
-        booked_date=date.today(),
-        amount_paid=500.0
+        booking_reference="BK-TEST-99", booked_date=date.today(), amount_paid=500.0
     )
     db_session.add(booking)
     db_session.commit()
@@ -150,25 +159,28 @@ def test_commissioner_endpoints_unauthorized(client):
     assert client.put("/api/commissioner/edit_profile", json={}).status_code == 401
 
 
-def test_commissioner_endpoints_forbidden_for_officer_and_citizen(client, officer_headers, citizen_headers):
+def test_commissioner_endpoints_forbidden_for_officer_and_citizen(
+    client, officer_headers, citizen_headers
+):
     for headers in [officer_headers, citizen_headers]:
         assert client.get("/api/commissioner/dash", headers=headers).status_code == 403
         assert client.get("/api/commissioner/complaints", headers=headers).status_code == 403
         assert client.get("/api/commissioner/complaint/1", headers=headers).status_code == 403
         assert client.get("/api/commissioner/categories", headers=headers).status_code == 403
-        assert client.post("/api/commissioner/category", json={}, headers=headers).status_code == 403
+        assert (
+            client.post("/api/commissioner/category", json={}, headers=headers).status_code == 403
+        )
         assert client.delete("/api/commissioner/category/1", headers=headers).status_code == 403
         assert client.get("/api/commissioner/citizens", headers=headers).status_code == 403
         assert client.post("/api/commissioner/search", json={}, headers=headers).status_code == 403
-        assert client.put("/api/commissioner/edit_profile", json={}, headers=headers).status_code == 403
+        assert (
+            client.put("/api/commissioner/edit_profile", json={}, headers=headers).status_code
+            == 403
+        )
 
 
 def test_commissioner_dashboard_kpis_and_revenue(
-    client,
-    comm_headers,
-    sample_complaint,
-    sample_paid_bill,
-    sample_confirmed_booking
+    client, comm_headers, sample_complaint, sample_paid_bill, sample_confirmed_booking
 ):
     response = client.get("/api/commissioner/dash", headers=comm_headers)
     assert response.status_code == 200
@@ -195,14 +207,11 @@ def test_commissioner_complaints_list_all_and_categories(client, comm_headers, s
 
 
 def test_commissioner_complaints_list_filtered_by_status_and_dept(
-    client,
-    comm_headers,
-    sample_complaint,
-    sample_department
+    client, comm_headers, sample_complaint, sample_department
 ):
     response = client.get(
         f"/api/commissioner/complaints?status=Submitted&department_id={sample_department.id}",
-        headers=comm_headers
+        headers=comm_headers,
     )
     assert response.status_code == 200
 
@@ -218,12 +227,14 @@ def test_commissioner_complaint_detail_success(client, comm_headers, sample_comp
         complaint_id=sample_complaint.id,
         old_status="Submitted",
         new_status="Submitted",
-        note="Initial audit log"
+        note="Initial audit log",
     )
     db_session.add(update)
     db_session.commit()
 
-    response = client.get(f"/api/commissioner/complaint/{sample_complaint.id}", headers=comm_headers)
+    response = client.get(
+        f"/api/commissioner/complaint/{sample_complaint.id}", headers=comm_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -259,7 +270,9 @@ def test_commissioner_category_add_create_success(client, comm_headers, db_sessi
     assert dept is not None
 
 
-def test_commissioner_category_add_create_duplicate_conflict(client, comm_headers, sample_department):
+def test_commissioner_category_add_create_duplicate_conflict(
+    client, comm_headers, sample_department
+):
     payload = {"name": sample_department.name}
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 409
@@ -272,11 +285,10 @@ def test_commissioner_category_add_missing_name(client, comm_headers):
     assert response.json()["detail"] == "Category name is required"
 
 
-def test_commissioner_category_add_edit_success(client, comm_headers, sample_department, db_session):
-    payload = {
-        "id": sample_department.id,
-        "name": "Water Supply Renamed"
-    }
+def test_commissioner_category_add_edit_success(
+    client, comm_headers, sample_department, db_session
+):
+    payload = {"id": sample_department.id, "name": "Water Supply Renamed"}
 
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 200
@@ -286,15 +298,14 @@ def test_commissioner_category_add_edit_success(client, comm_headers, sample_dep
     assert sample_department.name == "Water Supply Renamed"
 
 
-def test_commissioner_category_add_edit_conflict_with_other_category(client, comm_headers, sample_department, db_session):
+def test_commissioner_category_add_edit_conflict_with_other_category(
+    client, comm_headers, sample_department, db_session
+):
     dept2 = Department(name="Other Department")
     db_session.add(dept2)
     db_session.commit()
 
-    payload = {
-        "id": sample_department.id,
-        "name": "Other Department"
-    }
+    payload = {"id": sample_department.id, "name": "Other Department"}
 
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 409
@@ -302,10 +313,7 @@ def test_commissioner_category_add_edit_conflict_with_other_category(client, com
 
 
 def test_commissioner_category_add_edit_not_found(client, comm_headers):
-    payload = {
-        "id": 99999,
-        "name": "Ghost Category"
-    }
+    payload = {"id": 99999, "name": "Ghost Category"}
 
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 404
@@ -313,7 +321,9 @@ def test_commissioner_category_add_edit_not_found(client, comm_headers):
 
 
 def test_commissioner_category_delete_success(client, comm_headers, sample_department, db_session):
-    response = client.delete(f"/api/commissioner/category/{sample_department.id}", headers=comm_headers)
+    response = client.delete(
+        f"/api/commissioner/category/{sample_department.id}", headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Category deleted"
 
@@ -335,7 +345,7 @@ def test_commissioner_citizens_list_success(client, comm_headers, db_session):
         name="Registry Citizen",
         role="citizen",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         citizen.roles.append(role)
@@ -351,7 +361,9 @@ def test_commissioner_citizens_list_success(client, comm_headers, db_session):
 
 
 def test_commissioner_search_success(client, comm_headers, sample_complaint):
-    response = client.post("/api/commissioner/search", json={"query": "Water Pipe"}, headers=comm_headers)
+    response = client.post(
+        "/api/commissioner/search", json={"query": "Water Pipe"}, headers=comm_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -377,10 +389,7 @@ def test_commissioner_profile_fetch_success(client, comm_headers, comm_user):
 
 
 def test_commissioner_profile_update_success(client, comm_headers, comm_user, db_session):
-    payload = {
-        "name": "Chief Commissioner Updated",
-        "phone": "9998887770"
-    }
+    payload = {"name": "Chief Commissioner Updated", "phone": "9998887770"}
 
     response = client.put("/api/commissioner/edit_profile", json=payload, headers=comm_headers)
     assert response.status_code == 200
@@ -393,6 +402,8 @@ def test_commissioner_profile_update_success(client, comm_headers, comm_user, db
 
 def test_commissioner_profile_update_validation_failures(client, comm_headers):
 
-    resp1 = client.put("/api/commissioner/edit_profile", json={"phone": "12345"}, headers=comm_headers)
+    resp1 = client.put(
+        "/api/commissioner/edit_profile", json={"phone": "12345"}, headers=comm_headers
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Phone must be a 10-digit number"

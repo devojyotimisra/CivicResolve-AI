@@ -1,15 +1,12 @@
+from datetime import date, datetime
+from typing import Any, List, Optional
+
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
-from typing import Optional, List, Any
-from datetime import datetime, date
 
 
 class CamelModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True
-    )
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
 
 class UserSchema(CamelModel):
@@ -155,12 +152,6 @@ class CitizenDashboardResponse(CamelModel):
     upcoming_bookings_count: int
     pending_bills: List[UtilityBillSchema]
     upcoming_bookings: List[FacilityBookingSchema]
-
-
-class CitizenSearchResponse(CamelModel):
-    complaints: List[ComplaintSchema]
-    facilities: List[FacilitySchema]
-    bills: List[UtilityBillSchema]
 
 
 class CitizenPaymentReceiptSchema(CamelModel):
@@ -351,11 +342,6 @@ class OfficerSearchResponse(CamelModel):
 class OfficerTicketDetailResponse(CamelModel):
     complaint: ComplaintSchema
     updates: List[ComplaintUpdateSchema]
-
-
-class OfficerTicketResolveRequest(CamelModel):
-    resolution_note: Optional[str] = None
-    resolution_photo_url: Optional[str] = None
 
 
 class OfficerTicketUpdateStatusRequest(CamelModel):

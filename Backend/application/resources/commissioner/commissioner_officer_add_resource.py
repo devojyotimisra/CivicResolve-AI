@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Department
+from application.helpers.models import Department, Role, User
+from application.helpers.schemas import CommissionerOfficerAddRequest
 from application.helpers.validators import validate_email, validate_name, validate_password
 from application.middlewares.init_jwt import get_current_user_id
-from application.helpers.schemas import CommissionerOfficerAddRequest
 
 router = APIRouter()
 
@@ -14,10 +15,10 @@ router = APIRouter()
 def commissioner_add_officer(
     data: CommissionerOfficerAddRequest,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('commissioner'):
+    if not user or not user.has_role("commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
     is_valid, result = validate_email(data.email)
@@ -52,8 +53,8 @@ def commissioner_add_officer(
 
     password_raw = (data.password or "").strip()
     if not password_raw:
-        password_raw = f"{badge_id}@123" if badge_id else "Officer@123"
-        
+        password_raw = badge_id if badge_id else "Officer@123"
+
     is_valid, result = validate_password(password_raw)
     if not is_valid:
         raise HTTPException(status_code=400, detail=result)
@@ -65,7 +66,7 @@ def commissioner_add_officer(
     if badge_id and db.query(User).filter_by(badge_id=badge_id).first():
         raise HTTPException(status_code=409, detail="Badge ID already in use")
 
-    officer_role = db.query(Role).filter_by(name='field_officer').first()
+    officer_role = db.query(Role).filter_by(name="field_officer").first()
 
     new_officer = User(
         email=email,
@@ -76,8 +77,8 @@ def commissioner_add_officer(
         pincode=data.pincode,
         department_id=dept_obj.id,
         badge_id=badge_id,
-        role='field_officer',
-        is_active=True
+        role="field_officer",
+        is_active=True,
     )
     new_officer.roles.append(officer_role)
     db.add(new_officer)
@@ -85,12 +86,13 @@ def commissioner_add_officer(
     db.refresh(new_officer)
 
     from application.helpers.notification_helper import create_notification
+
     create_notification(
         db=db,
         user_id=new_officer.id,
         title="Welcome to the Platform!",
         message="You have been added as a Field Officer. Please update your profile and password.",
-        notif_type="info"
+        notif_type="info",
     )
     db.commit()
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.helpers.models import User
 from application.middlewares.init_jwt import get_current_user_id
@@ -11,19 +12,21 @@ router = APIRouter()
 def commissioner_delete_officer(
     officer_id: int,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('commissioner'):
+    if not user or not user.has_role("commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
     officer = db.get(User, officer_id)
-    if not officer or not officer.has_role('field_officer'):
+    if not officer or not officer.has_role("field_officer"):
         raise HTTPException(status_code=404, detail="Officer not found")
 
-    has_open_issues = any(c.status != 'Closed' for c in officer.assigned_complaints)
+    has_open_issues = any(c.status != "Closed" for c in officer.assigned_complaints)
     if has_open_issues:
-        raise HTTPException(status_code=400, detail="Cannot delete officer associated with an open issue")
+        raise HTTPException(
+            status_code=400, detail="Cannot delete officer associated with an open issue"
+        )
 
     db.delete(officer)
     db.commit()

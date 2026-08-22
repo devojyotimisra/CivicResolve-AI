@@ -6,7 +6,7 @@ def validate_email(email):
         return False, "Email is required"
 
     email = email.strip()
-    if not re.match(r'^[^@ \t\r\n]+@[^@ \t\r\n]+$', email):
+    if not re.match(r"^[^@ \t\r\n]+@[^@ \t\r\n]+$", email):
         return False, "Invalid email format"
 
     return True, email
@@ -16,16 +16,25 @@ def validate_password(password):
     if not password or not isinstance(password, str):
         return False, "Password is required"
     password = password.strip()
-    
+
     if len(password) < 8:
-        return False, "Password must be at least 8 characters long and contain a number and a special character."
-    
-    if not re.search(r'\d', password):
-        return False, "Password must be at least 8 characters long and contain a number and a special character."
-        
+        return (
+            False,
+            "Password must be at least 8 characters long and contain a number and a special character.",
+        )
+
+    if not re.search(r"\d", password):
+        return (
+            False,
+            "Password must be at least 8 characters long and contain a number and a special character.",
+        )
+
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        return False, "Password must be at least 8 characters long and contain a number and a special character."
-        
+        return (
+            False,
+            "Password must be at least 8 characters long and contain a number and a special character.",
+        )
+
     return True, password
 
 
@@ -67,7 +76,7 @@ def validate_phone(phone):
         return True, None
 
     phone = str(phone).strip()
-    if not re.match(r'^\d{10}$', phone):
+    if not re.match(r"^\d{10}$", phone):
         return False, "Phone must be a 10-digit number"
 
     return True, phone

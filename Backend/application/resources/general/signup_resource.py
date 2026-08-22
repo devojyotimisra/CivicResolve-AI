@@ -1,10 +1,18 @@
-from application.helpers.schemas import AuthResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role
-from application.helpers.validators import validate_email, validate_password, validate_name, validate_address, validate_pincode, validate_phone
+from application.helpers.models import Role, User
+from application.helpers.schemas import AuthResponse
+from application.helpers.validators import (
+    validate_address,
+    validate_email,
+    validate_name,
+    validate_password,
+    validate_phone,
+    validate_pincode,
+)
 from application.middlewares.init_jwt import create_access_token
 
 router = APIRouter()
@@ -47,9 +55,9 @@ def signup(data: dict, db: Session = Depends(get_db)):
 
     hashed_password = hash_password(password)
 
-    citizen_role = db.query(Role).filter_by(name='citizen').first()
+    citizen_role = db.query(Role).filter_by(name="citizen").first()
     if not citizen_role:
-        citizen_role = Role(name='citizen')
+        citizen_role = Role(name="citizen")
         db.add(citizen_role)
         db.commit()
 
@@ -59,7 +67,7 @@ def signup(data: dict, db: Session = Depends(get_db)):
         name=name,
         address=address,
         pincode=pincode,
-        phone=phone
+        phone=phone,
     )
 
     new_user.roles.append(citizen_role)
@@ -70,8 +78,4 @@ def signup(data: dict, db: Session = Depends(get_db)):
     access_token = create_access_token(new_user.id)
     new_user.role = "citizen"
 
-    return {
-        "message": "Account created successfully",
-        "token": access_token,
-        "user": new_user
-    }
+    return {"message": "Account created successfully", "token": access_token, "user": new_user}

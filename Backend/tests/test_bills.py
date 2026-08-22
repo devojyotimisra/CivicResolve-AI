@@ -1,8 +1,10 @@
-import pytest
 from datetime import date, timedelta
+
+import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, BillType, UtilityBill
+from application.helpers.models import BillType, Role, User, UtilityBill
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -23,7 +25,7 @@ def comm_user(db_session: Session) -> User:
         name="Bills Commissioner",
         role="commissioner",
         badge_id="COM-BILL-1",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -50,7 +52,7 @@ def citizen_user(db_session: Session) -> User:
         phone="9876543210",
         address="200 Bill Street",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -77,7 +79,7 @@ def second_citizen_user(db_session: Session) -> User:
         phone="9876543211",
         address="201 Bill Street",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -102,7 +104,7 @@ def officer_headers(db_session: Session) -> dict:
         name="Officer Bills Test",
         role="field_officer",
         badge_id="OFF-BILL-1",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -123,7 +125,9 @@ def sample_bill_type(db_session: Session) -> BillType:
 
 
 @pytest.fixture
-def sample_pending_bill(db_session: Session, citizen_user: User, sample_bill_type: BillType) -> UtilityBill:
+def sample_pending_bill(
+    db_session: Session, citizen_user: User, sample_bill_type: BillType
+) -> UtilityBill:
     due = date.today() + timedelta(days=15)
     bill = UtilityBill(
         user_id=citizen_user.id,
@@ -133,7 +137,7 @@ def sample_pending_bill(db_session: Session, citizen_user: User, sample_bill_typ
         amount=250.0,
         due_date=due,
         period="Q3-2026",
-        status="Pending"
+        status="Pending",
     )
     db_session.add(bill)
     db_session.commit()
@@ -142,7 +146,9 @@ def sample_pending_bill(db_session: Session, citizen_user: User, sample_bill_typ
 
 
 @pytest.fixture
-def sample_paid_bill(db_session: Session, citizen_user: User, sample_bill_type: BillType) -> UtilityBill:
+def sample_paid_bill(
+    db_session: Session, citizen_user: User, sample_bill_type: BillType
+) -> UtilityBill:
     due = date.today() - timedelta(days=5)
     bill = UtilityBill(
         user_id=citizen_user.id,
@@ -152,7 +158,7 @@ def sample_paid_bill(db_session: Session, citizen_user: User, sample_bill_type: 
         amount=180.0,
         due_date=due,
         period="Q2-2026",
-        status="Paid"
+        status="Paid",
     )
     db_session.add(bill)
     db_session.commit()
@@ -174,17 +180,25 @@ def test_citizen_bill_endpoints_unauthorized(client):
     assert client.post("/api/citizen/pay_bill/1").status_code == 401
 
 
-def test_commissioner_bill_endpoints_forbidden_for_citizen_and_officer(client, citizen_headers, officer_headers):
+def test_commissioner_bill_endpoints_forbidden_for_citizen_and_officer(
+    client, citizen_headers, officer_headers
+):
     for headers in [citizen_headers, officer_headers]:
         assert client.get("/api/commissioner/bill_types", headers=headers).status_code == 403
-        assert client.post("/api/commissioner/bill_type", json={}, headers=headers).status_code == 403
-        assert client.put("/api/commissioner/bill_type/1", json={}, headers=headers).status_code == 403
+        assert (
+            client.post("/api/commissioner/bill_type", json={}, headers=headers).status_code == 403
+        )
+        assert (
+            client.put("/api/commissioner/bill_type/1", json={}, headers=headers).status_code == 403
+        )
         assert client.delete("/api/commissioner/bill_type/1", headers=headers).status_code == 403
         assert client.post("/api/commissioner/bill", json={}, headers=headers).status_code == 403
         assert client.get("/api/commissioner/bills", headers=headers).status_code == 403
 
 
-def test_citizen_bill_endpoints_forbidden_for_commissioner_and_officer(client, comm_headers, officer_headers):
+def test_citizen_bill_endpoints_forbidden_for_commissioner_and_officer(
+    client, comm_headers, officer_headers
+):
     for headers in [comm_headers, officer_headers]:
         assert client.get("/api/citizen/bills", headers=headers).status_code == 403
         assert client.post("/api/citizen/pay_bill/1", headers=headers).status_code == 403
@@ -209,38 +223,54 @@ def test_commissioner_create_bill_type_success(client, comm_headers, db_session)
     assert created is not None
 
 
-def test_commissioner_create_bill_type_validation_and_conflict(client, comm_headers, sample_bill_type):
+def test_commissioner_create_bill_type_validation_and_conflict(
+    client, comm_headers, sample_bill_type
+):
     resp1 = client.post("/api/commissioner/bill_type", json={"name": "  "}, headers=comm_headers)
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Bill type name is required"
-    resp2 = client.post("/api/commissioner/bill_type", json={"name": sample_bill_type.name}, headers=comm_headers)
+    resp2 = client.post(
+        "/api/commissioner/bill_type", json={"name": sample_bill_type.name}, headers=comm_headers
+    )
     assert resp2.status_code == 409
     assert resp2.json()["detail"] == "Bill type already exists"
 
 
 def test_commissioner_update_bill_type_success(client, comm_headers, sample_bill_type, db_session):
     payload = {"name": "Electricity Tax Renamed"}
-    response = client.put(f"/api/commissioner/bill_type/{sample_bill_type.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/bill_type/{sample_bill_type.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 200
     assert "updated successfully" in response.json()["message"]
     db_session.refresh(sample_bill_type)
     assert sample_bill_type.name == "Electricity Tax Renamed"
 
 
-def test_commissioner_update_bill_type_conflict_and_not_found(client, comm_headers, sample_bill_type, db_session):
+def test_commissioner_update_bill_type_conflict_and_not_found(
+    client, comm_headers, sample_bill_type, db_session
+):
     bt2 = BillType(name="Property Tax")
     db_session.add(bt2)
     db_session.commit()
-    resp1 = client.put(f"/api/commissioner/bill_type/{sample_bill_type.id}", json={"name": "Property Tax"}, headers=comm_headers)
+    resp1 = client.put(
+        f"/api/commissioner/bill_type/{sample_bill_type.id}",
+        json={"name": "Property Tax"},
+        headers=comm_headers,
+    )
     assert resp1.status_code == 409
     assert resp1.json()["detail"] == "Bill type name already in use"
-    resp2 = client.put("/api/commissioner/bill_type/99999", json={"name": "Ghost Tax"}, headers=comm_headers)
+    resp2 = client.put(
+        "/api/commissioner/bill_type/99999", json={"name": "Ghost Tax"}, headers=comm_headers
+    )
     assert resp2.status_code == 404
     assert resp2.json()["detail"] == "Bill type not found"
 
 
 def test_commissioner_delete_bill_type_success(client, comm_headers, sample_bill_type, db_session):
-    response = client.delete(f"/api/commissioner/bill_type/{sample_bill_type.id}", headers=comm_headers)
+    response = client.delete(
+        f"/api/commissioner/bill_type/{sample_bill_type.id}", headers=comm_headers
+    )
     assert response.status_code == 200
     assert "deleted successfully" in response.json()["message"]
     deleted = db_session.get(BillType, sample_bill_type.id)
@@ -253,14 +283,16 @@ def test_commissioner_delete_bill_type_not_found(client, comm_headers):
     assert response.json()["detail"] == "Bill type not found"
 
 
-def test_commissioner_issue_bill_success(client, comm_headers, citizen_user, sample_bill_type, db_session):
+def test_commissioner_issue_bill_success(
+    client, comm_headers, citizen_user, sample_bill_type, db_session
+):
     due = date.today() + timedelta(days=20)
     payload = {
         "citizenId": citizen_user.id,
         "billType": sample_bill_type.name,
         "amount": 350.0,
         "dueDate": due.isoformat(),
-        "period": "Q4-2026"
+        "period": "Q4-2026",
     }
 
     response = client.post("/api/commissioner/bill", json=payload, headers=comm_headers)
@@ -279,7 +311,7 @@ def test_commissioner_issue_bill_invalid_citizen(client, comm_headers):
         "citizenId": 99999,
         "billType": "Water Tax",
         "amount": 100.0,
-        "dueDate": date.today().isoformat()
+        "dueDate": date.today().isoformat(),
     }
 
     response = client.post("/api/commissioner/bill", json=payload, headers=comm_headers)
@@ -287,20 +319,52 @@ def test_commissioner_issue_bill_invalid_citizen(client, comm_headers):
     assert response.json()["detail"] == "Invalid citizen"
 
 
-def test_commissioner_issue_bill_validation_failures(client, comm_headers, citizen_user, sample_bill_type):
-    resp1 = client.post("/api/commissioner/bill", json={f"billType": sample_bill_type.name, "amount": 100.0, "dueDate": "2026-10-10"}, headers=comm_headers)
+def test_commissioner_issue_bill_validation_failures(
+    client, comm_headers, citizen_user, sample_bill_type
+):
+    resp1 = client.post(
+        "/api/commissioner/bill",
+        json={f"billType": sample_bill_type.name, "amount": 100.0, "dueDate": "2026-10-10"},
+        headers=comm_headers,
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Citizen ID is required"
-    resp2 = client.post("/api/commissioner/bill", json={"citizenId": citizen_user.id, "amount": 100.0, "dueDate": "2026-10-10"}, headers=comm_headers)
+    resp2 = client.post(
+        "/api/commissioner/bill",
+        json={"citizenId": citizen_user.id, "amount": 100.0, "dueDate": "2026-10-10"},
+        headers=comm_headers,
+    )
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Bill type is required"
-    resp3 = client.post("/api/commissioner/bill", json={"citizenId": citizen_user.id, f"billType": sample_bill_type.name, "amount": -50.0, "dueDate": "2026-10-10"}, headers=comm_headers)
+    resp3 = client.post(
+        "/api/commissioner/bill",
+        json={
+            "citizenId": citizen_user.id,
+            f"billType": sample_bill_type.name,
+            "amount": -50.0,
+            "dueDate": "2026-10-10",
+        },
+        headers=comm_headers,
+    )
     assert resp3.status_code == 400
     assert resp3.json()["detail"] == "Amount must be greater than 0"
-    resp4 = client.post("/api/commissioner/bill", json={"citizenId": citizen_user.id, f"billType": sample_bill_type.name, "amount": 100.0}, headers=comm_headers)
+    resp4 = client.post(
+        "/api/commissioner/bill",
+        json={"citizenId": citizen_user.id, f"billType": sample_bill_type.name, "amount": 100.0},
+        headers=comm_headers,
+    )
     assert resp4.status_code == 400
     assert resp4.json()["detail"] == "Due date is required"
-    resp5 = client.post("/api/commissioner/bill", json={"citizenId": citizen_user.id, f"billType": sample_bill_type.name, "amount": 100.0, "dueDate": "not-a-date"}, headers=comm_headers)
+    resp5 = client.post(
+        "/api/commissioner/bill",
+        json={
+            "citizenId": citizen_user.id,
+            f"billType": sample_bill_type.name,
+            "amount": 100.0,
+            "dueDate": "not-a-date",
+        },
+        headers=comm_headers,
+    )
     assert resp5.status_code == 400
     assert resp5.json()["detail"] == "Invalid date format. Use YYYY-MM-DD"
 
@@ -313,7 +377,9 @@ def test_commissioner_bills_list_success(client, comm_headers, sample_pending_bi
     assert any(b["id"] == sample_pending_bill.id for b in data["bills"])
 
 
-def test_citizen_bills_list_all_and_filtered(client, citizen_headers, sample_pending_bill, sample_paid_bill):
+def test_citizen_bills_list_all_and_filtered(
+    client, citizen_headers, sample_pending_bill, sample_paid_bill
+):
     res1 = client.get("/api/citizen/bills", headers=citizen_headers)
     assert res1.status_code == 200
     bills1 = res1.json()["bills"]
@@ -331,7 +397,9 @@ def test_citizen_bills_list_all_and_filtered(client, citizen_headers, sample_pen
 
 
 def test_citizen_pay_bill_success(client, citizen_headers, sample_pending_bill, db_session):
-    response = client.post(f"/api/citizen/pay_bill/{sample_pending_bill.id}", headers=citizen_headers)
+    response = client.post(
+        f"/api/citizen/pay_bill/{sample_pending_bill.id}", headers=citizen_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["message"] == "Payment successful"
@@ -350,8 +418,12 @@ def test_citizen_pay_bill_already_paid_fails(client, citizen_headers, sample_pai
     assert response.json()["detail"] == "Bill is already paid"
 
 
-def test_citizen_pay_bill_ownership_check_fails(client, second_citizen_headers, sample_pending_bill):
-    response = client.post(f"/api/citizen/pay_bill/{sample_pending_bill.id}", headers=second_citizen_headers)
+def test_citizen_pay_bill_ownership_check_fails(
+    client, second_citizen_headers, sample_pending_bill
+):
+    response = client.post(
+        f"/api/citizen/pay_bill/{sample_pending_bill.id}", headers=second_citizen_headers
+    )
     assert response.status_code == 403
     assert response.json()["detail"] == "Access denied"
 

@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
-from application.extensions.security_extn import hash_password, verify_password
-from application.helpers.models import User, Role, Department, Complaint
+
+from application.extensions.security_extn import hash_password
+from application.helpers.models import Complaint, Department, Role, User
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -23,7 +24,7 @@ def citizen_user(db_session: Session) -> User:
         phone="9876543210",
         address="123 Civic Lane",
         pincode="560001",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -48,7 +49,7 @@ def second_citizen_user(db_session: Session) -> User:
         phone="9876543211",
         address="456 Municipal Way",
         pincode="110002",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -65,7 +66,7 @@ def comm_headers(db_session: Session) -> dict:
         password=hash_password("Pass123!"),
         name="Comm User",
         role="commissioner",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -81,7 +82,7 @@ def officer_headers(db_session: Session) -> dict:
         password=hash_password("Pass123!"),
         name="Officer User",
         role="field_officer",
-        is_active=True
+        is_active=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -108,7 +109,7 @@ def sample_complaint(db_session: Session, sample_department: Department) -> Comp
         location="MG Road, Sector 3",
         status="Submitted",
         severity="Normal",
-        department_id=sample_department.id
+        department_id=sample_department.id,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -123,7 +124,9 @@ def test_unauthenticated_access_blocked(client):
     assert client.post("/api/citizen/search", json={}).status_code == 401
 
 
-def test_citizen_endpoints_forbidden_for_commissioner_and_officer(client, comm_headers, officer_headers):
+def test_citizen_endpoints_forbidden_for_commissioner_and_officer(
+    client, comm_headers, officer_headers
+):
     for headers in [comm_headers, officer_headers]:
         assert client.get("/api/citizen/dash", headers=headers).status_code == 403
         assert client.get("/api/citizen/profile", headers=headers).status_code == 403
@@ -162,7 +165,7 @@ def test_citizen_profile_update_success(client, citizen_headers, citizen_user, d
         "name": "John Citizen Updated",
         "address": "999 Updated Boulevard",
         "pincode": "110005",
-        "phone": "9998887775"
+        "phone": "9998887775",
     }
 
     response = client.put("/api/citizen/edit_profile", json=payload, headers=citizen_headers)
@@ -186,7 +189,9 @@ def test_citizen_profile_update_duplicate_email(client, citizen_headers, second_
 
 def test_citizen_profile_update_validation_failures(client, citizen_headers):
 
-    resp1 = client.put("/api/citizen/edit_profile", json={"email": "bad-email"}, headers=citizen_headers)
+    resp1 = client.put(
+        "/api/citizen/edit_profile", json={"email": "bad-email"}, headers=citizen_headers
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Invalid email format"
 
@@ -194,33 +199,42 @@ def test_citizen_profile_update_validation_failures(client, citizen_headers):
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Name must be at least 2 characters long"
 
-    resp3 = client.put("/api/citizen/edit_profile", json={"address": "123"}, headers=citizen_headers)
+    resp3 = client.put(
+        "/api/citizen/edit_profile", json={"address": "123"}, headers=citizen_headers
+    )
     assert resp3.status_code == 400
     assert resp3.json()["detail"] == "Address must be at least 5 characters long"
 
-    resp4 = client.put("/api/citizen/edit_profile", json={"pincode": "1234"}, headers=citizen_headers)
+    resp4 = client.put(
+        "/api/citizen/edit_profile", json={"pincode": "1234"}, headers=citizen_headers
+    )
     assert resp4.status_code == 400
     assert resp4.json()["detail"] == "Pincode must be a 6-digit number"
 
-    resp5 = client.put("/api/citizen/edit_profile", json={"phone": "12345"}, headers=citizen_headers)
+    resp5 = client.put(
+        "/api/citizen/edit_profile", json={"phone": "12345"}, headers=citizen_headers
+    )
     assert resp5.status_code == 400
     assert resp5.json()["detail"] == "Phone must be a 10-digit number"
 
 
 def test_citizen_search_success(client, citizen_headers, db_session):
     from application.helpers.models import Facility
+
     facility = Facility(
         name="Citizen Park Community Hall",
         facility_type="Community Hall",
         address="10 Park Road",
         pincode="110001",
         price_per_day=300.0,
-        is_active=True
+        is_active=True,
     )
     db_session.add(facility)
     db_session.commit()
 
-    response = client.post("/api/citizen/search", json={"query": "Community Hall"}, headers=citizen_headers)
+    response = client.post(
+        "/api/citizen/search", json={"query": "Community Hall"}, headers=citizen_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
