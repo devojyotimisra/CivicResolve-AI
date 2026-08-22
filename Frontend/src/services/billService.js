@@ -6,7 +6,7 @@ export const billService = {
         try {
             const response = await client.get("/citizen/bills");
             return response.data.bills || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching user bills:", error);
             throw error;
         }
@@ -24,7 +24,7 @@ export const billService = {
 
             const response = await client.get(endpoint, { params: filters });
             return response.data.bills || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching all bills:", error);
             throw error;
         }
@@ -34,9 +34,14 @@ export const billService = {
         try {
             const response = await client.post(`/citizen/pay_bill/${billId}`);
             return response.data.receipt;
-        } catch {
-            if (error.response && error.response.data && error.response.data.error) {
-                throw new Error(error.response.data.error);
+        } catch (error) {
+            if (error.response && error.response.data) {
+                if (error.response.data.detail) {
+                    throw new Error(error.response.data.detail);
+                }
+                if (error.response.data.error) {
+                    throw new Error(error.response.data.error);
+                }
             }
             throw new Error("Failed to pay bill.");
         }
@@ -46,9 +51,14 @@ export const billService = {
         try {
             const response = await client.post("/commissioner/bill", billData);
             return response.data.bill;
-        } catch {
-            if (error.response && error.response.data && error.response.data.error) {
-                throw new Error(error.response.data.error);
+        } catch (error) {
+            if (error.response && error.response.data) {
+                if (error.response.data.detail) {
+                    throw new Error(error.response.data.detail);
+                }
+                if (error.response.data.error) {
+                    throw new Error(error.response.data.error);
+                }
             }
             throw new Error("Failed to generate bill.");
         }
@@ -60,7 +70,8 @@ export const billService = {
                 .get("/commissioner/bill_types")
                 .catch(() => ({ data: [] }));
             return response.data;
-        } catch {
+        } catch (error) {
+            console.error(error);
             return [];
         }
     },
@@ -77,7 +88,7 @@ export const billService = {
                 const response = await client.post("/commissioner/bill_type", typeData);
                 return response.data;
             }
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -89,7 +100,7 @@ export const billService = {
         try {
             await client.delete(`/commissioner/bill_type/${typeId}`);
             return true;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }

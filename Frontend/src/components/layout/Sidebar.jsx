@@ -66,7 +66,8 @@ export const Sidebar = () => {
         try {
             const saved = localStorage.getItem("sidebar_collapsed");
             return saved !== null ? JSON.parse(saved) : false;
-        } catch {
+        } catch (error) {
+            console.error(error);
             return false;
         }
     });
@@ -75,7 +76,9 @@ export const Sidebar = () => {
     useEffect(() => {
         try {
             localStorage.setItem("sidebar_collapsed", JSON.stringify(isCollapsed));
-        } catch {}
+        } catch (error) {
+            console.error(error);
+        }
     }, [isCollapsed]);
 
     const links = getDashboardLinks(role);

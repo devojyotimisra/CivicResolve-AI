@@ -63,6 +63,10 @@ class User(Base):
             return self.department_rel.name
         return None
 
+    @property
+    def is_password_empty(self):
+        return not bool(self.password)
+
     def has_role(self, role_name):
         return self.role == role_name or any(r.name == role_name for r in self.roles)
 

@@ -66,7 +66,8 @@ export const Signup = () => {
                 password: formData.password,
             });
             navigate("/dash/citizen");
-        } catch {
+        } catch (error) {
+            console.error(error);
             setConfirmSubmit(false);
         } finally {
             setLoading(false);

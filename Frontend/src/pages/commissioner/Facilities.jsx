@@ -86,7 +86,8 @@ export const CommissionerFacilities = () => {
             setFacilities(facData);
             setAllBookings(bkgData);
             setFacilityTypes(typeData);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load municipal data");
         } finally {
             setLoading(false);
@@ -163,7 +164,8 @@ export const CommissionerFacilities = () => {
                 toast.success(`"${fac.name}" is now Active.`);
             }
             load();
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to update facility status");
         } finally {
             setToggling(null);
@@ -180,6 +182,11 @@ export const CommissionerFacilities = () => {
             !form.facilityType
         ) {
             toast.error("Please fill in all required fields.");
+            return;
+        }
+
+        if (form.address.trim().length < 5) {
+            toast.error("Address must be at least 5 characters long");
             return;
         }
         setSaving(true);

@@ -20,7 +20,8 @@ export const CitizenLoginTab = () => {
             try {
                 await googleLogin(tokenResponse.access_token);
                 navigate("/dash/citizen");
-            } catch {
+            } catch (error) {
+                console.error(error);
                 setLoading(false);
             }
         },
@@ -35,7 +36,8 @@ export const CitizenLoginTab = () => {
         try {
             await login(email, password, "citizen");
             navigate("/dash/citizen");
-        } catch {
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }

@@ -49,7 +49,8 @@ export const TrackComplaint = () => {
             if (updateUrl && searchParams.get("token")?.toUpperCase() !== cleanToken) {
                 setSearchParams({ token: cleanToken }, { replace: true });
             }
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error(
                 "No civic report found matching this 12-character tracking token due to wrong token or spam/scam/bot detection"
             );
@@ -94,7 +95,8 @@ export const TrackComplaint = () => {
             );
 
             fetchComplaint(complaint.token, false, true);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to update status");
         }
     };

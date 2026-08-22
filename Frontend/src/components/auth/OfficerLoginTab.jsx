@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, ArrowRight } from "lucide-react";
+import { ShieldCheck, Lock, ArrowRight } from "lucide-react";
 
 export const OfficerLoginTab = () => {
     const [badgeId, setBadgeId] = useState("");
@@ -19,7 +19,8 @@ export const OfficerLoginTab = () => {
         try {
             await login(badgeId, password, "officer");
             navigate("/dash/officer");
-        } catch {
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -30,7 +31,7 @@ export const OfficerLoginTab = () => {
             <div className="space-y-2">
                 <Label htmlFor="officer-badge">Badge ID or Email</Label>
                 <div className="relative">
-                    <Shield className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         id="officer-badge"
                         type="text"

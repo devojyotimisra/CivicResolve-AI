@@ -34,7 +34,8 @@ export const CommissionerFacilityTypes = () => {
         try {
             const data = await facilityService.getFacilityTypes();
             setFacilityTypes(data);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load facility types");
         } finally {
             setLoading(false);

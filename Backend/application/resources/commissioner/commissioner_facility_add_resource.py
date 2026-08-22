@@ -50,6 +50,22 @@ def commissioner_add_facility(
     if not facility_type:
         raise HTTPException(status_code=400, detail="Facility type is required")
 
+    existing_facility = (
+        db.query(Facility)
+        .filter(
+            Facility.name == name,
+            Facility.facility_type == facility_type,
+            Facility.address == address,
+            Facility.pincode == pincode,
+        )
+        .first()
+    )
+    if existing_facility:
+        raise HTTPException(
+            status_code=409,
+            detail="A facility with the exact name, type, address, and pincode already exists.",
+        )
+
     facility = Facility(
         name=name,
         facility_type=facility_type,

@@ -20,6 +20,12 @@ def citizen_pay_bill(
     if not user or not user.has_role("citizen"):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
+    if not user.phone or not user.address:
+        raise HTTPException(
+            status_code=403,
+            detail="Please update your profile with a valid phone number and address before paying bills.",
+        )
+
     bill = db.get(UtilityBill, bill_id)
 
     if not bill:

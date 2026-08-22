@@ -41,7 +41,8 @@ export const CommissionerProfile = () => {
         try {
             await updateProfile(formData);
             setConfirmProfile(false);
-        } catch {
+        } catch (error) {
+            console.error(error);
         } finally {
             setProfileLoading(false);
         }
@@ -74,7 +75,8 @@ export const CommissionerProfile = () => {
             await updatePassword(passForm.current, passForm.newPass);
             setConfirmPassword(false);
             setPassForm({ current: "", newPass: "" });
-        } catch {
+        } catch (error) {
+            console.error(error);
             setConfirmPassword(false);
         } finally {
             setPassLoading(false);

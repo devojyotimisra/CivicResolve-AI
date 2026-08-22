@@ -34,7 +34,8 @@ export const CommissionerDashboard = () => {
             try {
                 const data = await adminService.getSystemAnalytics();
                 setStats(data);
-            } catch {
+            } catch (error) {
+                console.error(error);
                 toast.error("Failed to load executive city metrics");
             } finally {
                 setLoading(false);

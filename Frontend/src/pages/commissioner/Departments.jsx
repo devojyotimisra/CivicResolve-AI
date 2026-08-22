@@ -34,7 +34,8 @@ export const CommissionerDepartments = () => {
         try {
             const data = await adminService.getDepartments();
             setDepartments(data);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load departments");
         } finally {
             setLoading(false);

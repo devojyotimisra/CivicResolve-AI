@@ -57,7 +57,8 @@ export const CommissionerComplaints = () => {
             setComplaints(compData);
             setOfficers(offData);
             setDepartments(deptData);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load master city complaints log");
         } finally {
             setLoading(false);
@@ -85,7 +86,8 @@ export const CommissionerComplaints = () => {
             setSelectedComplaint(null);
             setSelectedOfficerId("");
             loadData();
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Assignment failed");
         } finally {
             setAssigning(false);

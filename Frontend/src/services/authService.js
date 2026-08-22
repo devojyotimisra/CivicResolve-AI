@@ -78,7 +78,8 @@ export const authService = {
         if (!data) return null;
         try {
             return JSON.parse(data);
-        } catch {
+        } catch (error) {
+            console.error(error);
             return null;
         }
     },

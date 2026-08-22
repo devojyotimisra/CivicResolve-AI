@@ -67,6 +67,22 @@ def commissioner_issue_bill(
 
     period_val = (data.period or "").strip() or None
 
+    existing_bill = (
+        db.query(UtilityBill)
+        .filter(
+            UtilityBill.user_id == citizen_id,
+            UtilityBill.amount == amount,
+            UtilityBill.due_date == due_date,
+            UtilityBill.bill_type_id == bt.id,
+        )
+        .first()
+    )
+    if existing_bill:
+        raise HTTPException(
+            status_code=409,
+            detail="A bill with the exact same amount, due date, and type already exists for this citizen.",
+        )
+
     import secrets
 
     bill_number = f"BILL-{secrets.token_urlsafe(6)[:8].upper()}"

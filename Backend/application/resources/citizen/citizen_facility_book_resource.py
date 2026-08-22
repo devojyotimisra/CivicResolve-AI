@@ -28,6 +28,12 @@ def citizen_book_facility(
     if not user or not user.has_role("citizen"):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
+    if not user.phone or not user.address:
+        raise HTTPException(
+            status_code=403,
+            detail="Please update your profile with a valid phone number and address before booking a facility.",
+        )
+
     facility = db.get(Facility, facility_id)
     if not facility or not facility.is_active:
         raise HTTPException(status_code=404, detail="Facility not found")
