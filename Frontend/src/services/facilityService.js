@@ -16,7 +16,7 @@ export const facilityService = {
                 params: { type: type !== "all" ? type : undefined },
             });
             return response.data.facilities || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching facilities:", error);
             throw error;
         }
@@ -38,7 +38,7 @@ export const facilityService = {
                 purpose: bookingData.purpose,
             });
             return response.data.booking;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -53,7 +53,7 @@ export const facilityService = {
         try {
             const response = await client.get("/citizen/bookings");
             return response.data.bookings || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching user bookings:", error);
             throw error;
         }
@@ -71,7 +71,7 @@ export const facilityService = {
 
             const response = await client.get(endpoint);
             return response.data.bookings || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching all bookings:", error);
             return [];
         }
@@ -102,7 +102,7 @@ export const facilityService = {
                 const response = await client.post("/commissioner/facility", facilityData);
                 return response.data;
             }
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -128,7 +128,7 @@ export const facilityService = {
         try {
             await client.delete(`/commissioner/facility/${facilityId}`);
             return true;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -140,7 +140,7 @@ export const facilityService = {
         try {
             const response = await client.get("/commissioner/facility-types");
             return response.data || [];
-        } catch {
+        } catch (error) {
             console.error("Error fetching facility types:", error);
             throw error;
         }
@@ -158,7 +158,7 @@ export const facilityService = {
                 const response = await client.post("/commissioner/facility-type", typeData);
                 return response.data;
             }
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -170,7 +170,7 @@ export const facilityService = {
         try {
             await client.delete(`/commissioner/facility-type/${typeId}`);
             return true;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }

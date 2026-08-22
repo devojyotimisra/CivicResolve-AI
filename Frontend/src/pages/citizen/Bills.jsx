@@ -419,7 +419,7 @@ export const CitizenBills = () => {
                                     value={cardNumber}
                                     onChange={(e) => setCardNumber(e.target.value)}
                                     placeholder="0000 0000 0000 0000"
-                                    maxLength={19}
+                                    maxLength={16}
                                     className="text-xs h-9 font-mono"
                                 />
                             </div>
