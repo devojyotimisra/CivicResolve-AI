@@ -136,6 +136,9 @@ from application.resources.general.anonymous_complaint_resource import (
 from application.resources.general.citizen_resolution_resource import (
     router as citizen_resolution_router,
 )
+from application.resources.general.google_login_resource import (
+    router as google_login_router,
+)
 from application.resources.general.login_resource import router as login_router
 from application.resources.general.notification_clear_all_resource import (
     router as notification_clear_all_router,
@@ -213,6 +216,7 @@ def create_app():
     prefix = "/api"
 
     app.include_router(login_router, prefix=prefix, tags=["auth"])
+    app.include_router(google_login_router, prefix=prefix, tags=["auth"])
     app.include_router(signup_router, prefix=prefix, tags=["auth"])
     app.include_router(password_update_router, prefix=prefix, tags=["auth"])
     app.include_router(anon_complaint_router, prefix=prefix, tags=["public"])

@@ -21,9 +21,12 @@ def commissioner_delete_category(
     category = db.get(Department, category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-        
+
     if category.users_in_dept:
-        raise HTTPException(status_code=400, detail="Cannot delete department. There are officers present in this department.")
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete department. There are officers present in this department.",
+        )
 
     if category.users_in_dept:
         raise HTTPException(

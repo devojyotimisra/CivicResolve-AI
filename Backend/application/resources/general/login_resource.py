@@ -35,6 +35,11 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account has been deactivated")
 
+    if not user.password:
+        raise HTTPException(
+            status_code=400, detail="This account uses Google Login. Please sign in with Google."
+        )
+
     if not verify_password(password, user.password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
