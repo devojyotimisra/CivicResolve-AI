@@ -61,6 +61,10 @@ def commissioner_issue_bill(
     if due_date < min_due_date:
         raise HTTPException(status_code=400, detail="Due date must be at least one week from today")
 
+    max_due_date = (datetime.now(IST) + timedelta(days=365)).date()
+    if due_date > max_due_date:
+        raise HTTPException(status_code=400, detail="Due date cannot exceed 1 year from today")
+
     period_val = (data.period or "").strip() or None
 
     import secrets

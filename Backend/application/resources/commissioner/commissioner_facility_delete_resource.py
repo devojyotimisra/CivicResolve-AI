@@ -7,8 +7,6 @@ from application.extensions.db_extn import get_db
 from application.helpers.models import Facility, User
 from application.middlewares.init_jwt import get_current_user_id
 
-from datetime import date
-
 router = APIRouter()
 
 
@@ -25,10 +23,13 @@ def commissioner_delete_facility(
     facility = db.get(Facility, facility_id)
     if not facility:
         raise HTTPException(status_code=404, detail="Facility not found")
-        
+
     has_future_bookings = any(booking.booked_date >= date.today() for booking in facility.bookings)
     if has_future_bookings:
-        raise HTTPException(status_code=400, detail="Cannot delete facility. There are future bookings associated with it.")
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete facility. There are future bookings associated with it.",
+        )
 
     has_future_bookings = any(booking.booked_date >= date.today() for booking in facility.bookings)
     if has_future_bookings:
