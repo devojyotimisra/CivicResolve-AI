@@ -21,6 +21,10 @@ def commissioner_delete_bill_type(
     bill_type = db.get(BillType, bill_type_id)
     if not bill_type:
         raise HTTPException(status_code=404, detail="Bill type not found")
+        
+    has_unpaid_bills = any(bill.status.lower() != 'paid' for bill in bill_type.bills)
+    if has_unpaid_bills:
+        raise HTTPException(status_code=400, detail="Cannot delete this bill type because there are unpaid bills associated with it.")
 
     has_unpaid_bills = any(bill.status.lower() != "paid" for bill in bill_type.bills)
     if has_unpaid_bills:
