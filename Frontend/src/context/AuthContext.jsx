@@ -31,6 +31,19 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const googleLogin = async (googleToken) => {
+        try {
+            const session = await authService.googleLogin(googleToken);
+            setUser(session.user);
+            setToken(session.token);
+            toast.success(`Welcome to the CITIZEN portal, ${session.user.name}!`);
+            return session;
+        } catch (error) {
+            toast.error(error.message || "Google Login failed");
+            throw error;
+        }
+    };
+
     const signup = async (userData) => {
         try {
             const session = await authService.signup(userData);
@@ -85,6 +98,7 @@ export const AuthProvider = ({ children }) => {
             loading,
             isAuthenticated: !!user,
             login,
+            googleLogin,
             signup,
             logout,
             updateProfile,

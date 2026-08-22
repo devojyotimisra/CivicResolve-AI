@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NotificationProvider } from "@/context/NotificationContext";
@@ -228,15 +229,19 @@ function AppContent() {
 }
 
 export default function App() {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
     return (
-        <ThemeProvider defaultTheme="light" storageKey="civic-theme">
-            <AuthProvider>
-                <NotificationProvider>
-                    <Router>
-                        <AppContent />
-                    </Router>
-                </NotificationProvider>
-            </AuthProvider>
-        </ThemeProvider>
+        <GoogleOAuthProvider clientId={googleClientId}>
+            <ThemeProvider defaultTheme="light" storageKey="civic-theme">
+                <AuthProvider>
+                    <NotificationProvider>
+                        <Router>
+                            <AppContent />
+                        </Router>
+                    </NotificationProvider>
+                </AuthProvider>
+            </ThemeProvider>
+        </GoogleOAuthProvider>
     );
 }

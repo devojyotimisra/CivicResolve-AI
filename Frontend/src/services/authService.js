@@ -29,6 +29,25 @@ export const authService = {
         }
     },
 
+    googleLogin: async (token) => {
+        try {
+            const response = await client.post("/google-login", { token });
+            const sessionData = {
+                token: response.data.token,
+                user: response.data.user,
+            };
+
+            localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+            localStorage.setItem("civic_auth_token", sessionData.token);
+            return sessionData;
+        } catch (error) {
+            if (error.response && error.response.data && error.response.data.detail) {
+                throw new Error(error.response.data.detail);
+            }
+            throw new Error("Google login failed. Please try again.");
+        }
+    },
+
     signup: async (userData) => {
         try {
             const response = await client.post("/signup", userData);

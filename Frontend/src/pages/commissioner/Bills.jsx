@@ -61,6 +61,12 @@ export const CommissionerBills = () => {
         return d.toISOString().split("T")[0];
     };
 
+    const getMaxDueDate = () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 365);
+        return d.toISOString().split("T")[0];
+    };
+
     const load = async () => {
         setLoading(true);
         try {
@@ -341,6 +347,7 @@ export const CommissionerBills = () => {
                                 <Input
                                     type="date"
                                     min={getMinDueDate()}
+                                    max={getMaxDueDate()}
                                     value={form.dueDate}
                                     onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                                     className="text-xs"
