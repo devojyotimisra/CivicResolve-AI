@@ -6,7 +6,7 @@ export const adminService = {
         try {
             const response = await client.get("/commissioner/officers");
             return response.data.officers;
-        } catch {
+        } catch (error) {
             console.error("Error fetching officers:", error);
             throw error;
         }
@@ -16,7 +16,7 @@ export const adminService = {
         try {
             const response = await client.post("/commissioner/officer", officerData);
             return response.data;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data) {
                 if (error.response.data.detail) {
                     throw new Error(error.response.data.detail);
@@ -33,7 +33,7 @@ export const adminService = {
         try {
             const response = await client.put(`/commissioner/officer/${officerId}`, officerData);
             return response.data;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data) {
                 if (error.response.data.detail) {
                     throw new Error(error.response.data.detail);
@@ -50,7 +50,7 @@ export const adminService = {
         try {
             const response = await client.delete(`/commissioner/officer/${officerId}`);
             return response.data;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data) {
                 if (error.response.data.detail) {
                     throw new Error(error.response.data.detail);
@@ -71,7 +71,7 @@ export const adminService = {
         try {
             const response = await client.get("/commissioner/citizens");
             return response.data.citizens;
-        } catch {
+        } catch (error) {
             console.error("Error fetching citizens:", error);
             throw error;
         }
@@ -83,7 +83,8 @@ export const adminService = {
                 .get("/commissioner/categories")
                 .catch(() => ({ data: { categories: [] } }));
             return response.data.categories;
-        } catch {
+        } catch (error) {
+            console.error(error);
             return [];
         }
     },
@@ -97,7 +98,7 @@ export const adminService = {
                 const response = await client.post("/commissioner/category", departmentData);
                 return response.data;
             }
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -109,7 +110,7 @@ export const adminService = {
         try {
             await client.delete(`/commissioner/category/${departmentId}`);
             return true;
-        } catch {
+        } catch (error) {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
@@ -136,7 +137,7 @@ export const adminService = {
                 byStatus: data.complaintsByStatus ?? [],
                 trend: [],
             };
-        } catch {
+        } catch (error) {
             console.error("Error fetching dashboard stats:", error);
             throw error;
         }
@@ -161,7 +162,7 @@ export const adminService = {
                 byStatus: data.complaintsByStatus ?? [],
                 trend: data.trend ?? [],
             };
-        } catch {
+        } catch (error) {
             console.error("Error fetching system analytics:", error);
             throw error;
         }
@@ -179,7 +180,7 @@ export const adminService = {
 
             const response = await client.post(endpoint, { query });
             return response.data;
-        } catch {
+        } catch (error) {
             console.error("Error performing search:", error);
             return { complaints: [], bills: [], bookings: [], users: [] };
         }

@@ -29,7 +29,9 @@ client.interceptors.response.use(
                     const session = JSON.parse(sessionRaw);
                     session.token = refreshedToken;
                     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-                } catch {}
+                } catch (error) {
+                    console.error(error);
+                }
             }
         }
         return response;

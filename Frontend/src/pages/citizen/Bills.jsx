@@ -45,7 +45,8 @@ export const CitizenBills = () => {
         try {
             const data = await billService.getUserBills(user.id);
             setBills(data);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load utility bills");
         } finally {
             setLoading(false);
@@ -349,7 +350,18 @@ export const CitizenBills = () => {
                                                     <Button
                                                         size="sm"
                                                         className="h-8 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                                                        onClick={() => setSelectedBill(bill)}
+                                                        onClick={() => {
+                                                            if (
+                                                                !user?.phone?.trim() ||
+                                                                !user?.address?.trim()
+                                                            ) {
+                                                                toast.error(
+                                                                    "Please update your profile with a valid phone number and address before paying bills."
+                                                                );
+                                                                return;
+                                                            }
+                                                            setSelectedBill(bill);
+                                                        }}
                                                     >
                                                         Pay Now
                                                     </Button>

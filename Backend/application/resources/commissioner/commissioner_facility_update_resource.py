@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from application.extensions.db_extn import get_db
 from application.helpers.models import Facility, User
 from application.helpers.schemas import CommissionerFacilityRequest
-from application.helpers.validators import validate_price
+from application.helpers.validators import validate_address, validate_price
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -30,7 +30,10 @@ def commissioner_update_facility(
     if data.facility_type:
         facility.facility_type = data.facility_type.strip()
     if data.address:
-        facility.address = data.address.strip()
+        is_valid, result = validate_address(data.address)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=result)
+        facility.address = result
     if data.pincode:
         facility.pincode = data.pincode.strip()
     if data.price_per_day:
@@ -46,6 +49,23 @@ def commissioner_update_facility(
         facility.description = data.description.strip()
     if data.is_active is not None:
         facility.is_active = data.is_active
+
+    existing_facility = (
+        db.query(Facility)
+        .filter(
+            Facility.name == facility.name,
+            Facility.facility_type == facility.facility_type,
+            Facility.address == facility.address,
+            Facility.pincode == facility.pincode,
+            Facility.id != facility_id,
+        )
+        .first()
+    )
+    if existing_facility:
+        raise HTTPException(
+            status_code=409,
+            detail="A facility with the exact name, type, address, and pincode already exists.",
+        )
 
     db.commit()
 

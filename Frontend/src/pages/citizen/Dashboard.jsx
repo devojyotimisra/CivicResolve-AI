@@ -20,7 +20,8 @@ export const CitizenDashboard = () => {
                 ]);
                 setBills(billData);
                 setBookings(bookData);
-            } catch {
+            } catch (error) {
+                console.error(error);
                 toast.error("Failed to load dashboard metrics");
             }
         };
@@ -32,7 +33,6 @@ export const CitizenDashboard = () => {
     const pendingBillsAmount = bills
         .filter((b) => b.status === "Pending")
         .reduce((acc, b) => acc + (b.amount || 0), 0);
-    const confirmedBookingsCount = bookings.filter((b) => b.status === "Confirmed").length;
     const upcomingBookingsCount = bookings.filter(
         (b) => new Date(b.bookedDate) >= new Date()
     ).length;
@@ -60,7 +60,7 @@ export const CitizenDashboard = () => {
                 />
                 <StatsCard
                     title="Confirmed Bookings"
-                    value={confirmedBookingsCount}
+                    value={upcomingBookingsCount}
                     icon={Calendar}
                     description={`${upcomingBookingsCount} upcoming reservation${upcomingBookingsCount !== 1 ? "s" : ""} scheduled`}
                     color="primary"

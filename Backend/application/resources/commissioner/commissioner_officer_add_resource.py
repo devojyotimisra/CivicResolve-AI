@@ -53,7 +53,7 @@ def commissioner_add_officer(
 
     password_raw = (data.password or "").strip()
     if not password_raw:
-        password_raw = badge_id if badge_id else "Officer@123"
+        password_raw = "Officer@123"
 
     is_valid, result = validate_password(password_raw)
     if not is_valid:

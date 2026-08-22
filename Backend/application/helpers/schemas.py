@@ -22,6 +22,7 @@ class UserSchema(CamelModel):
     pincode: Optional[str] = None
     is_active: bool
     active: Optional[bool] = None
+    is_password_empty: Optional[bool] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.active is None:
@@ -133,6 +134,7 @@ class AuthUserResponse(CamelModel):
     department: Optional[str] = None
     address: Optional[str] = None
     pincode: Optional[str] = None
+    is_password_empty: Optional[bool] = None
 
 
 class AuthResponse(CamelModel):

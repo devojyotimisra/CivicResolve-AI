@@ -35,7 +35,8 @@ export const CitizenProfile = () => {
         try {
             await updateProfile(formData);
             setConfirmUpdate(false);
-        } catch {
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -63,7 +64,8 @@ export const CitizenProfile = () => {
             await updatePassword(passForm.current, passForm.newPass);
             setConfirmPass(false);
             setPassForm({ current: "", newPass: "" });
-        } catch {
+        } catch (error) {
+            console.error(error);
             setConfirmPass(false);
         } finally {
             setPassLoading(false);
@@ -93,9 +95,13 @@ export const CitizenProfile = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-1 space-y-6">
-                    <Card className="border shadow-md">
-                        <CardContent className="pt-6 text-center space-y-4">
+                <div className="md:col-span-1 space-y-6 flex flex-col h-full">
+                    <Card
+                        className={`border shadow-md ${user?.isPasswordEmpty ? "flex-1 flex flex-col justify-center" : ""}`}
+                    >
+                        <CardContent
+                            className={`pt-6 text-center space-y-4 ${user?.isPasswordEmpty ? "flex-1 flex flex-col justify-center" : ""}`}
+                        >
                             <Avatar className="w-24 h-24 mx-auto ring-4 ring-primary/20">
                                 <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
                                     {user?.name?.charAt(0) || "C"}
@@ -108,52 +114,60 @@ export const CitizenProfile = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="border shadow-md">
-                        <CardHeader className="pb-4 border-b">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Lock className="w-4 h-4 text-primary" />
-                                <span>Security</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <form onSubmit={submitPassForm} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="curr-pass">Current Password</Label>
-                                    <Input
-                                        id="curr-pass"
-                                        type="password"
-                                        placeholder="••••••••"
-                                        value={passForm.current}
-                                        onChange={(e) =>
-                                            setPassForm({ ...passForm, current: e.target.value })
-                                        }
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="new-pass">New Password</Label>
-                                    <Input
-                                        id="new-pass"
-                                        type="password"
-                                        placeholder="••••••••"
-                                        value={passForm.newPass}
-                                        onChange={(e) =>
-                                            setPassForm({ ...passForm, newPass: e.target.value })
-                                        }
-                                        required
-                                    />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    variant="outline"
-                                    className="w-full font-semibold text-xs mt-2"
-                                    disabled={passLoading}
-                                >
-                                    {passLoading ? "Updating..." : "Update Password"}
-                                </Button>
-                            </form>
-                        </CardContent>
-                    </Card>
+                    {!user?.isPasswordEmpty && (
+                        <Card className="border shadow-md">
+                            <CardHeader className="pb-4 border-b">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Lock className="w-4 h-4 text-primary" />
+                                    <span>Security</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <form onSubmit={submitPassForm} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="curr-pass">Current Password</Label>
+                                        <Input
+                                            id="curr-pass"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            value={passForm.current}
+                                            onChange={(e) =>
+                                                setPassForm({
+                                                    ...passForm,
+                                                    current: e.target.value,
+                                                })
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-pass">New Password</Label>
+                                        <Input
+                                            id="new-pass"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            value={passForm.newPass}
+                                            onChange={(e) =>
+                                                setPassForm({
+                                                    ...passForm,
+                                                    newPass: e.target.value,
+                                                })
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        className="w-full font-semibold text-xs mt-2"
+                                        disabled={passLoading}
+                                    >
+                                        {passLoading ? "Updating..." : "Update Password"}
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 <div className="md:col-span-2">

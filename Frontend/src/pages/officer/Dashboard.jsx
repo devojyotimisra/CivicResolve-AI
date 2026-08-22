@@ -58,7 +58,8 @@ export const OfficerDashboard = () => {
                     const updatedSelected = data.find((t) => t.id === selectedTicket.id);
                     if (updatedSelected) setSelectedTicket(updatedSelected);
                 }
-            } catch {
+            } catch (error) {
+                console.error(error);
                 toast.error("Failed to load assigned field tickets");
             } finally {
                 setLoading(false);
@@ -98,7 +99,8 @@ export const OfficerDashboard = () => {
                 setSelectedTicket({ ...selectedTicket, ...updated, status: nextStatus });
                 if (nextStatus === "In Progress") setShowResolveForm(true);
             }
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to update status");
         }
     };
@@ -199,7 +201,8 @@ export const OfficerDashboard = () => {
                 delete next[selectedTicket.id];
                 return next;
             });
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Resolution submission failed");
         } finally {
             setSubmitting(false);

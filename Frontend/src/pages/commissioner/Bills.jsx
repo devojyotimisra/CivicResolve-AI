@@ -78,7 +78,8 @@ export const CommissionerBills = () => {
             setBills(billData);
             setCitizens(users);
             setBillTypes(types);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load billing records");
         } finally {
             setLoading(false);

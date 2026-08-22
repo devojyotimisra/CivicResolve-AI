@@ -34,7 +34,8 @@ export const CommissionerBillTypes = () => {
         try {
             const data = await billService.getBillTypes();
             setBillTypes(data);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load bill types");
         } finally {
             setLoading(false);

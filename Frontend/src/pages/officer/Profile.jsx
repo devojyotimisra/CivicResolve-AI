@@ -23,7 +23,8 @@ export const OfficerProfile = () => {
         setLoading(true);
         try {
             await updateProfile({ phone: formData.phone });
-        } catch {
+        } catch (error) {
+            console.error(error);
             // Errors handled by context toast
         } finally {
             setLoading(false);
@@ -50,7 +51,8 @@ export const OfficerProfile = () => {
         try {
             await updatePassword(passForm.current, passForm.newPass);
             setPassForm({ current: "", newPass: "" });
-        } catch {
+        } catch (error) {
+            console.error(error);
             // Errors handled by context toast
         } finally {
             setPassLoading(false);

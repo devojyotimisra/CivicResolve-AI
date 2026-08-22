@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from application.extensions.db_extn import get_db
 from application.helpers.models import User
+from application.helpers.notification_helper import create_notification
 from application.helpers.schemas import AuthResponse
 from application.middlewares.init_jwt import create_access_token
 
@@ -60,6 +61,15 @@ def google_login(data: dict, db: Session = Depends(get_db)):
             db.add(user)
             db.commit()
             db.refresh(user)
+
+            create_notification(
+                db,
+                user_id=user.id,
+                title="Complete Your Profile",
+                message="Please update your profile with your phone number, address, and pincode to access features like paying bills and booking facilities.",
+                notif_type="warning",
+            )
+            db.commit()
         else:
             if not user.is_active:
                 raise HTTPException(status_code=403, detail="Account has been deactivated")

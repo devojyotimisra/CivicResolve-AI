@@ -52,7 +52,8 @@ export const CommissionerOfficers = () => {
             ]);
             setOfficers(offData);
             setDepartments(deptData);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load field crew directory");
         } finally {
             setLoading(false);

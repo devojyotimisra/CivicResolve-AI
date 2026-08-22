@@ -19,7 +19,8 @@ export const CommissionerLoginTab = () => {
         try {
             await login(emailOrBadge, password, "commissioner");
             navigate("/dash/commissioner");
-        } catch {
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }

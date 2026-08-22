@@ -26,7 +26,8 @@ export const facilityService = {
         try {
             const response = await client.get(`/citizen/facility/${id}`);
             return response.data.facility;
-        } catch {
+        } catch (error) {
+            console.error(error);
             throw new Error("Facility not found");
         }
     },
@@ -119,7 +120,8 @@ export const facilityService = {
                 isActive: !currentActive,
             });
             return updateResponse.data;
-        } catch {
+        } catch (error) {
+            console.error(error);
             throw new Error("Failed to toggle facility status.");
         }
     },

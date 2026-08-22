@@ -93,7 +93,8 @@ export const CitizenFacilities = () => {
             setFacilities(facData);
             setBookings(bkgData);
             setAllBookings(allBkgData);
-        } catch {
+        } catch (error) {
+            console.error(error);
             toast.error("Failed to load civic facilities and reservations");
         } finally {
             setLoading(false);
@@ -506,6 +507,15 @@ export const CitizenFacilities = () => {
                                     <CardFooter className="pt-3 pb-3 border-t bg-muted/10">
                                         <Button
                                             onClick={() => {
+                                                if (
+                                                    !user?.phone?.trim() ||
+                                                    !user?.address?.trim()
+                                                ) {
+                                                    toast.error(
+                                                        "Please update your profile with a valid phone number and address before booking a facility."
+                                                    );
+                                                    return;
+                                                }
                                                 setSelectedFacility(fac);
                                                 setSelectedDate("");
                                                 setSelectedDateStr("");
