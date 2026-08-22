@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+
 from application.extensions.db_extn import get_db
 from application.helpers.models import Notification, User
-from application.middlewares.init_jwt import get_current_user_id
 from application.helpers.schemas import MessageResponse
+from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 
@@ -18,7 +18,9 @@ def clear_all_notifications(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.query(Notification).filter(Notification.user_id == current_user_id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == current_user_id).delete(
+        synchronize_session=False
+    )
     db.commit()
 
     return {"message": "All notifications cleared"}

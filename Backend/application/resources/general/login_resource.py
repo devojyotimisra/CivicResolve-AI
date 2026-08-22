@@ -1,12 +1,13 @@
-from application.helpers.schemas import AuthResponse
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.extensions.security_extn import verify_password
 from application.helpers.models import User
-from application.helpers.validators import validate_password
+from application.helpers.schemas import AuthResponse
 from application.middlewares.init_jwt import create_access_token
-import re
 
 router = APIRouter()
 
@@ -21,7 +22,7 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not password:
         raise HTTPException(status_code=400, detail="Password is required")
 
-    is_email = bool(re.match(r'^[^@ \t\r\n]+@[^@ \t\r\n]+$', identifier))
+    is_email = bool(re.match(r"^[^@ \t\r\n]+@[^@ \t\r\n]+$", identifier))
 
     if is_email:
         user = db.query(User).filter_by(email=identifier).first()
@@ -39,17 +40,13 @@ def login(data: dict, db: Session = Depends(get_db)):
 
     access_token = create_access_token(user.id)
 
-    if user.has_role('commissioner'):
-        role = 'commissioner'
-    elif user.has_role('field_officer'):
-        role = 'officer'
+    if user.has_role("commissioner"):
+        role = "commissioner"
+    elif user.has_role("field_officer"):
+        role = "officer"
     else:
-        role = 'citizen'
+        role = "citizen"
 
     user.role = role
 
-    return {
-        "message": "Login successful",
-        "token": access_token,
-        "user": user
-    }
+    return {"message": "Login successful", "token": access_token, "user": user}

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.helpers.models import Notification, User
-from application.middlewares.init_jwt import get_current_user_id
 from application.helpers.schemas import NotificationSchema
+from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
 

@@ -1,10 +1,12 @@
 from typing import List
-from application.helpers.schemas import CommissionerSearchRequest, ComplaintSchema
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
-from application.helpers.models import User, Complaint, Department
+from application.helpers.models import Complaint, Department, User
+from application.helpers.schemas import CommissionerSearchRequest, ComplaintSchema
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()
@@ -14,10 +16,10 @@ router = APIRouter()
 def commissioner_search(
     data: CommissionerSearchRequest,
     current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.get(User, current_user_id)
-    if not user or not user.has_role('commissioner'):
+    if not user or not user.has_role("commissioner"):
         raise HTTPException(status_code=403, detail="Commissioner access required")
 
     query_str = (data.query or "").strip()
@@ -26,14 +28,19 @@ def commissioner_search(
 
     search_term = f"%{query_str}%"
 
-    complaints = db.query(Complaint).filter(
-        or_(
-            Complaint.title.ilike(search_term),
-            Complaint.token.ilike(search_term),
-            Complaint.location.ilike(search_term),
-            Complaint.description.ilike(search_term),
+    complaints = (
+        db.query(Complaint)
+        .filter(
+            or_(
+                Complaint.title.ilike(search_term),
+                Complaint.token.ilike(search_term),
+                Complaint.location.ilike(search_term),
+                Complaint.description.ilike(search_term),
+            )
         )
-    ).order_by(Complaint.created_at.desc()).all()
+        .order_by(Complaint.created_at.desc())
+        .all()
+    )
 
     for c in complaints:
         category = db.get(Department, c.department_id) if c.department_id else None

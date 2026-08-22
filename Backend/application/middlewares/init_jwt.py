@@ -1,19 +1,17 @@
 from datetime import datetime, timezone
-from jose import JWTError, jwt
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from application.helpers.config import Config
 
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+
+from application.helpers.config import Config
 
 security = HTTPBearer()
 
 
 def create_access_token(user_id: int):
     expires = datetime.now(timezone.utc) + Config.JWT_ACCESS_TOKEN_EXPIRES
-    payload = {
-        "sub": str(user_id),
-        "exp": expires
-    }
+    payload = {"sub": str(user_id), "exp": expires}
     return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
 
 

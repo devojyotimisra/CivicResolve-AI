@@ -1,27 +1,29 @@
-from application.helpers.schemas import AnonymousComplaintResponse
-import secrets
-import os
-import uuid
 import asyncio
-from typing import Optional
+import os
+import secrets
+import uuid
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, BackgroundTasks
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from application.extensions.db_extn import get_db
+
 from application.extensions import db_extn
-from application.helpers.models import Complaint, Department, ComplaintUpdate, User, IST
-from application.helpers.validators import validate_title, validate_description
+from application.extensions.db_extn import get_db
 from application.helpers.ai_service import (
-    detect_spam,
-    translate_text,
-    sanitize_complaint,
     auto_route_complaint,
+    detect_spam,
     find_duplicate_complaints,
     generate_description_from_photo,
     merge_duplicate_descriptions,
+    sanitize_complaint,
+    translate_text,
 )
+from application.helpers.models import IST, Complaint, ComplaintUpdate, Department, User
 from application.helpers.notification_helper import create_notification
+from application.helpers.schemas import AnonymousComplaintResponse
+from application.helpers.validators import validate_description, validate_title
 
 router = APIRouter()
 
@@ -34,11 +36,31 @@ def generate_tracking_token():
     return "CRA-" + secrets.token_urlsafe(6)[:8].upper()
 
 
-def _run_ai_pipeline(complaint_id: int, title: str, description: str, filepath: str | None, photo_url: str | None, category_id: int | None, location_text: str | None):
-    asyncio.run(_ai_pipeline_async(complaint_id, title, description, filepath, photo_url, category_id, location_text))
+def _run_ai_pipeline(
+    complaint_id: int,
+    title: str,
+    description: str,
+    filepath: str | None,
+    photo_url: str | None,
+    category_id: int | None,
+    location_text: str | None,
+):
+    asyncio.run(
+        _ai_pipeline_async(
+            complaint_id, title, description, filepath, photo_url, category_id, location_text
+        )
+    )
 
 
-async def _ai_pipeline_async(complaint_id: int, title: str, description: str, filepath: str | None, photo_url: str | None, category_id: int | None, location_text: str | None):
+async def _ai_pipeline_async(
+    complaint_id: int,
+    title: str,
+    description: str,
+    filepath: str | None,
+    photo_url: str | None,
+    category_id: int | None,
+    location_text: str | None,
+):
     db = db_extn.SessionLocal()
     try:
         complaint = db.get(Complaint, complaint_id)
@@ -51,7 +73,6 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
                 photo_bytes = f.read()
 
         if not description and photo_bytes:
-            print("[AI DEBUG] No description provided, generating from photo...")
             generated_desc = await generate_description_from_photo(photo_bytes)
             if generated_desc:
                 description = generated_desc
@@ -62,14 +83,14 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
 
         spam_result = await detect_spam(title, description)
         if spam_result and spam_result.get("is_spam"):
-            complaint.status = 'Rejected'
+            complaint.status = "Rejected"
             complaint.updated_at = datetime.now(IST)
             update = ComplaintUpdate(
                 complaint_id=complaint.id,
                 updated_by_id=None,
-                old_status='Processing',
-                new_status='Rejected',
-                note=f"Rejected as spam: {spam_result.get('reason', 'Automated detection')}"
+                old_status="Processing",
+                new_status="Rejected",
+                note=f"Rejected as spam: {spam_result.get('reason', 'Automated detection')}",
             )
             db.add(update)
             db.commit()
@@ -105,17 +126,14 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
 
         departments = db.query(Department).all()
         dept_names = [d.name for d in departments]
-        print(f"[AI DEBUG] Departments found: {dept_names}")
-
-        print(f"[AI DEBUG] Calling auto_route_complaint with title='{working_title[:50]}', dept_names={dept_names}")
-        routing = await auto_route_complaint(working_title, working_description, photo_bytes, dept_names)
-        print(f"[AI DEBUG] Routing result: {routing}")
+        routing = await auto_route_complaint(
+            working_title, working_description, photo_bytes, dept_names
+        )
 
         ai_dept_id = None
         ai_dept_name = None
         if routing and routing.get("department"):
             matched = next((d for d in departments if d.name == routing["department"]), None)
-            print(f"[AI DEBUG] Department match: routing dept='{routing.get('department')}', matched={matched}")
             if matched:
                 ai_dept_id = matched.id
                 ai_dept_name = matched.name
@@ -128,39 +146,70 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
 
         auto_officer_id = None
         auto_officer_name = None
-        final_status = 'Submitted'
+        final_status = "Submitted"
 
         if final_dept_id:
-            officers = db.query(User).filter(
-                User.department_id == final_dept_id,
-                User.is_active == True,
-                User.roles.any(name='field_officer')
-            ).all()
+            officers = (
+                db.query(User)
+                .filter(
+                    User.department_id == final_dept_id,
+                    User.is_active,
+                    User.roles.any(name="field_officer"),
+                )
+                .all()
+            )
 
             if officers:
                 officer_loads = []
                 for officer in officers:
-                    active_count = db.query(func.count(Complaint.id)).filter(
-                        Complaint.assigned_officer_id == officer.id,
-                        Complaint.status.in_(['Assigned', 'En Route', 'On Site', 'In Progress'])
-                    ).scalar()
+                    active_count = (
+                        db.query(func.count(Complaint.id))
+                        .filter(
+                            Complaint.assigned_officer_id == officer.id,
+                            Complaint.status.in_(
+                                ["Assigned", "En Route", "On Site", "In Progress"]
+                            ),
+                        )
+                        .scalar()
+                    )
                     officer_loads.append((officer, active_count))
 
                 best_officer = min(officer_loads, key=lambda x: x[1])[0]
                 auto_officer_id = best_officer.id
                 auto_officer_name = best_officer.name
-                final_status = 'Assigned'
+                final_status = "Assigned"
 
         complaint.assigned_officer_id = auto_officer_id
         complaint.assigned_officer_name = auto_officer_name
 
-        cutoff = datetime.now(IST) - timedelta(hours=24)
+        cutoff_24h = datetime.now(IST) - timedelta(hours=24)
+        cutoff_30d = datetime.now(IST) - timedelta(days=30)
 
-        recent_complaints = db.query(Complaint).filter(
-            Complaint.id != complaint_id,
-            Complaint.status.in_(['Submitted', 'Assigned', 'En Route', 'On Site', 'In Progress']),
-            Complaint.created_at >= cutoff,
-        ).order_by(Complaint.created_at.desc()).limit(30).all()
+        recent_complaints = (
+            db.query(Complaint)
+            .filter(
+                Complaint.id != complaint_id,
+                or_(
+                    and_(
+                        Complaint.status.in_(
+                            [
+                                "Submitted",
+                                "Assigned",
+                                "En Route",
+                                "On Site",
+                                "In Progress",
+                                "Resolved",
+                            ]
+                        ),
+                        Complaint.created_at >= cutoff_24h,
+                    ),
+                    and_(Complaint.status == "Closed", Complaint.created_at >= cutoff_30d),
+                ),
+            )
+            .order_by(Complaint.created_at.desc())
+            .limit(30)
+            .all()
+        )
 
         if recent_complaints:
             existing_list = [
@@ -174,7 +223,11 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
                 for c in recent_complaints
             ]
             dup_result = await find_duplicate_complaints(
-                {"title": working_title, "description": working_description, "location": working_location or ""},
+                {
+                    "title": working_title,
+                    "description": working_description,
+                    "location": working_location or "",
+                },
                 existing_list,
             )
 
@@ -183,38 +236,62 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
                 if master_id:
                     master = db.get(Complaint, master_id)
                     if master:
-                        master.severity = 'Critical'
+                        if master.status == "Closed":
+                            if filepath and os.path.exists(filepath):
+                                try:
+                                    os.remove(filepath)
+                                except Exception:
+                                    pass
 
-                        merged_desc = await merge_duplicate_descriptions(master.description, working_description)
-                        if merged_desc:
-                            master.description = merged_desc
+                            tokens = list(master.related_tokens or [])
+                            tokens.append(complaint.token)
+                            master.related_tokens = tokens
+
+                            master.updated_at = datetime.now(IST)
+
+                            dup_update = ComplaintUpdate(
+                                complaint_id=master.id,
+                                updated_by_id=None,
+                                old_status=master.status,
+                                new_status=master.status,
+                                note=f"Late duplicate report logged from {complaint.token}. Discarded media and description.",
+                            )
+                            db.add(dup_update)
                         else:
-                            combined_desc = f"{master.description}\n\n--- Additional Citizen Report ---\n{working_description}"
-                            master.description = combined_desc
-                            re_sanitized = await sanitize_complaint(combined_desc)
-                            if re_sanitized and re_sanitized.get("sanitized_text"):
-                                master.description = re_sanitized["sanitized_text"]
+                            master.severity = "Critical"
 
-                        if photo_url:
-                            photos = list(master.submitted_photos or [])
-                            if photo_url not in photos:
-                                photos.append(photo_url)
-                            master.submitted_photos = photos
+                            merged_desc = await merge_duplicate_descriptions(
+                                master.description, working_description
+                            )
+                            if merged_desc:
+                                master.description = merged_desc
+                            else:
+                                combined_desc = f"{master.description}\n\n--- Additional Citizen Report ---\n{working_description}"
+                                master.description = combined_desc
+                                re_sanitized = await sanitize_complaint(combined_desc)
+                                if re_sanitized and re_sanitized.get("sanitized_text"):
+                                    master.description = re_sanitized["sanitized_text"]
 
-                        tokens = list(master.related_tokens or [])
-                        tokens.append(complaint.token)
-                        master.related_tokens = tokens
+                            if photo_url:
+                                photos = list(master.submitted_photos or [])
+                                if photo_url not in photos:
+                                    photos.append(photo_url)
+                                master.submitted_photos = photos
 
-                        master.updated_at = datetime.now(IST)
+                            tokens = list(master.related_tokens or [])
+                            tokens.append(complaint.token)
+                            master.related_tokens = tokens
 
-                        dup_update = ComplaintUpdate(
-                            complaint_id=master.id,
-                            updated_by_id=None,
-                            old_status=master.status,
-                            new_status=master.status,
-                            note=f'Additional citizen report merged from {complaint.token}. Details added and severity escalated.',
-                        )
-                        db.add(dup_update)
+                            master.updated_at = datetime.now(IST)
+
+                            dup_update = ComplaintUpdate(
+                                complaint_id=master.id,
+                                updated_by_id=None,
+                                old_status=master.status,
+                                new_status=master.status,
+                                note=f"Additional citizen report merged from {complaint.token}. Details added and severity escalated.",
+                            )
+                            db.add(dup_update)
 
                         db.delete(complaint)
                         db.commit()
@@ -229,7 +306,8 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
             updated_by_id=None,
             old_status=old_status,
             new_status=final_status,
-            note=(f'Routed to {ai_dept_name}' if ai_dept_name else '') + (f', assigned to {auto_officer_name}' if auto_officer_name else ''),
+            note=(f"Routed to {ai_dept_name}" if ai_dept_name else "")
+            + (f", assigned to {auto_officer_name}" if auto_officer_name else ""),
         )
         db.add(ai_update)
 
@@ -237,7 +315,8 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
             db,
             target_role="commissioner",
             title="New Complaint Filed",
-            message=f"Complaint #{complaint.token}: {complaint.title}" + (f" — routed to {ai_dept_name}" if ai_dept_name else ""),
+            message=f"Complaint #{complaint.token}: {complaint.title}"
+            + (f" — routed to {ai_dept_name}" if ai_dept_name else ""),
             notif_type="info",
         )
 
@@ -255,15 +334,15 @@ async def _ai_pipeline_async(complaint_id: int, title: str, description: str, fi
     except Exception as e:
         try:
             complaint = db.get(Complaint, complaint_id)
-            if complaint and complaint.status == 'Processing':
-                complaint.status = 'Submitted'
+            if complaint and complaint.status == "Processing":
+                complaint.status = "Submitted"
                 complaint.updated_at = datetime.now(IST)
                 fallback_update = ComplaintUpdate(
                     complaint_id=complaint.id,
                     updated_by_id=None,
-                    old_status='Processing',
-                    new_status='Submitted',
-                    note='AI processing encountered an error. Complaint submitted for manual review.',
+                    old_status="Processing",
+                    new_status="Submitted",
+                    note="AI processing encountered an error. Complaint submitted for manual review.",
                 )
                 db.add(fallback_update)
                 db.commit()
@@ -281,7 +360,7 @@ async def file_anonymous_complaint(
     address_text: Optional[str] = Form(None, alias="addressText"),
     category_id: Optional[int] = Form(None, alias="categoryId"),
     photo: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     is_valid, result = validate_title(title)
     if not is_valid:
@@ -289,7 +368,9 @@ async def file_anonymous_complaint(
     title = result
 
     if not description and not photo:
-        raise HTTPException(status_code=400, detail="Description is required if no photo is provided")
+        raise HTTPException(
+            status_code=400, detail="Description is required if no photo is provided"
+        )
 
     if description:
         is_valid, result = validate_description(description)
@@ -311,14 +392,14 @@ async def file_anonymous_complaint(
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type '{ext}'. Allowed extensions are: .png, .jpg, .jpeg"
+                detail=f"Invalid file type '{ext}'. Allowed extensions are: .png, .jpg, .jpeg",
             )
 
         content_type = (photo.content_type or "").lower().strip()
         if content_type and content_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid MIME type '{photo.content_type}'. Allowed types are: image/png, image/jpeg"
+                detail=f"Invalid MIME type '{photo.content_type}'. Allowed types are: image/png, image/jpeg",
             )
 
         content = await photo.read()
@@ -326,7 +407,7 @@ async def file_anonymous_complaint(
             size_mb = round(len(content) / (1024 * 1024), 2)
             raise HTTPException(
                 status_code=400,
-                detail=f"File size ({size_mb} MB) exceeds maximum allowed limit of 10 MB"
+                detail=f"File size ({size_mb} MB) exceeds maximum allowed limit of 10 MB",
             )
 
         upload_dir = os.path.join("uploads", "complaints")
@@ -353,8 +434,8 @@ async def file_anonymous_complaint(
         department_id=category_id,
         submitted_photos=[photo_url] if photo_url else [],
         location=location_text,
-        status='Processing',
-        severity='Normal',
+        status="Processing",
+        severity="Normal",
     )
 
     db.add(complaint)
@@ -364,9 +445,9 @@ async def file_anonymous_complaint(
     initial_update = ComplaintUpdate(
         complaint_id=complaint.id,
         updated_by_id=None,
-        old_status='New',
-        new_status='Processing',
-        note='Complaint received.',
+        old_status="New",
+        new_status="Processing",
+        note="Complaint received.",
     )
     db.add(initial_update)
     db.commit()

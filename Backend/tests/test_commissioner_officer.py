@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Department, Complaint, ComplaintUpdate
+from application.helpers.models import Complaint, ComplaintUpdate, Department, Role, User
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -22,7 +23,7 @@ def comm_user(db_session: Session) -> User:
         name="Comm Officer Tester",
         role="commissioner",
         badge_id="COM-777",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -46,7 +47,7 @@ def citizen_headers(db_session: Session) -> dict:
         password=hash_password("Pass123!"),
         name="Citizen Auth Test",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -87,7 +88,7 @@ def existing_officer(db_session: Session, test_department: Department) -> User:
         department_id=test_department.id,
         phone="9876543210",
         address="Zone 1 HQ",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -107,7 +108,7 @@ def sample_complaint(db_session: Session, test_department: Department) -> Compla
         status="Submitted",
         severity="Normal",
         department_id=test_department.id,
-        department=test_department.name
+        department=test_department.name,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -125,10 +126,19 @@ def test_officer_endpoints_unauthorized(client):
 
 def test_officer_endpoints_forbidden_for_citizen(client, citizen_headers):
     assert client.get("/api/commissioner/officers", headers=citizen_headers).status_code == 403
-    assert client.post("/api/commissioner/officer", json={}, headers=citizen_headers).status_code == 403
-    assert client.put("/api/commissioner/officer/1", json={}, headers=citizen_headers).status_code == 403
+    assert (
+        client.post("/api/commissioner/officer", json={}, headers=citizen_headers).status_code
+        == 403
+    )
+    assert (
+        client.put("/api/commissioner/officer/1", json={}, headers=citizen_headers).status_code
+        == 403
+    )
     assert client.delete("/api/commissioner/officer/1", headers=citizen_headers).status_code == 403
-    assert client.put("/api/commissioner/assign/1", json={}, headers=citizen_headers).status_code == 403
+    assert (
+        client.put("/api/commissioner/assign/1", json={}, headers=citizen_headers).status_code
+        == 403
+    )
 
 
 def test_list_officers_success(client, comm_headers, existing_officer):
@@ -154,7 +164,8 @@ def test_create_officer_by_department_id(client, comm_headers, test_department, 
         "name": "Officer Alice",
         "badgeId": "OFF-201",
         "department_id": test_department.id,
-        "phone": "9876543201"
+        "phone": "9876543201",
+        "password": "ValidPass123!",
     }
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
@@ -175,7 +186,8 @@ def test_create_officer_by_department_name(client, comm_headers, test_department
         "name": "Officer Charlie",
         "badgeId": "OFF-202",
         "department": test_department.name,
-        "phone": "9876543202"
+        "phone": "9876543202",
+        "password": "ValidPass123!",
     }
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
@@ -191,7 +203,7 @@ def test_create_officer_invalid_department(client, comm_headers):
     payload = {
         "email": "invalid.dept@civicresolve.in",
         "name": "Officer Unknown",
-        "department": "NonExistentDept999"
+        "department": "NonExistentDept999",
     }
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
@@ -200,10 +212,7 @@ def test_create_officer_invalid_department(client, comm_headers):
 
 
 def test_create_officer_missing_department(client, comm_headers):
-    payload = {
-        "email": "nodept@civicresolve.in",
-        "name": "Officer NoDept"
-    }
+    payload = {"email": "nodept@civicresolve.in", "name": "Officer NoDept"}
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
     assert response.status_code == 400
@@ -214,7 +223,8 @@ def test_create_officer_duplicate_email(client, comm_headers, existing_officer):
     payload = {
         "email": existing_officer.email,
         "name": "Duplicate Email Officer",
-        "department": existing_officer.department
+        "department": existing_officer.department,
+        "password": "ValidPass123!",
     }
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
@@ -227,7 +237,8 @@ def test_create_officer_duplicate_badge_id(client, comm_headers, existing_office
         "email": "unique.email@civicresolve.in",
         "name": "Duplicate Badge Officer",
         "badgeId": existing_officer.badge_id,
-        "department_id": test_department.id
+        "department_id": test_department.id,
+        "password": "ValidPass123!",
     }
 
     response = client.post("/api/commissioner/officer", json=payload, headers=comm_headers)
@@ -237,18 +248,28 @@ def test_create_officer_duplicate_badge_id(client, comm_headers, existing_office
 
 def test_create_officer_invalid_name_or_email(client, comm_headers, test_department):
 
-    resp1 = client.post("/api/commissioner/officer", json={
-        "email": "bad-email",
-        "name": "Valid Name",
-        "department_id": test_department.id
-    }, headers=comm_headers)
+    resp1 = client.post(
+        "/api/commissioner/officer",
+        json={
+            "email": "bad-email",
+            "name": "Valid Name",
+            "department_id": test_department.id,
+            "password": "ValidPass123!",
+        },
+        headers=comm_headers,
+    )
     assert resp1.status_code == 400
 
-    resp2 = client.post("/api/commissioner/officer", json={
-        "email": "valid.email@civicresolve.in",
-        "name": "A",
-        "department_id": test_department.id
-    }, headers=comm_headers)
+    resp2 = client.post(
+        "/api/commissioner/officer",
+        json={
+            "email": "valid.email@civicresolve.in",
+            "name": "A",
+            "department_id": test_department.id,
+            "password": "ValidPass123!",
+        },
+        headers=comm_headers,
+    )
     assert resp2.status_code == 400
 
 
@@ -257,10 +278,12 @@ def test_update_officer_success(client, comm_headers, existing_officer, db_sessi
         "name": "Officer Bob Updated",
         "phone": "9998887776",
         "badgeId": "OFF-101-UPD",
-        "active": True
+        "active": True,
     }
 
-    response = client.put(f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Officer updated successfully"
 
@@ -270,12 +293,14 @@ def test_update_officer_success(client, comm_headers, existing_officer, db_sessi
     assert existing_officer.badge_id == "OFF-101-UPD"
 
 
-def test_update_officer_department(client, comm_headers, existing_officer, second_department, db_session):
-    payload = {
-        "department_id": second_department.id
-    }
+def test_update_officer_department(
+    client, comm_headers, existing_officer, second_department, db_session
+):
+    payload = {"department_id": second_department.id}
 
-    response = client.put(f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 200
 
     db_session.refresh(existing_officer)
@@ -284,23 +309,27 @@ def test_update_officer_department(client, comm_headers, existing_officer, secon
 
 
 def test_update_officer_invalid_department(client, comm_headers, existing_officer):
-    payload = {
-        "department": "FakeDepartment99"
-    }
+    payload = {"department": "FakeDepartment99"}
 
-    response = client.put(f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/officer/{existing_officer.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid department"
 
 
 def test_update_non_existent_officer(client, comm_headers):
-    response = client.put("/api/commissioner/officer/99999", json={"name": "Ghost"}, headers=comm_headers)
+    response = client.put(
+        "/api/commissioner/officer/99999", json={"name": "Ghost"}, headers=comm_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Officer not found"
 
 
 def test_delete_officer_success(client, comm_headers, existing_officer, db_session):
-    response = client.delete(f"/api/commissioner/officer/{existing_officer.id}", headers=comm_headers)
+    response = client.delete(
+        f"/api/commissioner/officer/{existing_officer.id}", headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Officer deleted successfully"
 
@@ -314,16 +343,17 @@ def test_delete_non_existent_officer(client, comm_headers):
     assert response.json()["detail"] == "Officer not found"
 
 
-def test_assign_officer_success(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_officer_success(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "Critical"
     db_session.commit()
 
-    payload = {
-        "officerId": existing_officer.id,
-        "severity": "Critical"
-    }
+    payload = {"officerId": existing_officer.id, "severity": "Critical"}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 200
     assert response.json()["message"] == f"Complaint assigned to {existing_officer.name}"
 
@@ -339,13 +369,17 @@ def test_assign_officer_success(client, comm_headers, sample_complaint, existing
     assert audit.new_status == "Assigned"
 
 
-def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_officer_non_severe_complaint_fails(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "Normal"
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
 
@@ -354,13 +388,17 @@ def test_assign_officer_non_severe_complaint_fails(client, comm_headers, sample_
     assert sample_complaint.assigned_officer_id is None
 
 
-def test_assign_officer_low_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_officer_low_severity_fails(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "Low"
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
 
@@ -369,13 +407,17 @@ def test_assign_officer_low_severity_fails(client, comm_headers, sample_complain
     assert sample_complaint.assigned_officer_id is None
 
 
-def test_assign_officer_high_severity_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_officer_high_severity_fails(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "High"
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
 
@@ -384,16 +426,17 @@ def test_assign_officer_high_severity_fails(client, comm_headers, sample_complai
     assert sample_complaint.assigned_officer_id is None
 
 
-def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_officer_bypass_attempt_fails(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "Normal"
     db_session.commit()
 
-    payload = {
-        "officerId": existing_officer.id,
-        "severity": "Critical"
-    }
+    payload = {"officerId": existing_officer.id, "severity": "Critical"}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
 
@@ -402,16 +445,18 @@ def test_assign_officer_bypass_attempt_fails(client, comm_headers, sample_compla
     assert sample_complaint.assigned_officer_id is None
 
 
-def test_assign_deactivated_officer_fails(client, comm_headers, sample_complaint, existing_officer, db_session):
+def test_assign_deactivated_officer_fails(
+    client, comm_headers, sample_complaint, existing_officer, db_session
+):
     sample_complaint.severity = "Critical"
     existing_officer.is_active = False
     db_session.commit()
 
-    payload = {
-        "officerId": existing_officer.id
-    }
+    payload = {"officerId": existing_officer.id}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer account is deactivated"
 
@@ -422,7 +467,9 @@ def test_assign_invalid_officer_fails(client, comm_headers, sample_complaint, db
 
     payload = {"officerId": 99999}
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid officer"
 
@@ -438,12 +485,16 @@ def test_assign_missing_officer_id(client, comm_headers, sample_complaint, db_se
     sample_complaint.severity = "Critical"
     db_session.commit()
 
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json={}, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json={}, headers=comm_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Officer ID is required"
 
 
-def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_headers, sample_complaint, existing_officer, db_session, test_department):
+def test_assign_officer_reassigns_in_progress_critical_complaint(
+    client, comm_headers, sample_complaint, existing_officer, db_session, test_department
+):
     second_officer = User(
         email="second.officer@civicresolve.in",
         password=hash_password("OfficerPass123!"),
@@ -451,7 +502,7 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
         role="field_officer",
         badge_id="OFF-102",
         department_id=test_department.id,
-        is_active=True
+        is_active=True,
     )
     role = db_session.query(Role).filter_by(name="field_officer").first()
     if role:
@@ -465,7 +516,9 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
     db_session.commit()
 
     payload = {"officerId": second_officer.id}
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
 
     assert response.status_code == 200
     assert response.json()["message"] == f"Complaint assigned to {second_officer.name}"
@@ -475,21 +528,28 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(client, comm_he
     assert sample_complaint.assigned_officer_name == second_officer.name
     assert sample_complaint.status == "In Progress"
 
-    audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=sample_complaint.id).order_by(ComplaintUpdate.id.desc()).first()
+    audit = (
+        db_session.query(ComplaintUpdate)
+        .filter_by(complaint_id=sample_complaint.id)
+        .order_by(ComplaintUpdate.id.desc())
+        .first()
+    )
     assert audit is not None
     assert audit.old_status == "In Progress"
     assert audit.new_status == "In Progress"
     assert "Officer Alice" in audit.note
 
 
-def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, sample_complaint, db_session):
+def test_assign_officer_fails_for_non_field_officer_role(
+    client, comm_headers, sample_complaint, db_session
+):
     role = db_session.query(Role).filter_by(name="citizen").first()
     non_officer = User(
         email="citizen.target@civicresolve.in",
         password=hash_password("Pass123!"),
         name="Citizen Target",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     if role:
         non_officer.roles.append(role)
@@ -499,7 +559,9 @@ def test_assign_officer_fails_for_non_field_officer_role(client, comm_headers, s
     db_session.commit()
 
     payload = {"officerId": non_officer.id}
-    response = client.put(f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers)
+    response = client.put(
+        f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
+    )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid officer"

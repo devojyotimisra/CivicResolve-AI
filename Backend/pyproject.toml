@@ -24,3 +24,29 @@ dependencies = [
 [tool.pytest.ini_options]
 addopts = "-v"
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F401", # remove unused imports
+    "I",  # isort
+    "ERA", # eradicate (commented out code)
+]
+ignore = ["E501"]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "pyyaml>=6.0.3",
+    "ruff>=0.16.4",
+    "vulture>=2.16",
+]

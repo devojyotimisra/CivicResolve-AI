@@ -1,9 +1,18 @@
-import pytest
 from datetime import date, timedelta
+
+import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
+from application.helpers.models import (
+    Complaint,
+    Department,
+    Facility,
+    Role,
+    User,
+    UtilityBill,
+)
 from application.middlewares.init_jwt import create_access_token
-from application.helpers.models import User, Role, Department, Complaint, Facility, FacilityBooking, BillType, UtilityBill
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +43,7 @@ def citizen_user(db_session: Session) -> User:
         phone="9876543210",
         address="123 Cross Lane",
         pincode="560001",
-        is_active=True
+        is_active=True,
     )
     if role not in user.roles:
         user.roles.append(role)
@@ -60,7 +69,7 @@ def officer_user(db_session: Session, test_department: Department) -> User:
         role="field_officer",
         department_id=test_department.id,
         badge_id="BADGE-CROSS-01",
-        is_active=True
+        is_active=True,
     )
     if role not in user.roles:
         user.roles.append(role)
@@ -84,7 +93,7 @@ def comm_user(db_session: Session) -> User:
         password=hash_password("CommPass123!"),
         name="Cross Commissioner",
         role="commissioner",
-        is_active=True
+        is_active=True,
     )
     if role not in user.roles:
         user.roles.append(role)
@@ -100,14 +109,19 @@ def comm_headers(comm_user: User) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(client, db_session, officer_user, comm_headers, test_department):
+def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(
+    client, db_session, officer_user, comm_headers, test_department
+):
 
-    anon_resp = client.post("/api/complaint/anonymous", data={
-        "title": "Severe Water Leakage on Main Street",
-        "description": "Massive underground water pipe burst flooding road",
-        "addressText": "Main Street Block C",
-        "categoryId": test_department.id
-    })
+    anon_resp = client.post(
+        "/api/complaint/anonymous",
+        data={
+            "title": "Severe Water Leakage on Main Street",
+            "description": "Massive underground water pipe burst flooding road",
+            "addressText": "Main Street Block C",
+            "categoryId": test_department.id,
+        },
+    )
     assert anon_resp.status_code == 200
     token = anon_resp.json()["trackingToken"]
     complaint_id = anon_resp.json()["complaintId"]
@@ -116,7 +130,11 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     complaint.severity = "Critical"
     db_session.commit()
 
-    assign_resp = client.put(f"/api/commissioner/assign/{complaint_id}", json={"officerId": officer_user.id}, headers=comm_headers)
+    assign_resp = client.put(
+        f"/api/commissioner/assign/{complaint_id}",
+        json={"officerId": officer_user.id},
+        headers=comm_headers,
+    )
     assert assign_resp.status_code == 200
 
     off_headers = {"Authorization": f"Bearer {create_access_token(officer_user.id)}"}
@@ -126,13 +144,17 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
 
     statuses = ["En Route", "On Site", "In Progress"]
     for s in statuses:
-        st_resp = client.put(f"/api/officer/ticket/{complaint_id}/status", json={"status": s, "note": f"Moving to {s}"}, headers=off_headers)
+        st_resp = client.put(
+            f"/api/officer/ticket/{complaint_id}/status",
+            json={"status": s, "note": f"Moving to {s}"},
+            headers=off_headers,
+        )
         assert st_resp.status_code == 200
 
     res_resp = client.post(
         f"/api/officer/ticket/{complaint_id}/resolve",
         data={"resolution_note": "Pipe repaired and pressure tested successfully"},
-        headers=off_headers
+        headers=off_headers,
     )
     assert res_resp.status_code == 200
     assert res_resp.json()["message"] == "Ticket resolved successfully"
@@ -141,7 +163,10 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     assert track_resp.status_code == 200
     track_data = track_resp.json()
     assert track_data["complaint"]["status"] == "Resolved"
-    assert track_data["complaint"]["resolutionNote"] == "Pipe repaired and pressure tested successfully"
+    assert (
+        track_data["complaint"]["resolutionNote"]
+        == "Pipe repaired and pressure tested successfully"
+    )
     assert track_data["complaint"]["resolutionPhotos"] == []
 
     timeline_statuses = [u["newStatus"] for u in track_data["updates"]]
@@ -152,23 +177,35 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(cl
     assert "Resolved" in timeline_statuses
 
 
-def test_cross_flow_bill_issuance_payment_and_commissioner_reconciliation(client, db_session, citizen_user, citizen_headers, comm_headers):
+def test_cross_flow_bill_issuance_payment_and_commissioner_reconciliation(
+    client, db_session, citizen_user, citizen_headers, comm_headers
+):
 
-    bt_resp = client.post("/api/commissioner/bill_type", json={"name": "Property Tax Q3"}, headers=comm_headers)
+    bt_resp = client.post(
+        "/api/commissioner/bill_type", json={"name": "Property Tax Q3"}, headers=comm_headers
+    )
     assert bt_resp.status_code == 200
     bill_type_name = bt_resp.json()["name"]
 
     due_date_str = (date.today() + timedelta(days=30)).strftime("%Y-%m-%d")
-    bill_resp = client.post("/api/commissioner/bill", json={
-        "userId": citizen_user.id,
-        "billType": bill_type_name,
-        "amount": 2500.50,
-        "dueDate": due_date_str
-    }, headers=comm_headers)
+    bill_resp = client.post(
+        "/api/commissioner/bill",
+        json={
+            "userId": citizen_user.id,
+            "billType": bill_type_name,
+            "amount": 2500.50,
+            "dueDate": due_date_str,
+        },
+        headers=comm_headers,
+    )
     assert bill_resp.status_code == 200
     assert "issued to" in bill_resp.json()["message"]
 
-    issued_bill = db_session.query(UtilityBill).filter(UtilityBill.user_id==citizen_user.id, UtilityBill._bill_type==bill_type_name).first()
+    issued_bill = (
+        db_session.query(UtilityBill)
+        .filter(UtilityBill.user_id == citizen_user.id, UtilityBill._bill_type == bill_type_name)
+        .first()
+    )
     assert issued_bill is not None
     bill_id = issued_bill.id
 
@@ -189,16 +226,22 @@ def test_cross_flow_bill_issuance_payment_and_commissioner_reconciliation(client
     assert paid_bill["paidAt"] is not None
 
 
-def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list(client, db_session, citizen_user, citizen_headers, comm_headers):
+def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list(
+    client, db_session, citizen_user, citizen_headers, comm_headers
+):
 
-    fac_resp = client.post("/api/commissioner/facility", json={
-        "name": "Community Badminton Court",
-        "facilityType": "Sports",
-        "description": "Indoor wooden floor badminton court",
-        "address": "Sector 9 Sports Complex, Main Road",
-        "pincode": "560001",
-        "pricePerDay": 150.00
-    }, headers=comm_headers)
+    fac_resp = client.post(
+        "/api/commissioner/facility",
+        json={
+            "name": "Community Badminton Court",
+            "facilityType": "Sports",
+            "description": "Indoor wooden floor badminton court",
+            "address": "Sector 9 Sports Complex, Main Road",
+            "pincode": "560001",
+            "pricePerDay": 150.00,
+        },
+        headers=comm_headers,
+    )
     assert fac_resp.status_code == 200
     assert "created successfully" in fac_resp.json()["message"]
 
@@ -215,11 +258,11 @@ def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list
     assert detail_resp.json()["facility"]["name"] == "Community Badminton Court"
 
     booking_date_str = (date.today() + timedelta(days=5)).strftime("%Y-%m-%d")
-    book_resp = client.post(f"/api/citizen/book_facility/{facility_id}", json={
-        "booked_date": booking_date_str,
-        "start_time": "14:00",
-        "end_time": "16:00"
-    }, headers=citizen_headers)
+    book_resp = client.post(
+        f"/api/citizen/book_facility/{facility_id}",
+        json={"booked_date": booking_date_str, "start_time": "14:00", "end_time": "16:00"},
+        headers=citizen_headers,
+    )
     assert book_resp.status_code == 200
     booking_ref = book_resp.json()["booking"]["bookingReference"]
 
@@ -227,10 +270,14 @@ def test_cross_flow_facility_lifecycle_commissioner_create_citizen_book_and_list
     assert my_bookings.status_code == 200
     assert any(b["bookingReference"] == booking_ref for b in my_bookings.json()["bookings"])
 
-    upd_resp = client.put(f"/api/commissioner/facility/{facility_id}", json={
-        "pricePerDay": 180.00,
-        "description": "Air Conditioned indoor wooden floor badminton court"
-    }, headers=comm_headers)
+    upd_resp = client.put(
+        f"/api/commissioner/facility/{facility_id}",
+        json={
+            "pricePerDay": 180.00,
+            "description": "Air Conditioned indoor wooden floor badminton court",
+        },
+        headers=comm_headers,
+    )
     assert upd_resp.status_code == 200
 
     updated_detail = client.get(f"/api/citizen/facility/{facility_id}", headers=citizen_headers)
@@ -245,7 +292,9 @@ def test_token_refresh_middleware_emits_header(client, citizen_headers):
     assert "X-Refresh-Token" in response.headers
 
 
-def test_officer_cannot_access_or_modify_unassigned_ticket(client, db_session, officer_user, officer_headers, test_department):
+def test_officer_cannot_access_or_modify_unassigned_ticket(
+    client, db_session, officer_user, officer_headers, test_department
+):
     role = db_session.query(Role).filter_by(name="field_officer").first()
     other_officer = User(
         email="officer.other@civicresolve.in",
@@ -254,7 +303,7 @@ def test_officer_cannot_access_or_modify_unassigned_ticket(client, db_session, o
         role="field_officer",
         department_id=test_department.id,
         badge_id="BADGE-OTHER-99",
-        is_active=True
+        is_active=True,
     )
     if role not in other_officer.roles:
         other_officer.roles.append(role)
@@ -268,19 +317,37 @@ def test_officer_cannot_access_or_modify_unassigned_ticket(client, db_session, o
         assigned_officer_id=other_officer.id,
         assigned_officer_name=other_officer.name,
         status="Assigned",
-        severity="Critical"
+        severity="Critical",
     )
     db_session.add(ticket)
     db_session.commit()
 
-    assert client.get(f"/api/officer/ticket/{ticket.id}", headers=officer_headers).status_code == 403
+    assert (
+        client.get(f"/api/officer/ticket/{ticket.id}", headers=officer_headers).status_code == 403
+    )
 
-    assert client.put(f"/api/officer/ticket/{ticket.id}/status", json={"status": "In Progress"}, headers=officer_headers).status_code == 403
+    assert (
+        client.put(
+            f"/api/officer/ticket/{ticket.id}/status",
+            json={"status": "In Progress"},
+            headers=officer_headers,
+        ).status_code
+        == 403
+    )
 
-    assert client.post(f"/api/officer/ticket/{ticket.id}/resolve", json={"resolution_note": "Unallowed resolve"}, headers=officer_headers).status_code == 403
+    assert (
+        client.post(
+            f"/api/officer/ticket/{ticket.id}/resolve",
+            json={"resolution_note": "Unallowed resolve"},
+            headers=officer_headers,
+        ).status_code
+        == 403
+    )
 
 
-def test_officer_invalid_status_transition_rejection(client, db_session, officer_user, officer_headers):
+def test_officer_invalid_status_transition_rejection(
+    client, db_session, officer_user, officer_headers
+):
     ticket = Complaint(
         token="CRA-STATUSINVALID01",
         title="Water Leakage",
@@ -288,12 +355,16 @@ def test_officer_invalid_status_transition_rejection(client, db_session, officer
         assigned_officer_id=officer_user.id,
         assigned_officer_name=officer_user.name,
         status="Assigned",
-        severity="Critical"
+        severity="Critical",
     )
     db_session.add(ticket)
     db_session.commit()
 
-    resp1 = client.put(f"/api/officer/ticket/{ticket.id}/status", json={"status": "NonExistentStatus"}, headers=officer_headers)
+    resp1 = client.put(
+        f"/api/officer/ticket/{ticket.id}/status",
+        json={"status": "NonExistentStatus"},
+        headers=officer_headers,
+    )
     assert resp1.status_code == 400
 
     resp2 = client.put(f"/api/officer/ticket/{ticket.id}/status", json={}, headers=officer_headers)
@@ -303,7 +374,9 @@ def test_officer_invalid_status_transition_rejection(client, db_session, officer
 
 def test_commissioner_category_lifecycle(client, db_session, comm_headers):
 
-    create_resp = client.post("/api/commissioner/category", json={"name": "Parks & Recreation"}, headers=comm_headers)
+    create_resp = client.post(
+        "/api/commissioner/category", json={"name": "Parks & Recreation"}, headers=comm_headers
+    )
     assert create_resp.status_code == 200
     assert "created successfully" in create_resp.json()["message"]
 
@@ -311,7 +384,9 @@ def test_commissioner_category_lifecycle(client, db_session, comm_headers):
     assert cat is not None
     cat_id = cat.id
 
-    dup_resp = client.post("/api/commissioner/category", json={"name": "Parks & Recreation"}, headers=comm_headers)
+    dup_resp = client.post(
+        "/api/commissioner/category", json={"name": "Parks & Recreation"}, headers=comm_headers
+    )
     assert dup_resp.status_code == 409
     assert dup_resp.json()["detail"] == "Category already exists"
 
@@ -328,7 +403,9 @@ def test_commissioner_category_lifecycle(client, db_session, comm_headers):
     assert not any(c["id"] == cat_id for c in categories2)
 
 
-def test_citizen_and_commissioner_search_behavior(client, db_session, citizen_headers, comm_headers):
+def test_citizen_and_commissioner_search_behavior(
+    client, db_session, citizen_headers, comm_headers
+):
 
     fac = Facility(
         name="City Central Park",
@@ -337,7 +414,7 @@ def test_citizen_and_commissioner_search_behavior(client, db_session, citizen_he
         pincode="560001",
         facility_type="Park",
         price_per_day=500.0,
-        is_active=True
+        is_active=True,
     )
     db_session.add(fac)
 
@@ -347,7 +424,7 @@ def test_citizen_and_commissioner_search_behavior(client, db_session, citizen_he
         description="Vandalized park bench near main gazebo",
         location="Gazebo Garden",
         status="Submitted",
-        severity="Normal"
+        severity="Normal",
     )
     db_session.add(cmp)
     db_session.commit()

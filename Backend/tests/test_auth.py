@@ -2,8 +2,9 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role
+from application.helpers.models import Role, User
 from application.middlewares.init_jwt import create_access_token, get_current_user_id
 
 
@@ -22,7 +23,7 @@ def active_citizen(db_session: Session) -> User:
         phone="9876543210",
         address="123 Auth Street",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     user.roles.append(role)
     db_session.add(user)
@@ -47,7 +48,7 @@ def active_officer(db_session: Session) -> User:
         phone="9876543211",
         address="Officer HQ",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     user.roles.append(role)
     db_session.add(user)
@@ -68,7 +69,7 @@ def deactivated_user(db_session: Session) -> User:
         password=hash_password("Secret123!"),
         name="Deactivated User",
         role="citizen",
-        is_active=False
+        is_active=False,
     )
     user.roles.append(role)
     db_session.add(user)
@@ -78,10 +79,9 @@ def deactivated_user(db_session: Session) -> User:
 
 
 def test_login_success_with_email(client, active_citizen):
-    response = client.post("/api/login", json={
-        "email": "citizen.auth@example.com",
-        "password": "Secret123!"
-    })
+    response = client.post(
+        "/api/login", json={"email": "citizen.auth@example.com", "password": "Secret123!"}
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -94,10 +94,7 @@ def test_login_success_with_email(client, active_citizen):
 
 
 def test_login_success_with_badge_id(client, active_officer):
-    response = client.post("/api/login", json={
-        "email": "BADGE-777",
-        "password": "Secret123!"
-    })
+    response = client.post("/api/login", json={"email": "BADGE-777", "password": "Secret123!"})
 
     assert response.status_code == 200
     data = response.json()
@@ -107,30 +104,27 @@ def test_login_success_with_badge_id(client, active_officer):
 
 
 def test_login_invalid_password(client, active_citizen):
-    response = client.post("/api/login", json={
-        "email": "citizen.auth@example.com",
-        "password": "WrongPassword123"
-    })
+    response = client.post(
+        "/api/login", json={"email": "citizen.auth@example.com", "password": "WrongPassword123"}
+    )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid credentials"
 
 
 def test_login_user_not_found(client, db_session):
-    response = client.post("/api/login", json={
-        "email": "nonexistent@example.com",
-        "password": "Secret123!"
-    })
+    response = client.post(
+        "/api/login", json={"email": "nonexistent@example.com", "password": "Secret123!"}
+    )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid credentials"
 
 
 def test_login_deactivated_account(client, deactivated_user):
-    response = client.post("/api/login", json={
-        "email": "deactivated@example.com",
-        "password": "Secret123!"
-    })
+    response = client.post(
+        "/api/login", json={"email": "deactivated@example.com", "password": "Secret123!"}
+    )
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Account has been deactivated"
@@ -155,7 +149,7 @@ def test_signup_success(client, db_session):
         "name": "Jane Citizen",
         "address": "456 Civic Blvd",
         "pincode": "110002",
-        "phone": "9876543299"
+        "phone": "9876543299",
     }
 
     response = client.post("/api/signup", json=payload)
@@ -177,7 +171,7 @@ def test_signup_duplicate_email(client, active_citizen):
         "password": "SecurePassword123!",
         "name": "Another Citizen",
         "address": "789 Another St",
-        "pincode": "110003"
+        "pincode": "110003",
     }
 
     response = client.post("/api/signup", json=payload)
@@ -186,14 +180,78 @@ def test_signup_duplicate_email(client, active_citizen):
     assert response.json()["detail"] == "Email already registered"
 
 
-@pytest.mark.parametrize("invalid_field, payload, expected_detail", [
-    ("email_format", {"email": "invalid-email", "password": "Pass123!", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Invalid email format"),
-    ("short_password", {"email": "valid@example.com", "password": "123", "name": "Name", "address": "Address 123", "pincode": "110001"}, "Password must be at least 8 characters long and contain a number and a special character."),
-    ("short_name", {"email": "valid@example.com", "password": "Password123!", "name": "A", "address": "Address 123", "pincode": "110001"}, "Name must be at least 2 characters long"),
-    ("short_address", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "123", "pincode": "110001"}, "Address must be at least 5 characters long"),
-    ("invalid_pincode", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "Address 123", "pincode": "1234"}, "Pincode must be a 6-digit number"),
-    ("invalid_phone", {"email": "valid@example.com", "password": "Password123!", "name": "Valid Name", "address": "Address 123", "pincode": "110001", "phone": "12345"}, "Phone must be a 10-digit number")
-])
+@pytest.mark.parametrize(
+    "invalid_field, payload, expected_detail",
+    [
+        (
+            "email_format",
+            {
+                "email": "invalid-email",
+                "password": "Pass123!",
+                "name": "Name",
+                "address": "Address 123",
+                "pincode": "110001",
+            },
+            "Invalid email format",
+        ),
+        (
+            "short_password",
+            {
+                "email": "valid@example.com",
+                "password": "123",
+                "name": "Name",
+                "address": "Address 123",
+                "pincode": "110001",
+            },
+            "Password must be at least 8 characters long and contain a number and a special character.",
+        ),
+        (
+            "short_name",
+            {
+                "email": "valid@example.com",
+                "password": "Password123!",
+                "name": "A",
+                "address": "Address 123",
+                "pincode": "110001",
+            },
+            "Name must be at least 2 characters long",
+        ),
+        (
+            "short_address",
+            {
+                "email": "valid@example.com",
+                "password": "Password123!",
+                "name": "Valid Name",
+                "address": "123",
+                "pincode": "110001",
+            },
+            "Address must be at least 5 characters long",
+        ),
+        (
+            "invalid_pincode",
+            {
+                "email": "valid@example.com",
+                "password": "Password123!",
+                "name": "Valid Name",
+                "address": "Address 123",
+                "pincode": "1234",
+            },
+            "Pincode must be a 6-digit number",
+        ),
+        (
+            "invalid_phone",
+            {
+                "email": "valid@example.com",
+                "password": "Password123!",
+                "name": "Valid Name",
+                "address": "Address 123",
+                "pincode": "110001",
+                "phone": "12345",
+            },
+            "Phone must be a 10-digit number",
+        ),
+    ],
+)
 def test_signup_validation_failures(client, invalid_field, payload, expected_detail):
     response = client.post("/api/signup", json=payload)
 

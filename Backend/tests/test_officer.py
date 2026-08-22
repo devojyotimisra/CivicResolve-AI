@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy.orm import Session
-from application.extensions.security_extn import hash_password, verify_password
-from application.helpers.models import User, Role, Department, Complaint, ComplaintUpdate
+
+from application.extensions.security_extn import hash_password
+from application.helpers.models import Complaint, ComplaintUpdate, Department, Role, User
 from application.middlewares.init_jwt import create_access_token
 
 
@@ -35,7 +36,7 @@ def officer_user(db_session: Session, test_dept: Department) -> User:
         phone="9876543210",
         address="Zone 2 HQ",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -64,7 +65,7 @@ def second_officer(db_session: Session, test_dept: Department) -> User:
         phone="9876543211",
         address="Zone 2 HQ",
         pincode="110001",
-        is_active=True
+        is_active=True,
     )
     if role:
         officer.roles.append(role)
@@ -88,7 +89,7 @@ def citizen_headers(db_session: Session) -> dict:
         password=hash_password("Pass123!"),
         name="Citizen Test User",
         role="citizen",
-        is_active=True
+        is_active=True,
     )
     if role:
         user.roles.append(role)
@@ -110,7 +111,7 @@ def assigned_complaint(db_session: Session, officer_user: User, test_dept: Depar
         severity="Normal",
         department_id=test_dept.id,
         assigned_officer_id=officer_user.id,
-        assigned_officer_name=officer_user.name
+        assigned_officer_name=officer_user.name,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -119,7 +120,9 @@ def assigned_complaint(db_session: Session, officer_user: User, test_dept: Depar
 
 
 @pytest.fixture
-def in_progress_complaint(db_session: Session, officer_user: User, test_dept: Department) -> Complaint:
+def in_progress_complaint(
+    db_session: Session, officer_user: User, test_dept: Department
+) -> Complaint:
     complaint = Complaint(
         token="CMP-1002",
         title="Water Pipe Leakage",
@@ -129,7 +132,7 @@ def in_progress_complaint(db_session: Session, officer_user: User, test_dept: De
         severity="High",
         department_id=test_dept.id,
         assigned_officer_id=officer_user.id,
-        assigned_officer_name=officer_user.name
+        assigned_officer_name=officer_user.name,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -148,7 +151,7 @@ def resolved_complaint(db_session: Session, officer_user: User, test_dept: Depar
         severity="Low",
         department_id=test_dept.id,
         assigned_officer_id=officer_user.id,
-        assigned_officer_name=officer_user.name
+        assigned_officer_name=officer_user.name,
     )
     db_session.add(complaint)
     db_session.commit()
@@ -171,11 +174,19 @@ def test_officer_endpoints_forbidden_for_citizen(client, citizen_headers):
     assert client.get("/api/officer/dash", headers=citizen_headers).status_code == 403
     assert client.get("/api/officer/history", headers=citizen_headers).status_code == 403
     assert client.get("/api/officer/profile", headers=citizen_headers).status_code == 403
-    assert client.put("/api/officer/edit_profile", json={}, headers=citizen_headers).status_code == 403
+    assert (
+        client.put("/api/officer/edit_profile", json={}, headers=citizen_headers).status_code == 403
+    )
     assert client.post("/api/officer/search", json={}, headers=citizen_headers).status_code == 403
     assert client.get("/api/officer/ticket/1", headers=citizen_headers).status_code == 403
-    assert client.put("/api/officer/ticket/1/status", json={}, headers=citizen_headers).status_code == 403
-    assert client.post("/api/officer/ticket/1/resolve", json={}, headers=citizen_headers).status_code == 403
+    assert (
+        client.put("/api/officer/ticket/1/status", json={}, headers=citizen_headers).status_code
+        == 403
+    )
+    assert (
+        client.post("/api/officer/ticket/1/resolve", json={}, headers=citizen_headers).status_code
+        == 403
+    )
 
 
 def test_officer_dashboard_success(client, officer_headers, assigned_complaint, resolved_complaint):
@@ -216,10 +227,7 @@ def test_officer_profile_fetch_success(client, officer_headers, officer_user):
 
 
 def test_officer_profile_update_success(client, officer_headers, officer_user, db_session):
-    payload = {
-        "name": "Officer Primary Renamed",
-        "phone": "9998887771"
-    }
+    payload = {"name": "Officer Primary Renamed", "phone": "9998887771"}
 
     response = client.put("/api/officer/edit_profile", json=payload, headers=officer_headers)
     assert response.status_code == 200
@@ -232,13 +240,17 @@ def test_officer_profile_update_success(client, officer_headers, officer_user, d
 
 def test_officer_profile_update_validation_failures(client, officer_headers):
 
-    resp1 = client.put("/api/officer/edit_profile", json={"phone": "12345"}, headers=officer_headers)
+    resp1 = client.put(
+        "/api/officer/edit_profile", json={"phone": "12345"}, headers=officer_headers
+    )
     assert resp1.status_code == 400
     assert resp1.json()["detail"] == "Phone must be a 10-digit number"
 
 
 def test_officer_search_success(client, officer_headers, assigned_complaint):
-    response = client.post("/api/officer/search", json={"query": "Pothole"}, headers=officer_headers)
+    response = client.post(
+        "/api/officer/search", json={"query": "Pothole"}, headers=officer_headers
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -265,8 +277,12 @@ def test_officer_ticket_detail_success(client, officer_headers, assigned_complai
     assert data["complaint"]["status"] == "Assigned"
 
 
-def test_officer_ticket_detail_forbidden_for_other_officer(client, second_officer_headers, assigned_complaint):
-    response = client.get(f"/api/officer/ticket/{assigned_complaint.id}", headers=second_officer_headers)
+def test_officer_ticket_detail_forbidden_for_other_officer(
+    client, second_officer_headers, assigned_complaint
+):
+    response = client.get(
+        f"/api/officer/ticket/{assigned_complaint.id}", headers=second_officer_headers
+    )
     assert response.status_code == 403
     assert response.json()["detail"] == "This ticket is not assigned to you"
 
@@ -277,22 +293,36 @@ def test_officer_ticket_detail_not_found(client, officer_headers):
     assert response.json()["detail"] == "Complaint not found"
 
 
-def test_officer_ticket_status_update_valid_transitions(client, officer_headers, assigned_complaint, db_session):
+def test_officer_ticket_status_update_valid_transitions(
+    client, officer_headers, assigned_complaint, db_session
+):
 
-    resp1 = client.put(f"/api/officer/ticket/{assigned_complaint.id}/status", json={"status": "En Route"}, headers=officer_headers)
+    resp1 = client.put(
+        f"/api/officer/ticket/{assigned_complaint.id}/status",
+        json={"status": "En Route"},
+        headers=officer_headers,
+    )
     assert resp1.status_code == 200
     assert resp1.json()["message"] == "Status updated to En Route"
 
     db_session.refresh(assigned_complaint)
     assert assigned_complaint.status == "En Route"
 
-    resp2 = client.put(f"/api/officer/ticket/{assigned_complaint.id}/status", json={"status": "On Site"}, headers=officer_headers)
+    resp2 = client.put(
+        f"/api/officer/ticket/{assigned_complaint.id}/status",
+        json={"status": "On Site"},
+        headers=officer_headers,
+    )
     assert resp2.status_code == 200
 
     db_session.refresh(assigned_complaint)
     assert assigned_complaint.status == "On Site"
 
-    resp3 = client.put(f"/api/officer/ticket/{assigned_complaint.id}/status", json={"status": "In Progress"}, headers=officer_headers)
+    resp3 = client.put(
+        f"/api/officer/ticket/{assigned_complaint.id}/status",
+        json={"status": "In Progress"},
+        headers=officer_headers,
+    )
     assert resp3.status_code == 200
 
     db_session.refresh(assigned_complaint)
@@ -302,17 +332,25 @@ def test_officer_ticket_status_update_valid_transitions(client, officer_headers,
     assert len(updates) == 3
 
 
-def test_officer_ticket_status_update_invalid_transition(client, officer_headers, assigned_complaint):
-    response = client.put(f"/api/officer/ticket/{assigned_complaint.id}/status", json={"status": "Resolved"}, headers=officer_headers)
+def test_officer_ticket_status_update_invalid_transition(
+    client, officer_headers, assigned_complaint
+):
+    response = client.put(
+        f"/api/officer/ticket/{assigned_complaint.id}/status",
+        json={"status": "Resolved"},
+        headers=officer_headers,
+    )
     assert response.status_code == 400
     assert "Cannot transition from 'Assigned' to 'Resolved'" in response.json()["detail"]
 
 
-def test_officer_ticket_status_update_assigned_to_in_progress_rejected(client, officer_headers, assigned_complaint, db_session):
+def test_officer_ticket_status_update_assigned_to_in_progress_rejected(
+    client, officer_headers, assigned_complaint, db_session
+):
     response = client.put(
         f"/api/officer/ticket/{assigned_complaint.id}/status",
         json={"status": "In Progress"},
-        headers=officer_headers
+        headers=officer_headers,
     )
     assert response.status_code == 400
     assert "Cannot transition from 'Assigned' to 'In Progress'" in response.json()["detail"]
@@ -322,39 +360,55 @@ def test_officer_ticket_status_update_assigned_to_in_progress_rejected(client, o
 
 
 def test_officer_ticket_status_update_missing_status(client, officer_headers, assigned_complaint):
-    response = client.put(f"/api/officer/ticket/{assigned_complaint.id}/status", json={}, headers=officer_headers)
+    response = client.put(
+        f"/api/officer/ticket/{assigned_complaint.id}/status", json={}, headers=officer_headers
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "New status is required"
 
 
 def test_officer_ticket_status_update_not_found(client, officer_headers):
-    response = client.put("/api/officer/ticket/99999/status", json={"status": "En Route"}, headers=officer_headers)
+    response = client.put(
+        "/api/officer/ticket/99999/status", json={"status": "En Route"}, headers=officer_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Complaint not found"
 
 
 def test_officer_ticket_resolve_success(client, officer_headers, in_progress_complaint, db_session):
-    payload = {
-        "resolution_note": "Pipe repaired and pressure tested successfully."
-    }
+    payload = {"resolution_note": "Pipe repaired and pressure tested successfully."}
 
-    response = client.post(f"/api/officer/ticket/{in_progress_complaint.id}/resolve", data=payload, headers=officer_headers)
+    response = client.post(
+        f"/api/officer/ticket/{in_progress_complaint.id}/resolve",
+        data=payload,
+        headers=officer_headers,
+    )
     assert response.status_code == 200
     assert response.json()["message"] == "Ticket resolved successfully"
 
     db_session.refresh(in_progress_complaint)
     assert in_progress_complaint.status == "Resolved"
-    assert in_progress_complaint.resolution_note == "Pipe repaired and pressure tested successfully."
+    assert (
+        in_progress_complaint.resolution_note == "Pipe repaired and pressure tested successfully."
+    )
     assert in_progress_complaint.resolution_photos == []
     assert in_progress_complaint.resolved_at is not None
 
-    audit = db_session.query(ComplaintUpdate).filter_by(complaint_id=in_progress_complaint.id, new_status="Resolved").first()
+    audit = (
+        db_session.query(ComplaintUpdate)
+        .filter_by(complaint_id=in_progress_complaint.id, new_status="Resolved")
+        .first()
+    )
     assert audit is not None
 
 
 def test_officer_ticket_resolve_invalid_initial_status(client, officer_headers, assigned_complaint):
     payload = {"resolution_note": "Premature resolution attempt"}
-    response = client.post(f"/api/officer/ticket/{assigned_complaint.id}/resolve", data=payload, headers=officer_headers)
+    response = client.post(
+        f"/api/officer/ticket/{assigned_complaint.id}/resolve",
+        data=payload,
+        headers=officer_headers,
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Ticket must be in progress or on site to resolve"
 

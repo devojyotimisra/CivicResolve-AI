@@ -1,11 +1,11 @@
-import json
 import base64
-import logging
-from functools import lru_cache
-from groq import AsyncGroq
-from application.helpers.config import Config
+import json
 import re
+from functools import lru_cache
 
+from groq import AsyncGroq
+
+from application.helpers.config import Config
 
 MODEL = Config.GROQ_MODEL
 
@@ -75,7 +75,10 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Complaint Title: {title}\nComplaint Description: {description}"},
+                {
+                    "role": "user",
+                    "content": f"Complaint Title: {title}\nComplaint Description: {description}",
+                },
             ],
             temperature=0.0,
             max_completion_tokens=500,
@@ -222,7 +225,10 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                     "role": "user",
                     "content": [
                         {"type": "text", "text": user_content},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
+                        },
                     ],
                 },
             ]
@@ -299,9 +305,9 @@ If no duplicate is found:
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
 
         user_content = f"""NEW COMPLAINT:
-Title: {new_complaint.get('title', '')}
-Description: {new_complaint.get('description', '')}
-Location: {new_complaint.get('location', '')}
+Title: {new_complaint.get("title", "")}
+Description: {new_complaint.get("description", "")}
+Location: {new_complaint.get("location", "")}
 
 EXISTING OPEN COMPLAINTS:
 {existing_json}"""
@@ -317,7 +323,6 @@ EXISTING OPEN COMPLAINTS:
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
-        print(response.choices[0].message.content)
         return _parse_json_response(response.choices[0].message.content)
     except Exception as e:
         return None
@@ -351,7 +356,10 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                     "role": "user",
                     "content": [
                         {"type": "text", "text": "Describe the civic issue shown in this image."},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
+                        },
                     ],
                 },
             ],

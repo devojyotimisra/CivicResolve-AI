@@ -1,8 +1,9 @@
-from application.helpers.schemas import MessageResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from application.extensions.db_extn import get_db
 from application.helpers.models import Notification, User
+from application.helpers.schemas import MessageResponse
 from application.middlewares.init_jwt import get_current_user_id
 
 router = APIRouter()

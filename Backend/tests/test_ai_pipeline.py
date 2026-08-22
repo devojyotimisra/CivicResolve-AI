@@ -1,13 +1,15 @@
 import io
 import os
 import uuid
-import pytest
-from unittest.mock import patch, AsyncMock
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
+
+import pytest
 from sqlalchemy.orm import Session
+
 from application.extensions.security_extn import hash_password
-from application.helpers.models import User, Role, Department, Complaint, IST
 from application.helpers.ai_service import _parse_json_response
+from application.helpers.models import IST, Complaint, Department, Role, User
 
 
 @pytest.fixture
@@ -42,7 +44,7 @@ def officer_low_load(db_session: Session, ai_dept: Department) -> User:
         role="field_officer",
         department_id=ai_dept.id,
         badge_id="BADGE-LOW-01",
-        is_active=True
+        is_active=True,
     )
     if role not in officer.roles:
         officer.roles.append(role)
@@ -66,7 +68,7 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
         role="field_officer",
         department_id=ai_dept.id,
         badge_id="BADGE-HIGH-01",
-        is_active=True
+        is_active=True,
     )
     if role not in officer.roles:
         officer.roles.append(role)
@@ -75,14 +77,14 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
 
     for i in range(2):
         c = Complaint(
-            token=f"CRA-HIGH-0{i+1}",
-            title=f"Active Ticket {i+1}",
+            token=f"CRA-HIGH-0{i + 1}",
+            title=f"Active Ticket {i + 1}",
             description="Ongoing maintenance issue",
             department_id=ai_dept.id,
             assigned_officer_id=officer.id,
             assigned_officer_name=officer.name,
             status="In Progress",
-            severity="Normal"
+            severity="Normal",
         )
         db_session.add(c)
     db_session.commit()
@@ -91,15 +93,17 @@ def officer_high_load(db_session: Session, ai_dept: Department) -> User:
 
 
 def test_ai_spam_detection_blocked_returns_400(client, db_session):
-    mock_spam = AsyncMock(return_value={
-        "is_spam": True,
-        "spam_type": "bot",
-        "reason": "Automated repetitive lorem ipsum text detected"
-    })
+    mock_spam = AsyncMock(
+        return_value={
+            "is_spam": True,
+            "spam_type": "bot",
+            "reason": "Automated repetitive lorem ipsum text detected",
+        }
+    )
 
     form_data = {
         "title": "Broken Streetlight",
-        "description": "Lorem ipsum dolor sit amet repetitive text"
+        "description": "Lorem ipsum dolor sit amet repetitive text",
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam):
@@ -114,23 +118,30 @@ def test_ai_spam_detection_blocked_returns_400(client, db_session):
 
 
 def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
-    mock_spam = AsyncMock(return_value={
-        "is_spam": True,
-        "spam_type": "scam",
-        "reason": "Phishing link contained in description"
-    })
+    mock_spam = AsyncMock(
+        return_value={
+            "is_spam": True,
+            "spam_type": "scam",
+            "reason": "Phishing link contained in description",
+        }
+    )
 
     test_uuid = uuid.UUID("11111111-2222-3333-4444-555555555555")
-    expected_filepath = os.path.join("uploads", "complaints", "11111111-2222-3333-4444-555555555555.jpg")
+    expected_filepath = os.path.join(
+        "uploads", "complaints", "11111111-2222-3333-4444-555555555555.jpg"
+    )
 
     file_content = b"fake image content for testing cleanup"
     files = {"photo": ("spam_photo.jpg", io.BytesIO(file_content), "image/jpeg")}
     form_data = {
         "title": "Free Money Scam",
-        "description": "Click here http://phishing.com for free money"
+        "description": "Click here http://phishing.com for free money",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("uuid.uuid4", return_value=test_uuid):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch("uuid.uuid4", return_value=test_uuid),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
@@ -142,15 +153,13 @@ def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
 
 
 def test_ai_spam_detection_not_spam_proceeds(client, db_session):
-    mock_spam = AsyncMock(return_value={
-        "is_spam": False,
-        "spam_type": "none",
-        "reason": "Legitimate civic issue"
-    })
+    mock_spam = AsyncMock(
+        return_value={"is_spam": False, "spam_type": "none", "reason": "Legitimate civic issue"}
+    )
 
     form_data = {
         "title": "Pothole on Main Road",
-        "description": "Large pothole causing traffic slowdown near park gate"
+        "description": "Large pothole causing traffic slowdown near park gate",
     }
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam):
@@ -168,20 +177,32 @@ def test_ai_translation_non_english_input(client, db_session):
         if "पानी" in text:
             return {"translated_text": "Water leakage on Main Street", "detected_language": "hi"}
         if "पाइप" in text:
-            return {"translated_text": "Water pipe burst near colony entrance", "detected_language": "hi"}
+            return {
+                "translated_text": "Water pipe burst near colony entrance",
+                "detected_language": "hi",
+            }
         return {"translated_text": text, "detected_language": "en"}
 
-    mock_sanitize = AsyncMock(side_effect=lambda desc: {
-        "sanitized_text": f"Sanitized: {desc}",
-        "summary": "Sanitized summary"
-    })
+    mock_sanitize = AsyncMock(
+        side_effect=lambda desc: {
+            "sanitized_text": f"Sanitized: {desc}",
+            "summary": "Sanitized summary",
+        }
+    )
 
-    form_data = {
-        "title": "पानी का रिसाव",
-        "description": "मुख्य सड़क पर पाइप फट गया है"
-    }
+    form_data = {"title": "पानी का रिसाव", "description": "मुख्य सड़क पर पाइप फट गया है"}
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", side_effect=mock_translate),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text",
+            side_effect=mock_translate,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -200,17 +221,28 @@ def test_ai_translation_english_input_retains_original(client, db_session):
         return {"translated_text": text, "detected_language": "en"}
 
     mock_trans = AsyncMock(side_effect=mock_translate)
-    mock_sanitize = AsyncMock(side_effect=lambda desc: {
-        "sanitized_text": f"Sanitized: {desc}",
-        "summary": "Sanitized summary"
-    })
+    mock_sanitize = AsyncMock(
+        side_effect=lambda desc: {
+            "sanitized_text": f"Sanitized: {desc}",
+            "summary": "Sanitized summary",
+        }
+    )
 
     form_data = {
         "title": "Garbage Overflow",
-        "description": "Garbage bin overflowing near market area"
+        "description": "Garbage bin overflowing near market area",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -224,40 +256,56 @@ def test_ai_translation_english_input_retains_original(client, db_session):
 
 def test_ai_sanitization_removes_pii_and_neutralizes_tone(client, db_session):
     mock_spam = AsyncMock(return_value={"is_spam": False})
-    mock_sanitize = AsyncMock(return_value={
-        "sanitized_text": "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic.",
-        "summary": "Broken streetlight"
-    })
+    mock_sanitize = AsyncMock(
+        return_value={
+            "sanitized_text": "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic.",
+            "summary": "Broken streetlight",
+        }
+    )
 
     form_data = {
         "title": "Broken Streetlight",
-        "description": "My name is John Doe, call 9876543210! Fix this damn light at Flat 402, I will sue the department!!!"
+        "description": "My name is John Doe, call 9876543210! Fix this damn light at Flat 402, I will sue the department!!!",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     created = db_session.query(Complaint).first()
-    assert created.description == "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic."
+    assert (
+        created.description
+        == "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic."
+    )
     assert "John Doe" not in created.description
     assert "9876543210" not in created.description
 
 
 def test_ai_auto_routing_assigns_correct_department(client, db_session, ai_dept):
     mock_spam = AsyncMock(return_value={"is_spam": False})
-    mock_route = AsyncMock(return_value={
-        "department": ai_dept.name,
-        "confidence": 0.95,
-        "reasoning": "Complaint describes water supply pipe burst"
-    })
+    mock_route = AsyncMock(
+        return_value={
+            "department": ai_dept.name,
+            "confidence": 0.95,
+            "reasoning": "Complaint describes water supply pipe burst",
+        }
+    )
 
-    form_data = {
-        "title": "Water Leakage",
-        "description": "Clean drinking water leaking on road"
-    }
+    form_data = {"title": "Water Leakage", "description": "Clean drinking water leaking on road"}
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -266,19 +314,24 @@ def test_ai_auto_routing_assigns_correct_department(client, db_session, ai_dept)
     assert created.department == ai_dept.name
 
 
-def test_ai_auto_routing_dispatches_least_loaded_officer(client, db_session, ai_dept, officer_low_load, officer_high_load):
+def test_ai_auto_routing_dispatches_least_loaded_officer(
+    client, db_session, ai_dept, officer_low_load, officer_high_load
+):
     mock_spam = AsyncMock(return_value={"is_spam": False})
-    mock_route = AsyncMock(return_value={
-        "department": ai_dept.name,
-        "confidence": 0.92
-    })
+    mock_route = AsyncMock(return_value={"department": ai_dept.name, "confidence": 0.92})
 
     form_data = {
         "title": "Water Pipe Repair Needed",
-        "description": "Water pipeline burst causing street flooding"
+        "description": "Water pipeline burst causing street flooding",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -300,26 +353,34 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
         status="Submitted",
         severity="Normal",
         department_id=ai_dept.id,
-        created_at=datetime.now(IST) - timedelta(hours=1)
+        created_at=datetime.now(IST) - timedelta(hours=1),
     )
     db_session.add(master)
     db_session.commit()
     db_session.refresh(master)
 
-    mock_dup = AsyncMock(return_value={
-        "is_duplicate": True,
-        "master_id": master.id,
-        "master_token": master.token,
-        "reason": "Same water main leak at Anna Nagar Tower"
-    })
+    mock_dup = AsyncMock(
+        return_value={
+            "is_duplicate": True,
+            "master_id": master.id,
+            "master_token": master.token,
+            "reason": "Same water main leak at Anna Nagar Tower",
+        }
+    )
 
     form_data = {
         "title": "Water Pipe Leak near Tower",
         "description": "Massive water flooding near Anna Nagar Tower park",
-        "addressText": "Anna Nagar Tower Park"
+        "addressText": "Anna Nagar Tower Park",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -348,25 +409,29 @@ def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_ses
         status="Submitted",
         severity="Normal",
         submitted_photos=None,
-        created_at=datetime.now(IST) - timedelta(hours=2)
+        created_at=datetime.now(IST) - timedelta(hours=2),
     )
     db_session.add(master)
     db_session.commit()
 
-    mock_dup = AsyncMock(return_value={
-        "is_duplicate": True,
-        "master_id": master.id,
-        "master_token": master.token
-    })
+    mock_dup = AsyncMock(
+        return_value={"is_duplicate": True, "master_id": master.id, "master_token": master.token}
+    )
 
     files = {"photo": ("manhole.jpg", io.BytesIO(b"photo content"), "image/jpeg")}
     form_data = {
         "title": "Open Manhole Cover",
         "description": "Deep open manhole hazard",
-        "addressText": "2nd Cross Road"
+        "addressText": "2nd Cross Road",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
@@ -387,29 +452,36 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
         status="Submitted",
         severity="Normal",
         submitted_photos=[existing_photo_url],
-        created_at=datetime.now(IST) - timedelta(hours=1)
+        created_at=datetime.now(IST) - timedelta(hours=1),
     )
     db_session.add(master)
     db_session.commit()
 
-    mock_dup = AsyncMock(return_value={
-        "is_duplicate": True,
-        "master_id": master.id,
-        "master_token": master.token
-    })
+    mock_dup = AsyncMock(
+        return_value={"is_duplicate": True, "master_id": master.id, "master_token": master.token}
+    )
 
     test_uuid = uuid.UUID("99999999-8888-7777-6666-555555555555")
-    expected_filepath = os.path.join("uploads", "complaints", "99999999-8888-7777-6666-555555555555.jpg")
+    expected_filepath = os.path.join(
+        "uploads", "complaints", "99999999-8888-7777-6666-555555555555.jpg"
+    )
 
     dup_photo_bytes = b"duplicate submitted photo content"
     files = {"photo": ("dup_photo.jpg", io.BytesIO(dup_photo_bytes), "image/jpeg")}
     form_data = {
         "title": "Burst Pipe",
         "description": "Burst pipe on 4th street",
-        "addressText": "4th Street"
+        "addressText": "4th Street",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup),            patch("uuid.uuid4", return_value=test_uuid):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+        patch("uuid.uuid4", return_value=test_uuid),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
@@ -424,10 +496,7 @@ def test_ai_duplicate_photo_master_with_photo_discards_new_photo(client, db_sess
 def test_ai_failure_detect_spam_fallback(client, db_session):
     mock_spam = AsyncMock(return_value=None)
 
-    form_data = {
-        "title": "Streetlight Out",
-        "description": "Dark area at street junction"
-    }
+    form_data = {"title": "Streetlight Out", "description": "Dark area at street junction"}
 
     with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam):
         response = client.post("/api/complaint/anonymous", data=form_data)
@@ -440,12 +509,14 @@ def test_ai_failure_translate_text_fallback(client, db_session):
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
 
-    form_data = {
-        "title": "Raw Title Text",
-        "description": "Raw Description Text"
-    }
+    form_data = {"title": "Raw Title Text", "description": "Raw Description Text"}
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -460,10 +531,16 @@ def test_ai_failure_sanitize_complaint_fallback(client, db_session):
 
     form_data = {
         "title": "Unsanitized Issue",
-        "description": "Original raw complaint description text"
+        "description": "Original raw complaint description text",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -478,10 +555,16 @@ def test_ai_failure_auto_route_complaint_fallback(client, db_session, ai_dept):
     form_data = {
         "title": "Pothole Damage",
         "description": "Pothole on main road",
-        "categoryId": ai_dept.id
+        "categoryId": ai_dept.id,
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -498,19 +581,22 @@ def test_ai_failure_find_duplicate_complaints_fallback(client, db_session):
         description="Broken park gate",
         status="Submitted",
         severity="Normal",
-        created_at=datetime.now(IST) - timedelta(hours=1)
+        created_at=datetime.now(IST) - timedelta(hours=1),
     )
     db_session.add(master)
     db_session.commit()
 
     mock_dup = AsyncMock(return_value=None)
 
-    form_data = {
-        "title": "Broken Gate",
-        "description": "Broken park gate"
-    }
+    form_data = {"title": "Broken Gate", "description": "Broken park gate"}
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -554,7 +640,9 @@ def test_parse_json_response_empty_string_returns_none():
 def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_dept):
 
     mock_spam = AsyncMock(return_value={"is_spam": False})
-    mock_trans = AsyncMock(return_value={"translated_text": "Sample Title", "detected_language": "en"})
+    mock_trans = AsyncMock(
+        return_value={"translated_text": "Sample Title", "detected_language": "en"}
+    )
     mock_sanitize = AsyncMock(return_value={"sanitized_text": "Sanitized Description"})
     mock_route = AsyncMock(return_value={"department": ai_dept.name})
     mock_dup = AsyncMock(return_value={"is_duplicate": False})
@@ -566,7 +654,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
         location="Block A",
         status="Submitted",
         severity="Normal",
-        created_at=datetime.now(IST) - timedelta(hours=3)
+        created_at=datetime.now(IST) - timedelta(hours=3),
     )
     db_session.add(open_c)
     db_session.commit()
@@ -576,11 +664,27 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     form_data = {
         "title": "Clogged Drain",
         "description": "Drain overflowing near Block A",
-        "addressText": "Block A Corner"
+        "addressText": "Block A Corner",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
-
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data, files=files)
 
     assert response.status_code == 200
@@ -607,7 +711,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
 
 def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     import asyncio
-    from unittest.mock import MagicMock, AsyncMock, patch
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     from application.helpers.ai_service import find_duplicate_complaints
 
@@ -655,7 +759,9 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     )
 
 
-def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(client, db_session, ai_dept):
+def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(
+    client, db_session, ai_dept
+):
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
     mock_sanitize = AsyncMock(return_value=None)
@@ -674,23 +780,25 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         role="field_officer",
         department_id=ai_dept.id,
         badge_id="BADGE-RESOLVED-01",
-        is_active=True
+        is_active=True,
     )
     officer_a.roles.append(role)
     db_session.add(officer_a)
     db_session.commit()
 
     for i in range(5):
-        db_session.add(Complaint(
-            token=f"CRA-RES-0{i+1}",
-            title=f"Resolved Ticket {i+1}",
-            description="Completed maintenance",
-            department_id=ai_dept.id,
-            assigned_officer_id=officer_a.id,
-            assigned_officer_name=officer_a.name,
-            status="Resolved",
-            severity="Normal"
-        ))
+        db_session.add(
+            Complaint(
+                token=f"CRA-RES-0{i + 1}",
+                title=f"Resolved Ticket {i + 1}",
+                description="Completed maintenance",
+                department_id=ai_dept.id,
+                assigned_officer_id=officer_a.id,
+                assigned_officer_name=officer_a.name,
+                status="Resolved",
+                severity="Normal",
+            )
+        )
 
     officer_b = User(
         email="officer.b.active@civicresolve.in",
@@ -699,29 +807,45 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
         role="field_officer",
         department_id=ai_dept.id,
         badge_id="BADGE-ACTIVE-01",
-        is_active=True
+        is_active=True,
     )
     officer_b.roles.append(role)
     db_session.add(officer_b)
 
-    db_session.add(Complaint(
-        token="CRA-ACT-01",
-        title="Active Ticket 1",
-        description="Ongoing work",
-        department_id=ai_dept.id,
-        assigned_officer_id=officer_b.id,
-        assigned_officer_name=officer_b.name,
-        status="In Progress",
-        severity="Normal"
-    ))
+    db_session.add(
+        Complaint(
+            token="CRA-ACT-01",
+            title="Active Ticket 1",
+            description="Ongoing work",
+            department_id=ai_dept.id,
+            assigned_officer_id=officer_b.id,
+            assigned_officer_name=officer_b.name,
+            status="In Progress",
+            severity="Normal",
+        )
+    )
     db_session.commit()
 
-    form_data = {
-        "title": "Water Leakage on Main Street",
-        "description": "Burst pipe leaking water"
-    }
+    form_data = {"title": "Water Leakage on Main Street", "description": "Burst pipe leaking water"}
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup):
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ),
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
@@ -732,42 +856,59 @@ def test_ai_auto_routing_ignores_resolved_tickets_for_least_loaded_officer(clien
     assert created.status == "Assigned"
 
 
-def test_ai_duplicate_detection_ignores_resolved_or_stale_complaints(client, db_session, ai_dept):
+def test_ai_duplicate_detection_ignores_rejected_complaints(client, db_session, ai_dept):
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_trans = AsyncMock(return_value=None)
     mock_sanitize = AsyncMock(return_value=None)
     mock_route = AsyncMock(return_value=None)
     mock_dup = AsyncMock(return_value={"is_duplicate": False})
 
-    resolved_complaint = Complaint(
-        token="CRA-RESOLVED01",
+    rejected_complaint = Complaint(
+        token="CRA-REJECTED01",
         title="Pothole on 1st Main",
         description="Pothole near 1st Main park entrance",
         location="1st Main Park",
-        status="Resolved",
+        status="Rejected",
         severity="Normal",
         department_id=ai_dept.id,
-        created_at=datetime.now(IST) - timedelta(hours=1)
+        created_at=datetime.now(IST) - timedelta(hours=1),
     )
-    db_session.add(resolved_complaint)
+    db_session.add(rejected_complaint)
     db_session.commit()
 
     form_data = {
         "title": "Pothole on 1st Main",
         "description": "Pothole near 1st Main park entrance",
-        "addressText": "1st Main Park"
+        "addressText": "1st Main Park",
     }
 
-    with patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),            patch("application.resources.general.anonymous_complaint_resource.translate_text", mock_trans),            patch("application.resources.general.anonymous_complaint_resource.sanitize_complaint", mock_sanitize),            patch("application.resources.general.anonymous_complaint_resource.auto_route_complaint", mock_route),            patch("application.resources.general.anonymous_complaint_resource.find_duplicate_complaints", mock_dup) as spy_dup:
+    with (
+        patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.sanitize_complaint",
+            mock_sanitize,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.auto_route_complaint",
+            mock_route,
+        ),
+        patch(
+            "application.resources.general.anonymous_complaint_resource.find_duplicate_complaints",
+            mock_dup,
+        ) as spy_dup,
+    ):
         response = client.post("/api/complaint/anonymous", data=form_data)
 
     assert response.status_code == 200
     res_data = response.json()
-    assert res_data["trackingToken"] != resolved_complaint.token
+    assert res_data["trackingToken"] != rejected_complaint.token
 
     assert db_session.query(Complaint).count() == 2
 
     if spy_dup.called:
         candidate_list = spy_dup.call_args[0][1]
-        resolved_ids = [c["id"] for c in candidate_list]
-        assert resolved_complaint.id not in resolved_ids
+        rejected_ids = [c["id"] for c in candidate_list]
+        assert rejected_complaint.id not in rejected_ids

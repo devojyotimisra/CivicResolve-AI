@@ -1,13 +1,15 @@
-from application.extensions.db_extn import Base, get_db
-from app import create_app
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import create_engine
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-import pytest
-from typing import Generator
 import os
+from typing import Generator
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app import create_app
+from application.extensions.db_extn import Base, get_db
 
 os.environ["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
@@ -37,6 +39,7 @@ def db_session(db_engine) -> Generator[Session, None, None]:
     session = SessionLocal()
 
     import application.extensions.db_extn as db_extn
+
     db_extn.engine = db_engine
     db_extn.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
 
@@ -55,7 +58,7 @@ def autocleanup_dependency_overrides(app: FastAPI) -> Generator[None, None, None
 
 @pytest.fixture(autouse=True)
 def mock_groq_client_default():
-    from unittest.mock import patch, MagicMock, AsyncMock
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     mock_message = MagicMock()
     mock_message.content = '{"is_spam": false, "is_duplicate": false, "department": null}'
