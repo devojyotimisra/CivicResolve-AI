@@ -276,7 +276,7 @@ def seed(clear=True):
             facilities.append(facility)
         db.commit()
 
-        severities = ["Low", "Normal", "High", "Critical"]
+        severities = ["Normal", "Critical"]
         statuses = [
             "Assigned",
             "En Route",
@@ -284,12 +284,11 @@ def seed(clear=True):
             "In Progress",
             "Resolved",
             "Closed",
-            "Rejected",
         ]
 
         upload_base = "uploads"
 
-        for i in range(1, 151):
+        for i in range(1, 501):
             citizen = random.choice(citizens)
             dept = random.choice(departments)
             dept_officers = [o for o in officers if o.department_id == dept.id]
@@ -297,7 +296,7 @@ def seed(clear=True):
             created_dt = datetime.now(IST) - timedelta(
                 days=random.randint(1, 30), hours=random.randint(0, 23)
             )
-            status = random.choices(statuses, weights=[5, 5, 5, 15, 30, 35, 5])[0]
+            status = random.choices(statuses, weights=[10, 10, 10, 20, 25, 25])[0]
 
             photos = []
             if random.random() > 0.3:
@@ -353,24 +352,27 @@ def seed(clear=True):
             )
 
             current_dt = created_dt
+            current_status = "Assigned"
 
             if status in ["En Route", "On Site", "In Progress", "Resolved", "Closed"]:
                 current_dt += timedelta(hours=random.randint(1, 5))
+                step_status = status if status in ["En Route", "On Site"] else "In Progress"
                 update_prog = ComplaintUpdate(
                     complaint=complaint,
                     updated_by_id=officer.id,
-                    old_status="Assigned",
-                    new_status="In Progress",
-                    note="Officer has started looking into this.",
+                    old_status=current_status,
+                    new_status=step_status,
+                    note=f"Status updated to {step_status}.",
                     created_at=current_dt,
                 )
                 db.add(update_prog)
                 complaint.updated_at = current_dt
+                current_status = step_status
 
                 add_notification(
                     db,
                     title="Complaint Updated",
-                    message=f"Your complaint #{complaint.token} is now In Progress",
+                    message=f"Your complaint #{complaint.token} is now {step_status}",
                     notif_type="info",
                     created_at=current_dt,
                     user_id=citizen.id,
@@ -392,11 +394,12 @@ def seed(clear=True):
                 update_res = ComplaintUpdate(
                     complaint=complaint,
                     updated_by_id=officer.id,
-                    old_status="In Progress",
+                    old_status=current_status,
                     new_status="Resolved",
                     note="Resolved successfully.",
                     created_at=current_dt,
                 )
+                current_status = "Resolved"
                 db.add(update_res)
 
                 add_notification(
@@ -416,7 +419,7 @@ def seed(clear=True):
                 update_close = ComplaintUpdate(
                     complaint=complaint,
                     updated_by_id=citizen.id,
-                    old_status="Resolved",
+                    old_status=current_status,
                     new_status="Closed",
                     note="Citizen confirmed resolution.",
                     created_at=current_dt,
@@ -432,34 +435,11 @@ def seed(clear=True):
                     user_id=officer.id,
                 )
 
-            if status == "Rejected":
-                current_dt += timedelta(hours=random.randint(1, 8))
-                complaint.updated_at = current_dt
-
-                update_rej = ComplaintUpdate(
-                    complaint=complaint,
-                    updated_by_id=officer.id,
-                    old_status="Assigned",
-                    new_status="Rejected",
-                    note="Invalid complaint / Not actionable.",
-                    created_at=current_dt,
-                )
-                db.add(update_rej)
-
-                add_notification(
-                    db,
-                    title="Complaint Rejected",
-                    message=f"Your complaint #{complaint.token} was rejected.",
-                    notif_type="warning",
-                    created_at=current_dt,
-                    user_id=citizen.id,
-                )
-
             db.add(complaint)
 
         db.commit()
 
-        for i in range(1, 150):
+        for i in range(1, 501):
             citizen = random.choice(citizens)
             btype = random.choice(bill_types)
 
@@ -467,9 +447,7 @@ def seed(clear=True):
             gen_dt_time = datetime.combine(gen_dt, datetime.min.time()).replace(tzinfo=IST)
             due_dt = gen_dt + timedelta(days=15)
 
-            status = random.choices(["Pending", "Paid", "Overdue"], weights=[40, 50, 10])[0]
-            if status == "Pending" and due_dt < datetime.now(IST).date():
-                status = "Overdue"
+            status = random.choices(["Pending", "Paid"], weights=[50, 50])[0]
 
             bill = UtilityBill(
                 user_id=citizen.id,
@@ -509,7 +487,7 @@ def seed(clear=True):
             db.add(bill)
         db.commit()
 
-        for i in range(1, 60):
+        for i in range(1, 201):
             citizen = random.choice(citizens)
             facility = random.choice(facilities)
 

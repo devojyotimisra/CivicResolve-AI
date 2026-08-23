@@ -198,6 +198,7 @@ export const CommissionerBills = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-[50px]">#</TableHead>
                                         <TableHead>Bill Number</TableHead>
                                         <TableHead>Citizen</TableHead>
                                         <TableHead>Bill Type</TableHead>
@@ -208,8 +209,11 @@ export const CommissionerBills = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filtered.map((b) => (
+                                    {filtered.map((b, index) => (
                                         <TableRow key={b.id} className="hover:bg-muted/50">
+                                            <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                                                {index + 1}
+                                            </TableCell>
                                             <TableCell className="font-mono font-bold text-xs text-primary">
                                                 {b.billNumber}
                                             </TableCell>

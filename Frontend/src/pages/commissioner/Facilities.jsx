@@ -526,6 +526,7 @@ export const CommissionerFacilities = () => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-[50px]">#</TableHead>
                                                 <TableHead>Reference Code</TableHead>
                                                 <TableHead>Citizen</TableHead>
                                                 <TableHead>Venue Name</TableHead>
@@ -535,11 +536,14 @@ export const CommissionerFacilities = () => {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {filteredBookings.map((bkg) => (
+                                            {filteredBookings.map((bkg, index) => (
                                                 <TableRow
                                                     key={bkg.id}
                                                     className="hover:bg-muted/50"
                                                 >
+                                                    <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                                                        {index + 1}
+                                                    </TableCell>
                                                     <TableCell className="font-mono font-bold text-xs text-primary">
                                                         {bkg.bookingReference}
                                                     </TableCell>
