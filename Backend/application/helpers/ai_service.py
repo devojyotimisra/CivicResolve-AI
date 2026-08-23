@@ -51,7 +51,7 @@ Your job: classify whether a citizen's complaint is GENUINE or SPAM.
 CLASSIFICATION RULES:
 - "bot": Repetitive/template text, lorem ipsum, random characters, keyboard mashing, auto-generated patterns
 - "scam": Phishing links, money requests, personal info harvesting, redirect to external numbers/sites
-- "spam": Advertisements, promotions, political propaganda, jokes, memes, off-topic rants with no civic issue
+- "spam": Advertisements, promotions, political propaganda, jokes, memes, off-topic rants with no civic issue, or if the Image Analysis states no infrastructure issue is identified
 - "outdated": References events clearly years in the past with no current relevance
 - "none": A real civic infrastructure issue (even if brief, poorly written, or emotional)
 

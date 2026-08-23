@@ -112,9 +112,8 @@ def test_ai_spam_detection_blocked_returns_400(client, db_session):
     assert response.status_code == 200
     db_session.expire_all()
     created = db_session.query(Complaint).filter_by(title="Broken Streetlight").first()
-    assert created is not None
-    assert created.status == "Rejected"
-    assert db_session.query(Complaint).count() == 1
+    assert created is None
+    assert db_session.query(Complaint).count() == 0
 
 
 def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
@@ -147,8 +146,7 @@ def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
     assert response.status_code == 200
     db_session.expire_all()
     created = db_session.query(Complaint).filter_by(title="Free Money Scam").first()
-    assert created is not None
-    assert created.status == "Rejected"
+    assert created is None
     assert os.path.exists(expected_filepath) is False
 
 
@@ -640,6 +638,7 @@ def test_parse_json_response_empty_string_returns_none():
 def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_dept):
 
     mock_spam = AsyncMock(return_value={"is_spam": False})
+    mock_gen_desc = AsyncMock(return_value="Mocked Image Description")
     mock_trans = AsyncMock(
         return_value={"translated_text": "Sample Title", "detected_language": "en"}
     )
@@ -670,6 +669,10 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     with (
         patch("application.resources.general.anonymous_complaint_resource.detect_spam", mock_spam),
         patch(
+            "application.resources.general.anonymous_complaint_resource.generate_description_from_photo",
+            mock_gen_desc,
+        ),
+        patch(
             "application.resources.general.anonymous_complaint_resource.translate_text", mock_trans
         ),
         patch(
@@ -689,10 +692,12 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
 
     assert response.status_code == 200
 
-    mock_spam.assert_called_once_with("Clogged Drain", "Drain overflowing near Block A")
+    expected_desc = "Drain overflowing near Block A\n\n[Image Analysis: Mocked Image Description]"
+
+    mock_spam.assert_called_once_with("Clogged Drain", expected_desc)
     mock_trans.assert_any_call("Clogged Drain", target_lang="en")
-    mock_trans.assert_any_call("Drain overflowing near Block A", target_lang="en")
-    mock_sanitize.assert_called_once_with("Drain overflowing near Block A")
+    mock_trans.assert_any_call(expected_desc, target_lang="en")
+    mock_sanitize.assert_called_once_with(expected_desc)
     mock_route.assert_called_once()
     route_args = mock_route.call_args[0]
     assert route_args[0] == "Clogged Drain"

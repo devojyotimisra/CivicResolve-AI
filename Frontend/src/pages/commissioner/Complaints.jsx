@@ -324,7 +324,10 @@ export const CommissionerComplaints = () => {
                                     <SelectContent>
                                         {officers
                                             .filter(
-                                                (o) => o.department === selectedComplaint.department
+                                                (o) =>
+                                                    o.department === selectedComplaint.department &&
+                                                    o.id !== selectedComplaint.assignedOfficerId &&
+                                                    o.id !== selectedComplaint.assigned_officer_id
                                             )
                                             .map((off) => (
                                                 <SelectItem key={off.id} value={off.id}>
@@ -346,7 +349,7 @@ export const CommissionerComplaints = () => {
                             disabled={assigning || !selectedOfficerId}
                             className="font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
-                            {assigning ? "Assigning..." : "Confirm Officer Dispatch"}
+                            {assigning ? "Assigning..." : "Confirm Reassignment"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

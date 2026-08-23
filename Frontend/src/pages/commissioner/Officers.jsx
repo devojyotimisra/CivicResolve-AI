@@ -212,7 +212,7 @@ export const CommissionerOfficers = () => {
                             className="border shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between group"
                         >
                             <div className="p-6 space-y-4 relative">
-                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex">
+                                <div className="absolute top-4 right-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex">
                                     <Button
                                         variant="ghost"
                                         size="icon"

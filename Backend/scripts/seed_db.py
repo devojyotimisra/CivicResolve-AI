@@ -546,9 +546,13 @@ def seed(clear=True):
         db.close()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Seed the database with dummy data.")
     parser.add_argument("--no-clear", action="store_true", help="Do not clear existing data")
     args = parser.parse_args()
 
     seed(clear=not args.no_clear)
+
+
+if __name__ == "__main__":
+    main()

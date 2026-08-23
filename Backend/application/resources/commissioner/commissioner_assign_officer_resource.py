@@ -43,6 +43,9 @@ def commissioner_assign_officer(
     if not officer.is_active:
         raise HTTPException(status_code=400, detail="Officer account is deactivated")
 
+    if complaint.assigned_officer_id == officer_id:
+        raise HTTPException(status_code=400, detail="Officer is already assigned to this ticket")
+
     old_status = complaint.status
     old_officer_id = complaint.assigned_officer_id
 

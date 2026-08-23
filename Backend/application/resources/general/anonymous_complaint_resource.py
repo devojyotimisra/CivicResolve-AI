@@ -72,27 +72,23 @@ async def _ai_pipeline_async(
             with open(filepath, "rb") as f:
                 photo_bytes = f.read()
 
-        if not description and photo_bytes:
+        if photo_bytes:
             generated_desc = await generate_description_from_photo(photo_bytes)
             if generated_desc:
-                description = generated_desc
-            else:
+                if not description:
+                    description = generated_desc
+                else:
+                    description = f"{description}\n\n[Image Analysis: {generated_desc}]"
+                complaint.description = description
+                db.commit()
+            elif not description:
                 description = "Complaint submitted with photo."
-            complaint.description = description
-            db.commit()
+                complaint.description = description
+                db.commit()
 
         spam_result = await detect_spam(title, description)
         if spam_result and spam_result.get("is_spam"):
-            complaint.status = "Rejected"
-            complaint.updated_at = datetime.now(IST)
-            update = ComplaintUpdate(
-                complaint_id=complaint.id,
-                updated_by_id=None,
-                old_status="Processing",
-                new_status="Rejected",
-                note=f"Rejected as spam: {spam_result.get('reason', 'Automated detection')}",
-            )
-            db.add(update)
+            db.delete(complaint)
             db.commit()
 
             if filepath and os.path.exists(filepath):
