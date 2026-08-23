@@ -229,7 +229,7 @@ export const CommissionerComplaints = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>#</TableHead>
+                                        <TableHead className="w-[50px]">#</TableHead>
                                         <TableHead>Severity</TableHead>
                                         <TableHead>Hazard Summary</TableHead>
                                         <TableHead>Department</TableHead>

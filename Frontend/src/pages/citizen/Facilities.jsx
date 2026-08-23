@@ -594,6 +594,7 @@ export const CitizenFacilities = () => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-[50px]">#</TableHead>
                                                 <TableHead>Reference Code</TableHead>
                                                 <TableHead>Venue Name</TableHead>
                                                 <TableHead>Reserved Date</TableHead>
@@ -606,11 +607,14 @@ export const CitizenFacilities = () => {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {filteredBookings.map((bkg) => (
+                                            {filteredBookings.map((bkg, index) => (
                                                 <TableRow
                                                     key={bkg.id}
                                                     className="hover:bg-muted/50"
                                                 >
+                                                    <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                                                        {index + 1}
+                                                    </TableCell>
                                                     <TableCell className="font-mono font-bold text-xs text-primary">
                                                         {bkg.bookingReference}
                                                     </TableCell>
