@@ -1,5 +1,4 @@
 import client from "@/api/client";
-import { authService } from "./authService";
 
 export const adminService = {
     getOfficers: async () => {
@@ -165,24 +164,6 @@ export const adminService = {
         } catch (error) {
             console.error("Error fetching system analytics:", error);
             throw error;
-        }
-    },
-
-    globalSearch: async (query) => {
-        try {
-            const session = authService.getCurrentSession();
-            if (!session) return { complaints: [], bills: [], bookings: [], users: [] };
-
-            let endpoint = "";
-            if (session.user.role === "citizen") endpoint = "/citizen/search";
-            else if (session.user.role === "commissioner") endpoint = "/commissioner/search";
-            else if (session.user.role === "field_officer") endpoint = "/officer/search";
-
-            const response = await client.post(endpoint, { query });
-            return response.data;
-        } catch (error) {
-            console.error("Error performing search:", error);
-            return { complaints: [], bills: [], bookings: [], users: [] };
         }
     },
 };

@@ -83,6 +83,8 @@ A robust, secure REST API for municipal administration, civic issue reporting, a
 | `uv run pytest` | Runs the full automated integration test suite. |
 | `uv run format` | Auto-formats code with Ruff, runs Vulture, and cleans comments across the codebase. |
 | `uv run seed` | Seeds the database with initial structured test data. Append `--no-clear` to avoid wiping existing tables. |
+| `uv run api-docs` | Generates the OpenAPI documentation (`api_documentation.yaml`). |
+| `uv run python scripts/postman_test.py` | Generates the exhaustive Postman collection (`postman_collection.json`) and environment variables. |
 
 ---
 

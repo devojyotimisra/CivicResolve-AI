@@ -13,7 +13,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Building2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
@@ -28,6 +28,11 @@ export const CommissionerDepartments = () => {
     const [saving, setSaving] = useState(false);
     const [deletingDept, setDeletingDept] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filtered = departments.filter((dept) =>
+        dept.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const load = async () => {
         setLoading(true);
@@ -111,19 +116,33 @@ export const CommissionerDepartments = () => {
                 </Button>
             </div>
 
+            <div className="relative w-full">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search categories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full text-xs h-9 sm:placeholder:text-sm placeholder:text-xs"
+                />
+            </div>
+
             {loading ? (
                 <div className="p-12 text-center text-muted-foreground text-sm">
                     Loading departments...
                 </div>
-            ) : departments.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <EmptyState
                     title="No Departments"
-                    description="No departments defined yet."
+                    description={
+                        departments.length === 0
+                            ? "No departments defined yet."
+                            : "No departments match your search."
+                    }
                     icon={Building2}
                 />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {departments.map((dept) => (
+                    {filtered.map((dept) => (
                         <Card
                             key={dept.id}
                             className="border shadow-sm hover:shadow-md transition-all"

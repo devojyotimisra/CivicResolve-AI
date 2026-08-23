@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { complaintService } from "@/services/complaintService";
 import { adminService } from "@/services/adminService";
+import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,18 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, ShieldAlert } from "lucide-react";
+import {
+    Search,
+    UserPlus,
+    ShieldAlert,
+    Eye,
+    MapPin,
+    User,
+    Camera,
+    EyeOff,
+    Clock,
+    CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const CommissionerComplaints = () => {
@@ -45,6 +57,10 @@ export const CommissionerComplaints = () => {
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [selectedOfficerId, setSelectedOfficerId] = useState("");
     const [assigning, setAssigning] = useState(false);
+
+    const [viewingComplaint, setViewingComplaint] = useState(null);
+    const [complaintUpdates, setComplaintUpdates] = useState([]);
+    const [viewingImage, setViewingImage] = useState(null);
 
     const loadData = async () => {
         setLoading(true);
@@ -68,6 +84,17 @@ export const CommissionerComplaints = () => {
     useEffect(() => {
         loadData();
     }, []);
+
+    const handleViewDetails = async (comp) => {
+        try {
+            const data = await complaintService.getComplaintDetail(comp.id);
+            setViewingComplaint(data.complaint);
+            setComplaintUpdates(data.updates || []);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to load details");
+        }
+    };
 
     const handleAssignConfirm = async () => {
         if (!selectedComplaint || !selectedOfficerId) {
@@ -206,7 +233,7 @@ export const CommissionerComplaints = () => {
                                         <TableHead>Department</TableHead>
                                         <TableHead>Assigned Officer</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -253,6 +280,15 @@ export const CommissionerComplaints = () => {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleViewDetails(comp)}
+                                                        className="h-8 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 mr-1" />
+                                                        View
+                                                    </Button>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -354,6 +390,231 @@ export const CommissionerComplaints = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={!!viewingComplaint}
+                onOpenChange={(open) => {
+                    if (!open && !viewingImage) {
+                        setViewingComplaint(null);
+                        setComplaintUpdates([]);
+                    }
+                }}
+            >
+                <DialogContent
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    className="max-w-4xl border-2 border-primary/20 shadow-2xl bg-card/95 backdrop-blur-xl p-0 overflow-hidden"
+                >
+                    <div className="max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-4">
+                        <DialogHeader className="border-b pb-4 space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Submitted on{" "}
+                                        {viewingComplaint?.createdAt &&
+                                            new Date(
+                                                viewingComplaint.createdAt
+                                            ).toLocaleDateString()}
+                                    </span>
+                                    <Badge variant="outline" className="w-fit ml-2">
+                                        {viewingComplaint?.department ||
+                                            (viewingComplaint?.status === "Rejected"
+                                                ? "N/A (Rejected)"
+                                                : "Pending")}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <StatusBadge
+                                        status={viewingComplaint?.status}
+                                        className="text-xs py-0.5 px-2.5"
+                                    />
+                                </div>
+                            </div>
+                            <DialogTitle className="text-2xl font-extrabold text-foreground text-left leading-tight">
+                                {viewingComplaint?.title}
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        <div className="flex flex-col gap-6 w-full pt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch">
+                                <div className="flex flex-col gap-4 h-full justify-between">
+                                    <div className="p-4 rounded-xl bg-muted/50 border text-xs space-y-2 flex-1">
+                                        <div className="flex items-start gap-2.5">
+                                            <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-semibold text-foreground block">
+                                                    Landmark
+                                                </span>
+                                                <span className="text-muted-foreground leading-relaxed">
+                                                    {viewingComplaint?.location}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-2.5 pt-2 border-t">
+                                            <User className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-semibold text-foreground block">
+                                                    Assigned Officer
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                    {viewingComplaint?.assignedOfficerName ||
+                                                        (viewingComplaint?.status === "Rejected"
+                                                            ? "N/A (Rejected)"
+                                                            : "Awaiting Department Assignment")}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 flex-1 flex flex-col">
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Description
+                                        </h4>
+                                        <p className="text-sm leading-relaxed text-foreground bg-muted/30 p-4 rounded-lg border flex-1">
+                                            {viewingComplaint?.description}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-4 h-full justify-between">
+                                    <Card className="flex-1 border shadow-sm bg-muted/20 flex flex-col justify-center p-5">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                    <Camera className="w-4 h-4 text-primary" />
+                                                    Original Evidence
+                                                </span>
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Images provided by the reporter.
+                                                </p>
+                                            </div>
+                                            {viewingComplaint?.submittedPhotos?.length > 0 ? (
+                                                <Button
+                                                    type="button"
+                                                    size="lg"
+                                                    variant="outline"
+                                                    className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 bg-background hover:bg-muted"
+                                                    onClick={() =>
+                                                        setViewingImage({
+                                                            photos: viewingComplaint.submittedPhotos,
+                                                            initialIndex: 0,
+                                                            title: "Submitted Evidence",
+                                                        })
+                                                    }
+                                                >
+                                                    View ({viewingComplaint.submittedPhotos.length})
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-background border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                    <EyeOff className="w-4 h-4" />
+                                                    <span>Not Uploaded</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Card>
+
+                                    <Card className="flex-1 border shadow-sm bg-muted/20 flex flex-col justify-center p-5">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                    <Camera className="w-4 h-4 text-primary" />
+                                                    Resolution Proof
+                                                </span>
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Images provided by field officer.
+                                                </p>
+                                            </div>
+                                            {viewingComplaint?.resolutionPhotos?.length > 0 ? (
+                                                <Button
+                                                    type="button"
+                                                    size="lg"
+                                                    className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
+                                                    onClick={() =>
+                                                        setViewingImage({
+                                                            photos: viewingComplaint.resolutionPhotos,
+                                                            initialIndex: 0,
+                                                            title: "Evidence Uploaded by Field Officer",
+                                                        })
+                                                    }
+                                                >
+                                                    View ({viewingComplaint.resolutionPhotos.length}
+                                                    )
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                    <EyeOff className="w-4 h-4" />
+                                                    <span>Not Uploaded</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Card>
+                                </div>
+                            </div>
+
+                            <div className="w-full space-y-6 pt-4 border-t">
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                        <Clock className="w-4 h-4 text-primary" />
+                                        <span>Resolution Timeline</span>
+                                    </h4>
+
+                                    <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
+                                        {complaintUpdates &&
+                                            complaintUpdates.length > 0 &&
+                                            complaintUpdates.map((item, idx) => {
+                                                const isLatest =
+                                                    idx === complaintUpdates.length - 1;
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="relative flex items-start gap-3"
+                                                    >
+                                                        <div
+                                                            className={`absolute -left-6 top-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                                                                isLatest
+                                                                    ? "bg-primary border-primary text-primary-foreground shadow-md scale-110"
+                                                                    : "bg-muted border-primary/40 text-primary"
+                                                            }`}
+                                                        >
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                        </div>
+                                                        <div className="flex-1 rounded-lg bg-muted/40 p-3 border text-xs space-y-1">
+                                                            <div className="flex items-center justify-between font-semibold text-foreground">
+                                                                <span>
+                                                                    Status: {item.newStatus}
+                                                                </span>
+                                                                <span className="text-[11px] font-normal text-muted-foreground">
+                                                                    {item.createdAt
+                                                                        ? new Date(
+                                                                              item.createdAt
+                                                                          ).toLocaleString()
+                                                                        : ""}
+                                                                </span>
+                                                            </div>
+                                                            {item.note ? (
+                                                                <p className="text-muted-foreground mt-1">
+                                                                    {item.note}
+                                                                </p>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <PhotoViewerModal
+                isOpen={!!viewingImage}
+                onClose={() => setViewingImage(null)}
+                photos={viewingImage?.photos || []}
+                initialIndex={viewingImage?.initialIndex || 0}
+                title={viewingImage?.title}
+                description="Submitted image evidence."
+            />
         </div>
     );
 };

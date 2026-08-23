@@ -162,6 +162,7 @@ def add_notification(
             message=message,
             notif_type=notif_type,
             created_at=created_at,
+            is_read=random.random() > 0.5,
         )
         db.add(notif)
 
@@ -175,6 +176,7 @@ def add_notification(
                     message=message,
                     notif_type=notif_type,
                     created_at=created_at,
+                    is_read=random.random() > 0.5,
                 )
                 db.add(notif)
 

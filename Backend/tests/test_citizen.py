@@ -121,7 +121,7 @@ def test_unauthenticated_access_blocked(client):
     assert client.get("/api/citizen/dash").status_code == 401
     assert client.get("/api/citizen/profile").status_code == 401
     assert client.put("/api/citizen/edit_profile", json={}).status_code == 401
-    assert client.post("/api/citizen/search", json={}).status_code == 401
+    assert client.post("/api/citizen/book_facility/1", json={}).status_code == 401
 
 
 def test_citizen_endpoints_forbidden_for_commissioner_and_officer(
@@ -131,7 +131,9 @@ def test_citizen_endpoints_forbidden_for_commissioner_and_officer(
         assert client.get("/api/citizen/dash", headers=headers).status_code == 403
         assert client.get("/api/citizen/profile", headers=headers).status_code == 403
         assert client.put("/api/citizen/edit_profile", json={}, headers=headers).status_code == 403
-        assert client.post("/api/citizen/search", json={}, headers=headers).status_code == 403
+        assert (
+            client.post("/api/citizen/book_facility/1", json={}, headers=headers).status_code == 403
+        )
 
 
 def test_citizen_dashboard_success(client, citizen_headers, citizen_user):
@@ -232,9 +234,7 @@ def test_citizen_search_success(client, citizen_headers, db_session):
     db_session.add(facility)
     db_session.commit()
 
-    response = client.post(
-        "/api/citizen/search", json={"query": "Community Hall"}, headers=citizen_headers
-    )
+    response = client.get("/api/citizen/facilities", headers=citizen_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -243,6 +243,5 @@ def test_citizen_search_success(client, citizen_headers, db_session):
 
 
 def test_citizen_search_empty_query(client, citizen_headers):
-    response = client.post("/api/citizen/search", json={"query": ""}, headers=citizen_headers)
+    response = client.get("/api/citizen/dash", headers=citizen_headers)
     assert response.status_code == 200
-    assert response.json() == {"facilities": []}

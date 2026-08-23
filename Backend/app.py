@@ -39,7 +39,6 @@ from application.resources.citizen.citizen_profile_fetch_resource import (
 from application.resources.citizen.citizen_profile_update_resource import (
     router as citizen_profile_update_router,
 )
-from application.resources.citizen.citizen_search_resource import router as citizen_search_router
 from application.resources.commissioner.commissioner_assign_officer_resource import (
     router as comm_assign_router,
 )
@@ -127,9 +126,6 @@ from application.resources.commissioner.commissioner_profile_fetch_resource impo
 from application.resources.commissioner.commissioner_profile_update_resource import (
     router as comm_profile_update_router,
 )
-from application.resources.commissioner.commissioner_search_resource import (
-    router as comm_search_router,
-)
 from application.resources.general.anonymous_complaint_resource import (
     router as anon_complaint_router,
 )
@@ -177,7 +173,6 @@ from application.resources.officer.officer_profile_fetch_resource import (
 from application.resources.officer.officer_profile_update_resource import (
     router as officer_profile_update_router,
 )
-from application.resources.officer.officer_search_resource import router as officer_search_router
 from application.resources.officer.officer_ticket_detail_resource import (
     router as officer_ticket_detail_router,
 )
@@ -237,7 +232,6 @@ def create_app():
     app.include_router(citizen_facility_book_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bookings_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_all_bookings_router, prefix=prefix, tags=["citizen"])
-    app.include_router(citizen_search_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_fetch_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_update_router, prefix=prefix, tags=["citizen"])
 
@@ -246,7 +240,6 @@ def create_app():
     app.include_router(officer_status_router, prefix=prefix, tags=["officer"])
     app.include_router(officer_resolve_router, prefix=prefix, tags=["officer"])
     app.include_router(officer_history_router, prefix=prefix, tags=["officer"])
-    app.include_router(officer_search_router, prefix=prefix, tags=["officer"])
     app.include_router(officer_profile_fetch_router, prefix=prefix, tags=["officer"])
     app.include_router(officer_profile_update_router, prefix=prefix, tags=["officer"])
 
@@ -277,7 +270,6 @@ def create_app():
     app.include_router(comm_bill_type_update_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_bill_type_delete_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_citizens_router, prefix=prefix, tags=["commissioner"])
-    app.include_router(comm_search_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_profile_fetch_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_profile_update_router, prefix=prefix, tags=["commissioner"])
 

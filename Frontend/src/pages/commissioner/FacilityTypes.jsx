@@ -13,7 +13,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Tags, Plus, Pencil, Trash2 } from "lucide-react";
+import { Tags, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
@@ -28,6 +28,11 @@ export const CommissionerFacilityTypes = () => {
     const [saving, setSaving] = useState(false);
     const [deletingType, setDeletingType] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filtered = facilityTypes.filter((type) =>
+        type.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const load = async () => {
         setLoading(true);
@@ -111,19 +116,33 @@ export const CommissionerFacilityTypes = () => {
                 </Button>
             </div>
 
+            <div className="relative w-full">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search facility types..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full text-xs h-9 sm:placeholder:text-sm placeholder:text-xs"
+                />
+            </div>
+
             {loading ? (
                 <div className="p-12 text-center text-muted-foreground text-sm">
                     Loading facility types...
                 </div>
-            ) : facilityTypes.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <EmptyState
                     title="No Facility Types"
-                    description="No facility types defined yet."
+                    description={
+                        facilityTypes.length === 0
+                            ? "No facility types defined yet."
+                            : "No facility types match your search."
+                    }
                     icon={Tags}
                 />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {facilityTypes.map((type) => (
+                    {filtered.map((type) => (
                         <Card
                             key={type.id}
                             className="border shadow-sm hover:shadow-md transition-all"
