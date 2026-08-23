@@ -137,9 +137,11 @@ export const CommissionerOfficers = () => {
     };
 
     const filtered = officers.filter((off) => {
-        const matchesSearch =
-            off.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            off.badgeId.toLowerCase().includes(searchQuery.toLowerCase());
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = Object.values(off).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        );
         const matchesDept = deptFilter === "all" || off.department === deptFilter;
         return matchesSearch && matchesDept;
     });

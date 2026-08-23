@@ -121,10 +121,11 @@ export const CommissionerBills = () => {
     };
 
     const filtered = bills.filter((b) => {
-        const matchSearch =
-            b.billNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            b.citizenName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            b.billType?.toLowerCase().includes(searchQuery.toLowerCase());
+        const query = searchQuery.toLowerCase();
+        const matchSearch = Object.values(b).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        );
         const matchStatus = statusFilter === "all" || b.status === statusFilter;
         return matchSearch && matchStatus;
     });

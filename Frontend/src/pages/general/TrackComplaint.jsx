@@ -259,7 +259,7 @@ export const TrackComplaint = () => {
                                                     <Button
                                                         type="button"
                                                         size="sm"
-                                                        className="h-10 px-4 font-bold shadow-sm"
+                                                        className="h-10 w-36 px-4 font-bold shadow-sm"
                                                         onClick={() =>
                                                             setViewingImage({
                                                                 photos: complaint.submittedPhotos,
@@ -273,9 +273,11 @@ export const TrackComplaint = () => {
                                                     </Button>
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                    <EyeOff className="w-4 h-4" />
-                                                    <span>Not Uploaded</span>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                        <EyeOff className="w-4 h-4" />
+                                                        <span>Not Uploaded</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -299,24 +301,29 @@ export const TrackComplaint = () => {
                                                 )}
                                             </div>
                                             {complaint?.resolutionPhotos?.length > 0 ? (
-                                                <Button
-                                                    type="button"
-                                                    size="lg"
-                                                    className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
-                                                    onClick={() =>
-                                                        setViewingImage({
-                                                            photos: complaint.resolutionPhotos,
-                                                            initialIndex: 0,
-                                                            title: "Evidence Uploaded by Field Officer",
-                                                        })
-                                                    }
-                                                >
-                                                    View ({complaint.resolutionPhotos.length})
-                                                </Button>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        className="h-10 w-36 px-4 font-bold shadow-sm"
+                                                        onClick={() =>
+                                                            setViewingImage({
+                                                                photos: complaint.resolutionPhotos,
+                                                                initialIndex: 0,
+                                                                title: "Evidence Uploaded by Field Officer",
+                                                            })
+                                                        }
+                                                    >
+                                                        <Camera className="w-4 h-4 mr-2" />
+                                                        View ({complaint.resolutionPhotos.length})
+                                                    </Button>
+                                                </div>
                                             ) : (
-                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                    <EyeOff className="w-4 h-4" />
-                                                    <span>Not Uploaded</span>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                        <EyeOff className="w-4 h-4" />
+                                                        <span>Not Uploaded</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

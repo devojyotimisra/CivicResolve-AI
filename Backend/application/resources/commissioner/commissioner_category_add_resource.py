@@ -21,7 +21,7 @@ def commissioner_add_category(
 
     name = (data.name or "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="Category name is required")
+        raise HTTPException(status_code=400, detail="Department name is required")
 
     category_id = data.id
 
@@ -29,20 +29,26 @@ def commissioner_add_category(
 
     if category_id:
         if existing and existing.id != int(category_id):
-            raise HTTPException(status_code=409, detail="Category already exists")
+            raise HTTPException(status_code=409, detail="Department already exists")
 
         category = db.get(Department, int(category_id))
         if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise HTTPException(status_code=404, detail="Department not found")
+
+        if category.users_in_dept:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot edit department. There are officers present in this department.",
+            )
 
         category.name = name
         db.commit()
-        return {"message": f"Category '{name}' updated successfully"}
+        return {"message": f"Department '{name}' updated successfully"}
     else:
         if existing:
-            raise HTTPException(status_code=409, detail="Category already exists")
+            raise HTTPException(status_code=409, detail="Department already exists")
 
         category = Department(name=name)
         db.add(category)
         db.commit()
-        return {"message": f"Category '{name}' created successfully"}
+        return {"message": f"Department '{name}' created successfully"}

@@ -42,6 +42,7 @@ import {
     EyeOff,
     Clock,
     CheckCircle2,
+    FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -122,10 +123,11 @@ export const CommissionerComplaints = () => {
     };
 
     const filtered = complaints.filter((comp) => {
-        const matchesSearch =
-            comp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            comp.token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            comp.location.toLowerCase().includes(searchQuery.toLowerCase());
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = Object.values(comp).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        );
 
         const matchesDept = deptFilter === "all" || comp.department === deptFilter;
         const matchesStatus =
@@ -417,6 +419,7 @@ export const CommissionerComplaints = () => {
                                     </span>
                                     <Badge variant="outline" className="w-fit ml-2">
                                         {viewingComplaint?.department ||
+                                            viewingComplaint?.category ||
                                             (viewingComplaint?.status === "Rejected"
                                                 ? "N/A (Rejected)"
                                                 : "Pending")}
@@ -457,9 +460,17 @@ export const CommissionerComplaints = () => {
                                                 </span>
                                                 <span className="text-muted-foreground">
                                                     {viewingComplaint?.assignedOfficerName ||
+                                                        viewingComplaint?.assignedOfficer ||
                                                         (viewingComplaint?.status === "Rejected"
                                                             ? "N/A (Rejected)"
                                                             : "Awaiting Department Assignment")}
+                                                </span>
+                                                <span className="block text-[11px] text-muted-foreground mt-0.5">
+                                                    Dept:{" "}
+                                                    {viewingComplaint?.department ||
+                                                        (viewingComplaint?.status === "Rejected"
+                                                            ? "N/A"
+                                                            : "Pending")}
                                                 </span>
                                             </div>
                                         </div>
@@ -481,32 +492,37 @@ export const CommissionerComplaints = () => {
                                             <div className="space-y-1">
                                                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <Camera className="w-4 h-4 text-primary" />
-                                                    Original Evidence
+                                                    <span>Evidence Uploaded by Citizen</span>
                                                 </span>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Images provided by the reporter.
+                                                <p className="text-xs text-muted-foreground">
+                                                    Original hazard evidence submitted by reporter
                                                 </p>
                                             </div>
                                             {viewingComplaint?.submittedPhotos?.length > 0 ? (
-                                                <Button
-                                                    type="button"
-                                                    size="lg"
-                                                    variant="outline"
-                                                    className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 bg-background hover:bg-muted"
-                                                    onClick={() =>
-                                                        setViewingImage({
-                                                            photos: viewingComplaint.submittedPhotos,
-                                                            initialIndex: 0,
-                                                            title: "Submitted Evidence",
-                                                        })
-                                                    }
-                                                >
-                                                    View ({viewingComplaint.submittedPhotos.length})
-                                                </Button>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        className="h-10 w-36 px-4 font-bold shadow-sm"
+                                                        onClick={() =>
+                                                            setViewingImage({
+                                                                photos: viewingComplaint.submittedPhotos,
+                                                                initialIndex: 0,
+                                                                title: "Evidence Gallery",
+                                                            })
+                                                        }
+                                                    >
+                                                        <Camera className="w-4 h-4 mr-2" />
+                                                        View (
+                                                        {viewingComplaint.submittedPhotos.length})
+                                                    </Button>
+                                                </div>
                                             ) : (
-                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-background border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                    <EyeOff className="w-4 h-4" />
-                                                    <span>Not Uploaded</span>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                        <EyeOff className="w-4 h-4" />
+                                                        <span>Not Uploaded</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -516,33 +532,44 @@ export const CommissionerComplaints = () => {
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                             <div className="space-y-1">
                                                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                                    <Camera className="w-4 h-4 text-primary" />
-                                                    Resolution Proof
+                                                    <FileCheck className="w-4 h-4 text-primary" />
+                                                    <span>Evidence Uploaded by Field Officer</span>
                                                 </span>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Images provided by field officer.
+                                                <p className="text-xs text-muted-foreground">
+                                                    Resolution verification proof submitted by field
+                                                    crew
                                                 </p>
+                                                {viewingComplaint?.resolutionNote && (
+                                                    <p className="text-xs italic text-foreground/80 mt-1.5 border-l-2 border-primary/50 pl-2">
+                                                        {viewingComplaint.resolutionNote}
+                                                    </p>
+                                                )}
                                             </div>
                                             {viewingComplaint?.resolutionPhotos?.length > 0 ? (
-                                                <Button
-                                                    type="button"
-                                                    size="lg"
-                                                    className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
-                                                    onClick={() =>
-                                                        setViewingImage({
-                                                            photos: viewingComplaint.resolutionPhotos,
-                                                            initialIndex: 0,
-                                                            title: "Evidence Uploaded by Field Officer",
-                                                        })
-                                                    }
-                                                >
-                                                    View ({viewingComplaint.resolutionPhotos.length}
-                                                    )
-                                                </Button>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        className="h-10 w-36 px-4 font-bold shadow-sm"
+                                                        onClick={() =>
+                                                            setViewingImage({
+                                                                photos: viewingComplaint.resolutionPhotos,
+                                                                initialIndex: 0,
+                                                                title: "Evidence Uploaded by Field Officer",
+                                                            })
+                                                        }
+                                                    >
+                                                        <Camera className="w-4 h-4 mr-2" />
+                                                        View (
+                                                        {viewingComplaint.resolutionPhotos.length})
+                                                    </Button>
+                                                </div>
                                             ) : (
-                                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                    <EyeOff className="w-4 h-4" />
-                                                    <span>Not Uploaded</span>
+                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                    <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                        <EyeOff className="w-4 h-4" />
+                                                        <span>Not Uploaded</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

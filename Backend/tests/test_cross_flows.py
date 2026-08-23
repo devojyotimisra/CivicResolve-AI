@@ -390,7 +390,7 @@ def test_commissioner_category_lifecycle(client, db_session, comm_headers):
         "/api/commissioner/category", json={"name": "Parks & Recreation"}, headers=comm_headers
     )
     assert dup_resp.status_code == 409
-    assert dup_resp.json()["detail"] == "Category already exists"
+    assert dup_resp.json()["detail"] == "Department already exists"
 
     list_resp = client.get("/api/commissioner/categories", headers=comm_headers)
     assert list_resp.status_code == 200

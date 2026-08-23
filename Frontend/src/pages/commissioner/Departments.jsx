@@ -30,9 +30,13 @@ export const CommissionerDepartments = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    const filtered = departments.filter((dept) =>
-        dept.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = departments.filter((dept) => {
+        const query = searchQuery.toLowerCase();
+        return Object.values(dept).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        );
+    });
 
     const load = async () => {
         setLoading(true);
