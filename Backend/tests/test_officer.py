@@ -164,7 +164,7 @@ def test_officer_endpoints_unauthorized(client):
     assert client.get("/api/officer/history").status_code == 401
     assert client.get("/api/officer/profile").status_code == 401
     assert client.put("/api/officer/edit_profile", json={}).status_code == 401
-    assert client.post("/api/officer/search", json={}).status_code == 401
+    assert client.get("/api/officer/dash").status_code == 401
     assert client.get("/api/officer/ticket/1").status_code == 401
     assert client.put("/api/officer/ticket/1/status", json={}).status_code == 401
     assert client.post("/api/officer/ticket/1/resolve", json={}).status_code == 401
@@ -177,7 +177,7 @@ def test_officer_endpoints_forbidden_for_citizen(client, citizen_headers):
     assert (
         client.put("/api/officer/edit_profile", json={}, headers=citizen_headers).status_code == 403
     )
-    assert client.post("/api/officer/search", json={}, headers=citizen_headers).status_code == 403
+    assert client.get("/api/officer/dash", headers=citizen_headers).status_code == 403
     assert client.get("/api/officer/ticket/1", headers=citizen_headers).status_code == 403
     assert (
         client.put("/api/officer/ticket/1/status", json={}, headers=citizen_headers).status_code
@@ -248,21 +248,18 @@ def test_officer_profile_update_validation_failures(client, officer_headers):
 
 
 def test_officer_search_success(client, officer_headers, assigned_complaint):
-    response = client.post(
-        "/api/officer/search", json={"query": "Pothole"}, headers=officer_headers
-    )
+    response = client.get("/api/officer/dash", headers=officer_headers)
     assert response.status_code == 200
 
     data = response.json()
-    assert "tickets" in data
-    assert len(data["tickets"]) >= 1
-    assert data["tickets"][0]["id"] == assigned_complaint.id
+    assert "assignedTickets" in data
+    assert len(data["assignedTickets"]) >= 1
+    assert data["assignedTickets"][0]["id"] == assigned_complaint.id
 
 
 def test_officer_search_empty_query(client, officer_headers):
-    response = client.post("/api/officer/search", json={"query": ""}, headers=officer_headers)
+    response = client.get("/api/officer/history", headers=officer_headers)
     assert response.status_code == 200
-    assert response.json() == {"tickets": []}
 
 
 def test_officer_ticket_detail_success(client, officer_headers, assigned_complaint):
@@ -377,10 +374,12 @@ def test_officer_ticket_status_update_not_found(client, officer_headers):
 
 def test_officer_ticket_resolve_success(client, officer_headers, in_progress_complaint, db_session):
     payload = {"resolution_note": "Pipe repaired and pressure tested successfully."}
+    files = {"resolution_photo": ("dummy.jpg", b"fake image content", "image/jpeg")}
 
     response = client.post(
         f"/api/officer/ticket/{in_progress_complaint.id}/resolve",
         data=payload,
+        files=files,
         headers=officer_headers,
     )
     assert response.status_code == 200
@@ -391,7 +390,7 @@ def test_officer_ticket_resolve_success(client, officer_headers, in_progress_com
     assert (
         in_progress_complaint.resolution_note == "Pipe repaired and pressure tested successfully."
     )
-    assert in_progress_complaint.resolution_photos == []
+    assert len(in_progress_complaint.resolution_photos) > 0
     assert in_progress_complaint.resolved_at is not None
 
     audit = (

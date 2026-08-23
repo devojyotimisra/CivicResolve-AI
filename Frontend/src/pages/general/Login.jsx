@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CitizenLoginTab } from "@/components/auth/CitizenLoginTab";
 import { OfficerLoginTab } from "@/components/auth/OfficerLoginTab";
 import { CommissionerLoginTab } from "@/components/auth/CommissionerLoginTab";
-import { Building2 } from "lucide-react";
+import { Building2, User, ShieldCheck } from "lucide-react";
 
 export const Login = () => {
     const location = useLocation();
@@ -31,19 +31,22 @@ export const Login = () => {
                                     value="citizen"
                                     className="text-xs font-semibold flex items-center gap-1.5"
                                 >
+                                    <User className="hidden sm:block w-3.5 h-3.5" />
                                     <span>Citizen</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="officer"
                                     className="text-xs font-semibold flex items-center gap-1.5"
                                 >
-                                    <span>Officer</span>
+                                    <ShieldCheck className="hidden sm:block w-3.5 h-3.5" />
+                                    <span className="sm:hidden">Officer</span>
+                                    <span className="hidden sm:inline">Field Officer</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="commissioner"
                                     className="text-xs font-semibold flex items-center gap-1.5"
                                 >
-                                    <Building2 className="w-3.5 h-3.5" />
+                                    <Building2 className="hidden sm:block w-3.5 h-3.5" />
                                     <span>Commissioner</span>
                                 </TabsTrigger>
                             </TabsList>

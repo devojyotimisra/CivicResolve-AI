@@ -46,6 +46,9 @@ async def officer_resolve_ticket(
         if translation and translation.get("translated_text"):
             resolution_note_str = translation["translated_text"]
 
+    if not resolution_photo or not resolution_photo.filename:
+        raise HTTPException(status_code=400, detail="A photo is required to resolve the ticket")
+
     resolution_photo_url = None
 
     if resolution_photo and resolution_photo.filename:

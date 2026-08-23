@@ -13,7 +13,7 @@ class NoAliasDumper(yaml.SafeDumper):
         return True
 
 
-def generate_openapi():
+def main():
     openapi_schema = app.openapi()
 
     output_path = os.path.join(os.path.dirname(__file__), "..", "api_documentation.yaml")
@@ -30,4 +30,4 @@ def generate_openapi():
 
 
 if __name__ == "__main__":
-    generate_openapi()
+    main()

@@ -13,7 +13,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Tags, Plus, Pencil, Trash2 } from "lucide-react";
+import { Tags, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 
@@ -28,6 +28,11 @@ export const CommissionerBillTypes = () => {
     const [saving, setSaving] = useState(false);
     const [deletingType, setDeletingType] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filtered = billTypes.filter((type) =>
+        type.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const load = async () => {
         setLoading(true);
@@ -109,19 +114,33 @@ export const CommissionerBillTypes = () => {
                 </Button>
             </div>
 
+            <div className="relative w-full">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search bill types..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full text-xs h-9 sm:placeholder:text-sm placeholder:text-xs"
+                />
+            </div>
+
             {loading ? (
                 <div className="p-12 text-center text-muted-foreground text-sm">
                     Loading bill types...
                 </div>
-            ) : billTypes.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <EmptyState
                     title="No Bill Types"
-                    description="No bill types defined yet."
+                    description={
+                        billTypes.length === 0
+                            ? "No bill types defined yet."
+                            : "No bill types match your search."
+                    }
                     icon={Tags}
                 />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {billTypes.map((type) => (
+                    {filtered.map((type) => (
                         <Card
                             key={type.id}
                             className="border shadow-sm hover:shadow-md transition-all"

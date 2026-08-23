@@ -315,10 +315,6 @@ class CommissionerOfficerUpdateRequest(CamelModel):
     badge_id: Optional[str] = None
 
 
-class CommissionerSearchRequest(CamelModel):
-    query: Optional[str] = None
-
-
 class AnonymousComplaintResponse(CamelModel):
     message: str
     tracking_token: str
@@ -335,10 +331,6 @@ class OfficerDashboardResponse(CamelModel):
 
 class OfficerHistoryResponse(CamelModel):
     history: List[ComplaintSchema]
-
-
-class OfficerSearchResponse(CamelModel):
-    tickets: List[ComplaintSchema]
 
 
 class OfficerTicketDetailResponse(CamelModel):

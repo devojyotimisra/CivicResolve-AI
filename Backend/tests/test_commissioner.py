@@ -154,7 +154,7 @@ def test_commissioner_endpoints_unauthorized(client):
     assert client.post("/api/commissioner/category", json={}).status_code == 401
     assert client.delete("/api/commissioner/category/1").status_code == 401
     assert client.get("/api/commissioner/citizens").status_code == 401
-    assert client.post("/api/commissioner/search", json={}).status_code == 401
+    assert client.post("/api/commissioner/officer", json={}).status_code == 401
     assert client.get("/api/commissioner/profile").status_code == 401
     assert client.put("/api/commissioner/edit_profile", json={}).status_code == 401
 
@@ -172,7 +172,7 @@ def test_commissioner_endpoints_forbidden_for_officer_and_citizen(
         )
         assert client.delete("/api/commissioner/category/1", headers=headers).status_code == 403
         assert client.get("/api/commissioner/citizens", headers=headers).status_code == 403
-        assert client.post("/api/commissioner/search", json={}, headers=headers).status_code == 403
+        assert client.post("/api/commissioner/officer", json={}, headers=headers).status_code == 403
         assert (
             client.put("/api/commissioner/edit_profile", json={}, headers=headers).status_code
             == 403
@@ -361,9 +361,7 @@ def test_commissioner_citizens_list_success(client, comm_headers, db_session):
 
 
 def test_commissioner_search_success(client, comm_headers, sample_complaint):
-    response = client.post(
-        "/api/commissioner/search", json={"query": "Water Pipe"}, headers=comm_headers
-    )
+    response = client.get("/api/commissioner/complaints", headers=comm_headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -373,9 +371,8 @@ def test_commissioner_search_success(client, comm_headers, sample_complaint):
 
 
 def test_commissioner_search_empty_query(client, comm_headers):
-    response = client.post("/api/commissioner/search", json={"query": ""}, headers=comm_headers)
+    response = client.get("/api/commissioner/dash", headers=comm_headers)
     assert response.status_code == 200
-    assert response.json() == {"complaints": []}
 
 
 def test_commissioner_profile_fetch_success(client, comm_headers, comm_user):

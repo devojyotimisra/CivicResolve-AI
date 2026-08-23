@@ -30,6 +30,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/google-login:
+    post:
+      tags:
+      - auth
+      summary: Google Login
+      operationId: google_login_api_google_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Data
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/signup:
     post:
       tags:
@@ -506,38 +533,6 @@ paths:
                   Get
       security:
       - HTTPBearer: []
-  /api/citizen/search:
-    post:
-      tags:
-      - citizen
-      summary: Citizen Search
-      operationId: citizen_search_api_citizen_search_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommissionerSearchRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  items:
-                    $ref: '#/components/schemas/FacilitySchema'
-                  type: array
-                type: object
-                title: Response Citizen Search Api Citizen Search Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
   /api/citizen/profile:
     get:
       tags:
@@ -709,33 +704,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OfficerHistoryResponse'
-      security:
-      - HTTPBearer: []
-  /api/officer/search:
-    post:
-      tags:
-      - officer
-      summary: Officer Search
-      operationId: officer_search_api_officer_search_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommissionerSearchRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OfficerSearchResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
       security:
       - HTTPBearer: []
   /api/officer/profile:
@@ -1526,53 +1494,14 @@ paths:
     get:
       tags:
       - commissioner
-      summary: Commissioner Citizens List
-      operationId: commissioner_citizens_list_api_commissioner_citizens_get
+      summary: Get Citizens
+      operationId: get_citizens_api_commissioner_citizens_get
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
-              schema:
-                additionalProperties:
-                  items:
-                    $ref: '#/components/schemas/UserSchema'
-                  type: array
-                type: object
-                title: Response Commissioner Citizens List Api Commissioner Citizens
-                  Get
-      security:
-      - HTTPBearer: []
-  /api/commissioner/search:
-    post:
-      tags:
-      - commissioner
-      summary: Commissioner Search
-      operationId: commissioner_search_api_commissioner_search_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommissionerSearchRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  items:
-                    $ref: '#/components/schemas/ComplaintSchema'
-                  type: array
-                type: object
-                title: Response Commissioner Search Api Commissioner Search Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+              schema: {}
       security:
       - HTTPBearer: []
   /api/commissioner/profile:
@@ -1695,6 +1624,11 @@ components:
           - type: string
           - type: 'null'
           title: Pincode
+        isPasswordEmpty:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Ispasswordempty
       type: object
       required:
       - id
@@ -2253,15 +2187,6 @@ components:
           title: Badgeid
       type: object
       title: CommissionerOfficerUpdateRequest
-    CommissionerSearchRequest:
-      properties:
-        query:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Query
-      type: object
-      title: CommissionerSearchRequest
     ComplaintSchema:
       properties:
         id:
@@ -2634,17 +2559,6 @@ components:
       required:
       - history
       title: OfficerHistoryResponse
-    OfficerSearchResponse:
-      properties:
-        tickets:
-          items:
-            $ref: '#/components/schemas/ComplaintSchema'
-          type: array
-          title: Tickets
-      type: object
-      required:
-      - tickets
-      title: OfficerSearchResponse
     OfficerTicketDetailResponse:
       properties:
         complaint:
@@ -2788,6 +2702,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Active
+        isPasswordEmpty:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Ispasswordempty
       type: object
       required:
       - id

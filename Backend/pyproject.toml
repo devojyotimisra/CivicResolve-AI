@@ -55,6 +55,7 @@ dev = [
 [project.scripts]
 format = "scripts.format:main"
 seed = "scripts.seed_db:main"
+api-docs = "scripts.generate_openapi:main"
 
 [tool.uv]
 package = true
