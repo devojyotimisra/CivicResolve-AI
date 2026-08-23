@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CitizenLoginTab } from "@/components/auth/CitizenLoginTab";
 import { OfficerLoginTab } from "@/components/auth/OfficerLoginTab";
 import { CommissionerLoginTab } from "@/components/auth/CommissionerLoginTab";
-import { User, Wrench, Building2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 
 export const Login = () => {
     const location = useLocation();
@@ -31,15 +31,13 @@ export const Login = () => {
                                     value="citizen"
                                     className="text-xs font-semibold flex items-center gap-1.5"
                                 >
-                                    <User className="w-3.5 h-3.5" />
                                     <span>Citizen</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="officer"
                                     className="text-xs font-semibold flex items-center gap-1.5"
                                 >
-                                    <Wrench className="w-3.5 h-3.5" />
-                                    <span>Field Officer</span>
+                                    <span>Officer</span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="commissioner"

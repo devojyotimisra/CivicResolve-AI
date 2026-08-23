@@ -86,7 +86,7 @@ export const PhotoViewerModal = ({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={handlePrevious}
                             >
                                 <ChevronLeft className="w-6 h-6" />
@@ -94,7 +94,7 @@ export const PhotoViewerModal = ({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 hover:text-white opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={handleNext}
                             >
                                 <ChevronRight className="w-6 h-6" />

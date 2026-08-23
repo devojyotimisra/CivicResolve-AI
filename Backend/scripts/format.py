@@ -37,7 +37,7 @@ def process_directory(directory):
                 remove_comments(process_file)
 
 
-if __name__ == "__main__":
+def main():
     backend_dir = Path(__file__).resolve().parent.parent
     process_directory(backend_dir)
     subprocess.run(["uv", "run", "ruff", "check", "--fix", "."], cwd=backend_dir)
@@ -56,3 +56,7 @@ if __name__ == "__main__":
         ],
         cwd=backend_dir,
     )
+
+
+if __name__ == "__main__":
+    main()

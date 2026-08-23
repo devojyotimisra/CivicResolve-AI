@@ -13,7 +13,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Shield, Sun, Moon, LogOut, Menu, PanelLeft, Bell } from "lucide-react";
+import { Shield, Sun, Moon, LogOut, Menu, PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getDashboardLinks } from "@/components/layout/Sidebar";
 import { NotificationModal } from "@/components/common/NotificationModal";
@@ -21,7 +21,7 @@ import { useNotifications } from "@/context/NotificationContext";
 
 export const Navbar = () => {
     const { user, role, isAuthenticated, logout } = useAuth();
-    const { unreadCount, refetch } = useNotifications();
+    const { refetch } = useNotifications();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -263,29 +263,6 @@ export const Navbar = () => {
                                         </Link>
                                     );
                                 })}
-
-                                {isAuthenticated &&
-                                    ["citizen", "officer", "commissioner"].includes(role) && (
-                                        <button
-                                            onClick={() => {
-                                                setIsMobileMenuOpen(false);
-                                                setTimeout(() => setIsNotifOpen(true), 150);
-                                            }}
-                                            className="flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors text-muted-foreground hover:text-foreground text-left w-full"
-                                        >
-                                            <span className="flex items-center gap-2.5">
-                                                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                                                    <Bell className="h-3.5 w-3.5" />
-                                                </span>
-                                                <span>Notifications</span>
-                                            </span>
-                                            {unreadCount > 0 && (
-                                                <span className="flex h-5 px-2 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-xs animate-pulse">
-                                                    {unreadCount}
-                                                </span>
-                                            )}
-                                        </button>
-                                    )}
 
                                 {!isAuthenticated && (
                                     <Button

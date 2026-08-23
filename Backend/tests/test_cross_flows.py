@@ -128,6 +128,7 @@ def test_cross_flow_full_complaint_lifecycle_anonymous_to_resolution_tracking(
 
     complaint = db_session.get(Complaint, complaint_id)
     complaint.severity = "Critical"
+    complaint.assigned_officer_id = None
     db_session.commit()
 
     assign_resp = client.put(

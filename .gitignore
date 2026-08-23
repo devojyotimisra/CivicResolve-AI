@@ -27,3 +27,4 @@ Backend/uploads/
 .pytest_cache
 dev-dist
 .ruff_cache
+*.egg-info/
