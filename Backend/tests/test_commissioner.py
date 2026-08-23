@@ -276,13 +276,13 @@ def test_commissioner_category_add_create_duplicate_conflict(
     payload = {"name": sample_department.name}
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 409
-    assert response.json()["detail"] == "Category already exists"
+    assert response.json()["detail"] == "Department already exists"
 
 
 def test_commissioner_category_add_missing_name(client, comm_headers):
     response = client.post("/api/commissioner/category", json={}, headers=comm_headers)
     assert response.status_code == 400
-    assert response.json()["detail"] == "Category name is required"
+    assert response.json()["detail"] == "Department name is required"
 
 
 def test_commissioner_category_add_edit_success(
@@ -309,15 +309,15 @@ def test_commissioner_category_add_edit_conflict_with_other_category(
 
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 409
-    assert response.json()["detail"] == "Category already exists"
+    assert response.json()["detail"] == "Department already exists"
 
 
 def test_commissioner_category_add_edit_not_found(client, comm_headers):
-    payload = {"id": 99999, "name": "Ghost Category"}
+    payload = {"id": 99999, "name": "Ghost Department"}
 
     response = client.post("/api/commissioner/category", json=payload, headers=comm_headers)
     assert response.status_code == 404
-    assert response.json()["detail"] == "Category not found"
+    assert response.json()["detail"] == "Department not found"
 
 
 def test_commissioner_category_delete_success(client, comm_headers, sample_department, db_session):
@@ -325,7 +325,7 @@ def test_commissioner_category_delete_success(client, comm_headers, sample_depar
         f"/api/commissioner/category/{sample_department.id}", headers=comm_headers
     )
     assert response.status_code == 200
-    assert response.json()["message"] == "Category deleted"
+    assert response.json()["message"] == "Department deleted"
 
     deleted = db_session.get(Department, sample_department.id)
     assert deleted is None
@@ -334,7 +334,7 @@ def test_commissioner_category_delete_success(client, comm_headers, sample_depar
 def test_commissioner_category_delete_not_found(client, comm_headers):
     response = client.delete("/api/commissioner/category/99999", headers=comm_headers)
     assert response.status_code == 404
-    assert response.json()["detail"] == "Category not found"
+    assert response.json()["detail"] == "Department not found"
 
 
 def test_commissioner_citizens_list_success(client, comm_headers, db_session):

@@ -192,24 +192,11 @@ export const CitizenBills = () => {
         if (searchQuery.trim() !== "") {
             const keywords = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
             return keywords.every((query) => {
-                const matchNumber = (b.billNumber || "").toLowerCase().includes(query);
-                const matchType = (b.billType || "").toLowerCase().includes(query);
-                const matchPeriod = (b.period || "").toLowerCase().includes(query);
-                const matchStatus = (b.status || "").toLowerCase().includes(query);
-                const matchAmount = (
-                    b.amount !== undefined && b.amount !== null ? b.amount.toString() : ""
-                ).includes(query);
-                const matchDate =
-                    (b.dueDate ? new Date(b.dueDate).toLocaleDateString() : "")
-                        .toLowerCase()
-                        .includes(query) || (b.dueDate || "").toLowerCase().includes(query);
-                return (
-                    matchNumber ||
-                    matchType ||
-                    matchPeriod ||
-                    matchStatus ||
-                    matchAmount ||
-                    matchDate
+                return Object.values(b).some(
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        val.toString().toLowerCase().includes(query)
                 );
             });
         }

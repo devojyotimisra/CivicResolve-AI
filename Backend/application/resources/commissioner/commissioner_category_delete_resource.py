@@ -20,7 +20,7 @@ def commissioner_delete_category(
 
     category = db.get(Department, category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise HTTPException(status_code=404, detail="Department not found")
 
     if category.users_in_dept:
         raise HTTPException(
@@ -37,4 +37,4 @@ def commissioner_delete_category(
     db.delete(category)
     db.commit()
 
-    return {"message": "Category deleted"}
+    return {"message": "Department deleted"}

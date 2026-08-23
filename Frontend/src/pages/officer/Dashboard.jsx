@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -30,6 +31,7 @@ import {
     FileCheck,
     EyeOff,
     Upload,
+    User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -211,12 +213,9 @@ export const OfficerDashboard = () => {
 
     const filteredTickets = tickets.filter((t) => {
         const query = searchQuery.toLowerCase();
-        return (
-            t.title?.toLowerCase().includes(query) ||
-            t.token?.toLowerCase().includes(query) ||
-            t.location?.toLowerCase().includes(query) ||
-            t.status?.toLowerCase().includes(query) ||
-            t.department?.toLowerCase().includes(query)
+        return Object.values(t).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
         );
     });
 
@@ -467,6 +466,13 @@ export const OfficerDashboard = () => {
                                                     selectedTicket.createdAt
                                                 ).toLocaleDateString()}
                                         </span>
+                                        <Badge variant="outline" className="w-fit ml-2">
+                                            {selectedTicket?.department ||
+                                                selectedTicket?.category ||
+                                                (selectedTicket?.status === "Rejected"
+                                                    ? "N/A (Rejected)"
+                                                    : "Pending")}
+                                        </Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <StatusBadge
@@ -475,12 +481,12 @@ export const OfficerDashboard = () => {
                                         />
                                     </div>
                                 </div>
-                                <DialogTitle className="text-xl sm:text-2xl font-extrabold text-foreground text-left leading-tight">
+                                <DialogTitle className="text-2xl font-extrabold text-foreground text-left leading-tight">
                                     {selectedTicket.title}
                                 </DialogTitle>
                             </DialogHeader>
 
-                            <div className="flex flex-col gap-6 w-full">
+                            <div className="flex flex-col gap-6 w-full pt-2">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch">
                                     <div className="flex flex-col gap-4 h-full justify-between">
                                         <div className="p-4 rounded-xl bg-muted/50 border text-xs space-y-2 flex-1">
@@ -495,13 +501,28 @@ export const OfficerDashboard = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between pt-2 border-t text-[11px] text-muted-foreground">
-                                                <span>
-                                                    Department:{" "}
-                                                    <strong className="text-foreground">
-                                                        {selectedTicket.department}
-                                                    </strong>
-                                                </span>
+                                            <div className="flex items-start gap-2.5 pt-2 border-t">
+                                                <User className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                                <div>
+                                                    <span className="font-semibold text-foreground block">
+                                                        Assigned Officer
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {selectedTicket?.assignedOfficerName ||
+                                                            selectedTicket?.assignedOfficer ||
+                                                            user?.name ||
+                                                            (selectedTicket?.status === "Rejected"
+                                                                ? "N/A (Rejected)"
+                                                                : "Awaiting Department Assignment")}
+                                                    </span>
+                                                    <span className="block text-[11px] text-muted-foreground mt-0.5">
+                                                        Dept:{" "}
+                                                        {selectedTicket?.department ||
+                                                            (selectedTicket?.status === "Rejected"
+                                                                ? "N/A"
+                                                                : "Pending")}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -533,7 +554,7 @@ export const OfficerDashboard = () => {
                                                         <Button
                                                             type="button"
                                                             size="sm"
-                                                            className="h-10 px-4 font-bold shadow-sm"
+                                                            className="h-10 w-36 px-4 font-bold shadow-sm"
                                                             onClick={() =>
                                                                 setViewingImage({
                                                                     photos: selectedTicket.submittedPhotos,
@@ -548,9 +569,11 @@ export const OfficerDashboard = () => {
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                        <EyeOff className="w-4 h-4" />
-                                                        <span>Not Uploaded</span>
+                                                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                        <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                            <EyeOff className="w-4 h-4" />
+                                                            <span>Not Uploaded</span>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -576,25 +599,31 @@ export const OfficerDashboard = () => {
                                                     )}
                                                 </div>
                                                 {selectedTicket?.resolutionPhotos?.length > 0 ? (
-                                                    <Button
-                                                        type="button"
-                                                        size="lg"
-                                                        className="w-full sm:w-auto h-12 px-8 font-bold shrink-0 shadow-lg"
-                                                        onClick={() =>
-                                                            setViewingImage({
-                                                                photos: selectedTicket.resolutionPhotos,
-                                                                initialIndex: 0,
-                                                                title: "Evidence Uploaded by Field Officer",
-                                                            })
-                                                        }
-                                                    >
-                                                        View (
-                                                        {selectedTicket.resolutionPhotos.length})
-                                                    </Button>
+                                                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="h-10 w-36 px-4 font-bold shadow-sm"
+                                                            onClick={() =>
+                                                                setViewingImage({
+                                                                    photos: selectedTicket.resolutionPhotos,
+                                                                    initialIndex: 0,
+                                                                    title: "Evidence Uploaded by Field Officer",
+                                                                })
+                                                            }
+                                                        >
+                                                            <Camera className="w-4 h-4 mr-2" />
+                                                            View (
+                                                            {selectedTicket.resolutionPhotos.length}
+                                                            )
+                                                        </Button>
+                                                    </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                        <EyeOff className="w-4 h-4" />
-                                                        <span>Not Uploaded</span>
+                                                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                        <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                            <EyeOff className="w-4 h-4" />
+                                                            <span>Not Uploaded</span>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

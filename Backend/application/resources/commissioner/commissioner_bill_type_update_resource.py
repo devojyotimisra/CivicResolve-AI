@@ -32,6 +32,13 @@ def commissioner_update_bill_type(
     if existing and existing.id != bill_type_id:
         raise HTTPException(status_code=409, detail="Bill type name already in use")
 
+    has_unpaid_bills = any(bill.status.lower() != "paid" for bill in bill_type.bills)
+    if has_unpaid_bills:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot edit this bill type because there are unpaid bills associated with it.",
+        )
+
     bill_type.name = name
     db.commit()
 

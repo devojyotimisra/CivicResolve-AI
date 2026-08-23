@@ -99,10 +99,11 @@ export const CommissionerFacilities = () => {
     }, []);
 
     const filtered = facilities.filter((f) => {
-        const matchesSearch =
-            f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            f.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            f.facilityType.toLowerCase().includes(searchQuery.toLowerCase());
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = Object.values(f).some(
+            (val) =>
+                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        );
 
         const matchesStatus =
             statusFilter === "all" ||
@@ -345,7 +346,7 @@ export const CommissionerFacilities = () => {
                                     key={fac.id}
                                     className="flex flex-col justify-between overflow-hidden border shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-300 bg-card"
                                 >
-                                    <div>
+                                    <div className="flex flex-col flex-1">
                                         <CardHeader className="pb-3 pt-4 border-b bg-muted/20">
                                             <div className="flex items-center justify-between gap-2 mb-2">
                                                 <Badge
@@ -376,60 +377,72 @@ export const CommissionerFacilities = () => {
                                             </CardDescription>
                                         </CardHeader>
 
-                                        <CardContent className="space-y-4 pt-4 pb-4">
-                                            {fac.description && (
-                                                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                                                    {fac.description}
-                                                </p>
-                                            )}
-
-                                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-muted/50 border text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                                        <Users className="w-4 h-4 shrink-0" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[10px] text-muted-foreground block">
-                                                            Max Capacity
-                                                        </span>
-                                                        <span className="font-bold text-foreground">
-                                                            {fac.capacity} Guests
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                                        <CalendarIcon className="w-4 h-4 shrink-0" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[10px] text-muted-foreground block">
-                                                            Daily Tariff
-                                                        </span>
-                                                        <span className="font-bold text-foreground">
-                                                            ₹
-                                                            {fac.pricePerDay?.toLocaleString(
-                                                                "en-IN"
-                                                            )}
-                                                            /day
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                        <CardContent className="flex flex-col flex-1 space-y-4 pt-4 pb-4">
+                                            <div className="min-h-[48px] mb-auto">
+                                                {fac.description ? (
+                                                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                                                        {fac.description}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground italic opacity-70">
+                                                        No description available.
+                                                    </p>
+                                                )}
                                             </div>
 
-                                            {fac.amenities && fac.amenities.length > 0 && (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                                        {fac.amenities?.map((am, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
-                                                            >
-                                                                ✓ {am}
+                                            <div className="mt-auto space-y-4">
+                                                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-muted/50 border text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                                            <Users className="w-4 h-4 shrink-0" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-muted-foreground block">
+                                                                Max Capacity
                                                             </span>
-                                                        ))}
+                                                            <span className="font-bold text-foreground">
+                                                                {fac.capacity} Guests
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                                            <CalendarIcon className="w-4 h-4 shrink-0" />
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] text-muted-foreground block">
+                                                                Daily Tariff
+                                                            </span>
+                                                            <span className="font-bold text-foreground">
+                                                                ₹
+                                                                {fac.pricePerDay?.toLocaleString(
+                                                                    "en-IN"
+                                                                )}
+                                                                /day
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            )}
+
+                                                <div className="min-h-[28px]">
+                                                    {fac.amenities && fac.amenities.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                            {fac.amenities?.map((am, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                                                                >
+                                                                    ✓ {am}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[10px] text-muted-foreground italic pt-1 inline-block">
+                                                            No amenities listed
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </CardContent>
                                     </div>
 

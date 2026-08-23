@@ -43,6 +43,13 @@ def update_commissioner_facility_type(
             "name": facility_type.name,
         }
 
+    in_use = db.query(Facility).filter(Facility.facility_type == old_name).first()
+    if in_use:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot edit facility type as it is in use by one or more facilities",
+        )
+
     try:
         facility_type.name = new_name
         db.query(Facility).filter(Facility.facility_type == old_name).update(
