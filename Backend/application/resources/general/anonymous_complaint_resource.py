@@ -75,12 +75,21 @@ async def _ai_pipeline_async(
         if photo_bytes:
             generated_desc = await generate_description_from_photo(photo_bytes)
             if generated_desc:
-                if not description:
-                    description = generated_desc
+                if "No infrastructure issue identified" in generated_desc:
+                    complaint.submitted_photos = []
+                    db.commit()
+                    if filepath and os.path.exists(filepath):
+                        try:
+                            os.remove(filepath)
+                        except Exception:
+                            pass
                 else:
-                    description = f"{description}\n\n[Image Analysis: {generated_desc}]"
-                complaint.description = description
-                db.commit()
+                    if not description:
+                        description = generated_desc
+                    else:
+                        description = f"{description}\n\n[Image Analysis: {generated_desc}]"
+                    complaint.description = description
+                    db.commit()
             elif not description:
                 description = "Complaint submitted with photo."
                 complaint.description = description
@@ -113,9 +122,19 @@ async def _ai_pipeline_async(
                 working_location = t_loc.get("translated_text", location_text)
                 complaint.location = working_location
 
-        sanitized = await sanitize_complaint(working_description)
-        if sanitized and sanitized.get("sanitized_text"):
-            working_description = sanitized["sanitized_text"]
+        sanitized = await sanitize_complaint(working_title, working_description, working_location)
+        if sanitized:
+            if sanitized.get("sanitized_title"):
+                working_title = sanitized["sanitized_title"]
+            if sanitized.get("sanitized_description"):
+                working_description = sanitized["sanitized_description"]
+            if (
+                working_location
+                and sanitized.get("sanitized_location")
+                and sanitized["sanitized_location"] != "Not provided"
+            ):
+                working_location = sanitized["sanitized_location"]
+                complaint.location = working_location
 
         complaint.title = working_title
         complaint.description = working_description
@@ -250,10 +269,11 @@ async def _ai_pipeline_async(
                                 updated_by_id=None,
                                 old_status=master.status,
                                 new_status=master.status,
-                                note=f"Late duplicate report logged from {complaint.token}. Discarded media and description.",
+                                note="Late duplicate report logged. Discarded media and description.",
                             )
                             db.add(dup_update)
                         else:
+                            escalated = master.severity != "Critical"
                             master.severity = "Critical"
 
                             merged_desc = await merge_duplicate_descriptions(
@@ -264,9 +284,20 @@ async def _ai_pipeline_async(
                             else:
                                 combined_desc = f"{master.description}\n\n--- Additional Citizen Report ---\n{working_description}"
                                 master.description = combined_desc
-                                re_sanitized = await sanitize_complaint(combined_desc)
-                                if re_sanitized and re_sanitized.get("sanitized_text"):
-                                    master.description = re_sanitized["sanitized_text"]
+                                re_sanitized = await sanitize_complaint(
+                                    master.title, combined_desc, master.location
+                                )
+                                if re_sanitized:
+                                    if re_sanitized.get("sanitized_title"):
+                                        master.title = re_sanitized["sanitized_title"]
+                                    if re_sanitized.get("sanitized_description"):
+                                        master.description = re_sanitized["sanitized_description"]
+                                    if (
+                                        master.location
+                                        and re_sanitized.get("sanitized_location")
+                                        and re_sanitized["sanitized_location"] != "Not provided"
+                                    ):
+                                        master.location = re_sanitized["sanitized_location"]
 
                             if photo_url:
                                 photos = list(master.submitted_photos or [])
@@ -280,12 +311,15 @@ async def _ai_pipeline_async(
 
                             master.updated_at = datetime.now(IST)
 
+                            note_text = "Additional citizen report merged. Details added."
+                            if escalated:
+                                note_text += " Severity escalated to Critical."
                             dup_update = ComplaintUpdate(
                                 complaint_id=master.id,
                                 updated_by_id=None,
                                 old_status=master.status,
                                 new_status=master.status,
-                                note=f"Additional citizen report merged from {complaint.token}. Details added and severity escalated.",
+                                note=note_text,
                             )
                             db.add(dup_update)
 
@@ -311,7 +345,7 @@ async def _ai_pipeline_async(
             db,
             target_role="commissioner",
             title="New Complaint Filed",
-            message=f"Complaint #{complaint.token}: {complaint.title}"
+            message=f"New complaint: '{complaint.title}'"
             + (f" — routed to {ai_dept_name}" if ai_dept_name else ""),
             notif_type="info",
         )
@@ -321,7 +355,7 @@ async def _ai_pipeline_async(
                 db,
                 user_id=auto_officer_id,
                 title="New Ticket Assigned",
-                message=f"You have been auto-assigned to complaint #{complaint.token}: {complaint.title}",
+                message=f"Assigned to new complaint: '{complaint.title}'",
                 notif_type="info",
             )
 

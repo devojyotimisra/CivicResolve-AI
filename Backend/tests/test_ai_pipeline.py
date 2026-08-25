@@ -182,9 +182,10 @@ def test_ai_translation_non_english_input(client, db_session):
         return {"translated_text": text, "detected_language": "en"}
 
     mock_sanitize = AsyncMock(
-        side_effect=lambda desc: {
-            "sanitized_text": f"Sanitized: {desc}",
-            "summary": "Sanitized summary",
+        side_effect=lambda title, desc, loc: {
+            "sanitized_title": title,
+            "sanitized_description": f"Sanitized: {desc}",
+            "sanitized_location": loc,
         }
     )
 
@@ -208,7 +209,9 @@ def test_ai_translation_non_english_input(client, db_session):
     assert created is not None
     assert created.title == "Water leakage on Main Street"
 
-    mock_sanitize.assert_called_once_with("Water pipe burst near colony entrance")
+    mock_sanitize.assert_called_once_with(
+        "Water leakage on Main Street", "Water pipe burst near colony entrance", None
+    )
     assert created.description == "Sanitized: Water pipe burst near colony entrance"
 
 
@@ -220,9 +223,10 @@ def test_ai_translation_english_input_retains_original(client, db_session):
 
     mock_trans = AsyncMock(side_effect=mock_translate)
     mock_sanitize = AsyncMock(
-        side_effect=lambda desc: {
-            "sanitized_text": f"Sanitized: {desc}",
-            "summary": "Sanitized summary",
+        side_effect=lambda title, desc, loc: {
+            "sanitized_title": title,
+            "sanitized_description": f"Sanitized: {desc}",
+            "sanitized_location": loc,
         }
     )
 
@@ -248,7 +252,9 @@ def test_ai_translation_english_input_retains_original(client, db_session):
     assert created.title == "Garbage Overflow"
     mock_trans.assert_any_call("Garbage Overflow", target_lang="en")
     mock_trans.assert_any_call("Garbage bin overflowing near market area", target_lang="en")
-    mock_sanitize.assert_called_once_with("Garbage bin overflowing near market area")
+    mock_sanitize.assert_called_once_with(
+        "Garbage Overflow", "Garbage bin overflowing near market area", None
+    )
     assert created.description == "Sanitized: Garbage bin overflowing near market area"
 
 
@@ -256,8 +262,9 @@ def test_ai_sanitization_removes_pii_and_neutralizes_tone(client, db_session):
     mock_spam = AsyncMock(return_value={"is_spam": False})
     mock_sanitize = AsyncMock(
         return_value={
-            "sanitized_text": "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic.",
-            "summary": "Broken streetlight",
+            "sanitized_description": "Broken streetlight reported at Sector 4 main junction. Active hazard for nighttime pedestrian traffic.",
+            "sanitized_title": "Broken streetlight",
+            "sanitized_location": None,
         }
     )
 
@@ -642,7 +649,13 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     mock_trans = AsyncMock(
         return_value={"translated_text": "Sample Title", "detected_language": "en"}
     )
-    mock_sanitize = AsyncMock(return_value={"sanitized_text": "Sanitized Description"})
+    mock_sanitize = AsyncMock(
+        return_value={
+            "sanitized_title": "Sanitized Title",
+            "sanitized_description": "Sanitized Description",
+            "sanitized_location": "Sanitized Location",
+        }
+    )
     mock_route = AsyncMock(return_value={"department": ai_dept.name})
     mock_dup = AsyncMock(return_value={"is_duplicate": False})
 
@@ -697,19 +710,19 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     mock_spam.assert_called_once_with("Clogged Drain", expected_desc)
     mock_trans.assert_any_call("Clogged Drain", target_lang="en")
     mock_trans.assert_any_call(expected_desc, target_lang="en")
-    mock_sanitize.assert_called_once_with(expected_desc)
+    mock_sanitize.assert_called_once_with("Clogged Drain", expected_desc, "Block A Corner")
     mock_route.assert_called_once()
     route_args = mock_route.call_args[0]
-    assert route_args[0] == "Clogged Drain"
+    assert route_args[0] == "Sanitized Title"
     assert route_args[1] == "Sanitized Description"
     assert route_args[2] == photo_content
 
     mock_dup.assert_called_once()
     dup_args = mock_dup.call_args[0]
     new_cmp_dict, candidate_list = dup_args[0], dup_args[1]
-    assert new_cmp_dict["title"] == "Clogged Drain"
+    assert new_cmp_dict["title"] == "Sanitized Title"
     assert new_cmp_dict["description"] == "Sanitized Description"
-    assert new_cmp_dict["location"] == "Block A Corner"
+    assert new_cmp_dict["location"] == "Sanitized Location"
     assert len(candidate_list) >= 1
     assert candidate_list[0]["id"] == open_c.id
 

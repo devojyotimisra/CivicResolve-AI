@@ -106,8 +106,8 @@ def commissioner_issue_bill(
         db,
         user_id=citizen_id,
         title="New Bill Issued",
-        message=f"A {bill_type} bill of ₹{amount:.2f} ({bill_number}) has been issued to you. Due: {due_date.isoformat()}",
-        notif_type="warning",
+        message=f"New {bill_type} bill (₹{amount:.2f}). Due: {due_date.isoformat()}",
+        notif_type="info",
     )
 
     db.commit()

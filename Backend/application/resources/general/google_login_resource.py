@@ -66,7 +66,7 @@ def google_login(data: dict, db: Session = Depends(get_db)):
                 db,
                 user_id=user.id,
                 title="Complete Your Profile",
-                message="Please update your profile with your phone number, address, and pincode to access features like paying bills and booking facilities.",
+                message="Update your profile to access bills and facilities.",
                 notif_type="warning",
             )
             db.commit()

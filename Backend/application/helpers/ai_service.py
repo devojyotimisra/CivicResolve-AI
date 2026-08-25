@@ -119,7 +119,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Text: {text}"},
             ],
-            temperature=0.1,
+            temperature=0.0,
             max_completion_tokens=1000,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
@@ -129,34 +129,34 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
         return None
 
 
-async def sanitize_complaint(description: str) -> dict | None:
+async def sanitize_complaint(title: str, description: str, location: str | None) -> dict | None:
     try:
         client = _get_client()
 
         system_prompt = """You are a civic complaint text processor for an Indian municipal government system.
 
-TASK: Rewrite the complaint into a professional, neutral, factual report.
+TASK: Rewrite the complaint's title, description, and location to be professional, neutral, factual, and semantically rich to aid in deduplication.
 
 WHAT TO REMOVE:
 - Personal identifying info: names, phone numbers, emails, flat/house numbers of the complainant
-- Emotional language: anger, threats, profanity, ALL-CAPS shouting, sarcasm
+- Emotional language: anger, threats, profanity, vulgar language, ALL-CAPS shouting, sarcasm
 - Repetitive content and filler words
 
-WHAT TO KEEP:
-- The specific infrastructure problem (what is broken/damaged/missing)
-- Exact location details (street names, landmarks, area names, pincodes)
-- Duration/timeline of the issue
-- Severity indicators (dimensions, extent of damage, safety hazards)
-- Impact on citizens (traffic disruption, health hazard, safety risk)
+WHAT TO KEEP AND ENRICH:
+- Title: Make it clear, concise, and descriptive of the core issue.
+- Description: Keep the specific infrastructure problem, severity, duration, and impact. Make it semantically rich but factual.
+- Location (Landmark): Preserve the exact physical location, street names, landmarks, area names, and pincodes EXACTLY as they refer to the physical world, but remove any personal context or vulgarity. Make it semantically clear for mapping/deduplication.
 
 OUTPUT REQUIREMENTS:
-- Professional third-person tone suitable for a government work order
-- Single paragraph, 2-3 sentences, maximum 80 words
-- Be concise — capture only the core issue, location, and severity
-- No markdown formatting
-
-Respond ONLY with valid JSON:
-{"sanitized_text": "rewritten professional description", "summary": "one-line factual summary under 100 characters"}
+- Professional third-person tone suitable for a government work order.
+- Description should be a single paragraph, 2-3 sentences, maximum 80 words.
+- No markdown formatting.
+- Respond ONLY with a valid JSON object matching this structure:
+{
+  "sanitized_title": "rewritten professional title",
+  "sanitized_description": "rewritten professional description",
+  "sanitized_location": "rewritten location preserving the exact physical landmark"
+}
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
 
@@ -164,15 +164,61 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Original complaint:\n{description}"},
+                {
+                    "role": "user",
+                    "content": f"Title: {title}\nDescription: {description}\nLocation: {location or 'Not provided'}",
+                },
             ],
-            temperature=0.2,
+            temperature=0.0,
             max_completion_tokens=500,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
         result = _parse_json_response(response.choices[0].message.content)
         return result
+    except Exception as e:
+        return None
+
+
+async def sanitize_resolution_note(note: str) -> str | None:
+    try:
+        client = _get_client()
+
+        system_prompt = """You are a text processor for a municipal government system.
+
+TASK: Rewrite the field officer's resolution note to remove inappropriate content while keeping their original tone and perspective.
+
+WHAT TO REMOVE:
+- Profanity, vulgar language, anger, personal attacks, or emotional rants
+- Excuses or unprofessional complaints about the citizen
+
+WHAT TO KEEP:
+- The perspective of the officer (e.g., "I have visited", "We fixed", "Our team barricaded")
+- All factual details of the work done
+- Make it sound like a professional human officer wrote it, NOT an AI.
+
+Respond ONLY with a valid JSON object matching this structure:
+{
+  "sanitized_note": "the rewritten professional note"
+}
+
+CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
+
+        response = await client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Officer Note: {note}"},
+            ],
+            temperature=0.0,
+            max_completion_tokens=300,
+            response_format={"type": "json_object"},
+            extra_body={"reasoning_effort": "none"},
+        )
+        result = _parse_json_response(response.choices[0].message.content)
+        if result and result.get("sanitized_note"):
+            return result["sanitized_note"]
+        return None
     except Exception as e:
         return None
 
@@ -241,7 +287,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
         response = await client.chat.completions.create(
             model=MODEL,
             messages=messages,
-            temperature=0.1,
+            temperature=0.0,
             max_completion_tokens=1024,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
@@ -318,7 +364,7 @@ EXISTING OPEN COMPLAINTS:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
             ],
-            temperature=0.1,
+            temperature=0.0,
             max_completion_tokens=1024,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
@@ -363,7 +409,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                     ],
                 },
             ],
-            temperature=0.2,
+            temperature=0.0,
             max_completion_tokens=500,
             extra_body={"reasoning_effort": "none"},
         )
@@ -401,10 +447,51 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                     "content": f"MASTER COMPLAINT DESCRIPTION:\n{master_desc}\n\nNEW COMPLAINT DESCRIPTION:\n{new_desc}",
                 },
             ],
-            temperature=0.2,
+            temperature=0.0,
             max_completion_tokens=400,
             extra_body={"reasoning_effort": "none"},
         )
         return response.choices[0].message.content.strip()
+    except Exception as e:
+        return None
+
+
+async def verify_resolution_relevance(
+    complaint_title: str, complaint_desc: str, resolution_desc: str
+) -> dict | None:
+    try:
+        client = _get_client()
+
+        system_prompt = """You are a civic infrastructure auditor for a municipal government.
+
+TASK: Verify if the provided resolution (photo analysis + officer note) actually resolves the original complaint.
+
+RULES:
+- The resolution must be related to the original issue (e.g., if the complaint is a pothole, the resolution should show a filled pothole).
+- If the resolution is clearly unrelated, mismatched, or fails to address the complaint, mark it as invalid.
+- Be somewhat lenient: if it plausibly addresses the issue, mark it valid.
+- Respond ONLY with a valid JSON object matching this structure:
+{
+  "is_valid": true,
+  "reason": "brief explanation in under 30 words"
+}
+
+CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
+
+        response = await client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": f"ORIGINAL COMPLAINT:\nTitle: {complaint_title}\nDescription: {complaint_desc}\n\nRESOLUTION PROVIDED:\n{resolution_desc}",
+                },
+            ],
+            temperature=0.0,
+            max_completion_tokens=500,
+            response_format={"type": "json_object"},
+            extra_body={"reasoning_effort": "none"},
+        )
+        return _parse_json_response(response.choices[0].message.content)
     except Exception as e:
         return None

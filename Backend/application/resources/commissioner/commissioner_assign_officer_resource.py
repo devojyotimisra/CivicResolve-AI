@@ -74,8 +74,8 @@ def commissioner_assign_officer(
     create_notification(
         db,
         user_id=officer_id,
-        title="New Ticket Assigned",
-        message=f"You have been assigned to complaint #{complaint.token}: {complaint.title}",
+        title="Ticket Assigned",
+        message=f"Assigned to complaint: '{complaint.title}'",
         notif_type="info",
     )
 
@@ -83,9 +83,9 @@ def commissioner_assign_officer(
         create_notification(
             db,
             user_id=old_officer_id,
-            title="Ticket Escalated and Reassigned",
-            message=f"Complaint #{complaint.token}: {complaint.title} has been escalated and reassigned.",
-            notif_type="info",
+            title="Ticket Reassigned",
+            message=f"'{complaint.title}' was reassigned.",
+            notif_type="warning",
         )
 
     db.commit()

@@ -72,7 +72,7 @@ async def officer_update_ticket_status(
         db,
         target_role="commissioner",
         title="Ticket Status Updated",
-        message=f"Complaint #{complaint.token} status changed from {old_status} to {new_status} by {user.name}",
+        message=f"'{complaint.title}' is now {new_status}.",
         notif_type="info",
     )
 

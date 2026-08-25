@@ -88,14 +88,14 @@ def citizen_book_facility(
         db,
         user_id=current_user_id,
         title="Booking Confirmed",
-        message=f"Your booking for {facility.name} on {booking_date.isoformat()} is confirmed. Ref: {booking_ref}",
+        message=f"Booking confirmed for {facility.name} on {booking_date.isoformat()}.",
         notif_type="success",
     )
     create_notification(
         db,
         target_role="commissioner",
-        title="New Facility Booking",
-        message=f"{user.name} booked {facility.name} for {booking_date.isoformat()} (Ref: {booking_ref})",
+        title="Facility Booked",
+        message=f"New booking: {facility.name} on {booking_date.isoformat()}.",
         notif_type="info",
     )
 

@@ -49,14 +49,14 @@ def citizen_pay_bill(
         db,
         target_role="commissioner",
         title="Bill Payment Received",
-        message=f"{user.name} paid bill {bill.bill_number} ({bill.bill_type}) — ₹{bill.amount:.2f} (Ref: {payment_ref})",
-        notif_type="success",
+        message=f"Bill paid: {bill.bill_type} for ₹{bill.amount:.2f}.",
+        notif_type="info",
     )
     create_notification(
         db,
         user_id=current_user_id,
         title="Payment Successful",
-        message=f"Your payment of ₹{bill.amount:.2f} for {bill.bill_type} ({bill.bill_number}) was successful. Reference: {payment_ref}",
+        message=f"Payment of ₹{bill.amount:.2f} successful.",
         notif_type="success",
     )
 
