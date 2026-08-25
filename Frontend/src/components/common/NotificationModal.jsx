@@ -190,7 +190,7 @@ export const NotificationModal = ({
                                 </div>
                             </div>
 
-                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed break-words">
                                 {item.message}
                             </p>
                         </div>

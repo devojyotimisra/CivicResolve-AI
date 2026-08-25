@@ -90,8 +90,8 @@ def commissioner_add_officer(
     create_notification(
         db=db,
         user_id=new_officer.id,
-        title="Welcome to the Platform!",
-        message="You have been added as a Field Officer. Please update your profile and password.",
+        title="Account Created",
+        message="Added as Field Officer. Please update profile.",
         notif_type="info",
     )
     db.commit()

@@ -487,7 +487,7 @@ export const OfficerDashboard = () => {
                             </DialogHeader>
 
                             <div className="flex flex-col gap-6 w-full pt-2">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-start">
                                     <div className="flex flex-col gap-4 h-full justify-between">
                                         <div className="p-4 rounded-xl bg-muted/50 border text-xs space-y-2 flex-1">
                                             <div className="flex items-start gap-2.5">

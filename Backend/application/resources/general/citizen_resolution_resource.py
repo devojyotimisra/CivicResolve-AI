@@ -46,7 +46,7 @@ def citizen_respond_resolution(
                 db=db,
                 user_id=complaint.assigned_officer_id,
                 title="Ticket Re-opened",
-                message=f"Citizen rejected resolution for complaint #{complaint.token}.",
+                message=f"Resolution for '{complaint.title}' was rejected.",
                 notif_type="warning",
             )
         else:
@@ -54,7 +54,7 @@ def citizen_respond_resolution(
                 db=db,
                 target_role="Officer",
                 title="Ticket Re-opened",
-                message=f"Citizen rejected resolution for complaint #{complaint.token}.",
+                message=f"Resolution for '{complaint.title}' was rejected.",
                 notif_type="warning",
             )
 
@@ -62,7 +62,7 @@ def citizen_respond_resolution(
             db=db,
             target_role="commissioner",
             title="Ticket Re-opened",
-            message=f"Citizen rejected resolution for complaint #{complaint.token}.",
+            message=f"Resolution for '{complaint.title}' was rejected.",
             notif_type="warning",
         )
     complaint.status = new_status
