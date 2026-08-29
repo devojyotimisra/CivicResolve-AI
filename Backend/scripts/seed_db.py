@@ -309,11 +309,12 @@ def seed(clear=True):
                 related = [f"CRA-{20000 + i}{d}" for d in range(num_dupes)]
                 sev = "Critical"
 
+            loc = random.choice(INDIAN_LOCATIONS)
             complaint = Complaint(
                 token=f"CRA-{10000 + i}",
                 title=f"Issue regarding {dept.name.lower()}",
-                description=f"There is a major problem at {random.choice(INDIAN_LOCATIONS)}. Please resolve it ASAP.",
-                location=random.choice(INDIAN_LOCATIONS),
+                description=f"There is a major problem at {loc}. Please resolve it ASAP.",
+                location=loc,
                 department_id=dept.id,
                 department=dept.name,
                 severity=sev,
@@ -337,7 +338,7 @@ def seed(clear=True):
             add_notification(
                 db,
                 title="New Complaint Filed",
-                message=f"Complaint #{complaint.token}: {complaint.title}",
+                message=f"'{complaint.title}' is now Assigned.",
                 notif_type="info",
                 created_at=created_dt,
                 target_role="commissioner",
@@ -345,7 +346,7 @@ def seed(clear=True):
             add_notification(
                 db,
                 title="New Ticket Assigned",
-                message=f"You have been auto-assigned to complaint #{complaint.token}",
+                message=f"Assigned to complaint: '{complaint.title}'",
                 notif_type="info",
                 created_at=created_dt,
                 user_id=officer.id,
@@ -372,7 +373,7 @@ def seed(clear=True):
                 add_notification(
                     db,
                     title="Complaint Updated",
-                    message=f"Your complaint #{complaint.token} is now {step_status}",
+                    message=f"'{complaint.title}' is now {step_status}.",
                     notif_type="info",
                     created_at=current_dt,
                     user_id=citizen.id,
@@ -405,7 +406,7 @@ def seed(clear=True):
                 add_notification(
                     db,
                     title="Complaint Resolved",
-                    message=f"Your complaint #{complaint.token} has been marked as Resolved",
+                    message=f"'{complaint.title}' was resolved.",
                     notif_type="success",
                     created_at=current_dt,
                     user_id=citizen.id,
@@ -429,7 +430,7 @@ def seed(clear=True):
                 add_notification(
                     db,
                     title="Ticket Closed",
-                    message=f"Ticket #{complaint.token} was closed by the citizen.",
+                    message=f"'{complaint.title}' was closed by the citizen.",
                     notif_type="success",
                     created_at=current_dt,
                     user_id=officer.id,
