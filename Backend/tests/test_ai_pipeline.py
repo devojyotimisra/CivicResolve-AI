@@ -769,11 +769,9 @@ def test_find_duplicate_complaints_calls_api_with_sufficient_token_budget():
     mock_create.assert_called_once()
     call_kwargs = mock_create.call_args.kwargs
 
-    assert call_kwargs.get("max_completion_tokens", 0) >= 1024, (
+    assert call_kwargs.get("max_completion_tokens", 0) >= 100, (
         f"max_completion_tokens={call_kwargs.get('max_completion_tokens')} is too low; "
-        "the model needs >= 1024 tokens for chain-of-thought reasoning "
-        "before it can write the JSON answer. With < 1024 the model hits "
-        "MAX_TOKENS, response content becomes None, and dedup is silently skipped."
+        "even with reasoning disabled, we need at least 100 tokens for the JSON response."
     )
 
 

@@ -212,22 +212,19 @@ export const OfficerDashboard = () => {
     };
 
     const filteredTickets = tickets.filter((t) => {
-        const query = searchQuery.toLowerCase();
-        return Object.values(t).some(
-            (val) =>
-                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
+        if (!searchQuery.trim()) return true;
+        const keywords = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        return keywords.every((kw) =>
+            Object.values(t).some(
+                (val) =>
+                    val !== null && val !== undefined && val.toString().toLowerCase().includes(kw)
+            )
         );
     });
 
-    const activeTickets = filteredTickets.filter(
-        (t) => t.status !== "Resolved" && t.status !== "Closed"
-    );
-    const resolvedTickets = filteredTickets.filter(
-        (t) => t.status === "Resolved" || t.status === "Closed"
-    );
-    const totalResolvedCount = tickets.filter(
-        (t) => t.status === "Resolved" || t.status === "Closed"
-    ).length;
+    const activeTickets = filteredTickets.filter((t) => t.status !== "Closed");
+    const closedTickets = filteredTickets.filter((t) => t.status === "Closed");
+    const totalClosedCount = tickets.filter((t) => t.status === "Closed").length;
 
     return (
         <div className="space-y-8 pb-10">
@@ -241,7 +238,7 @@ export const OfficerDashboard = () => {
                 <StatsCard
                     title="Active Assigned Tickets"
                     value={
-                        tickets.filter((t) => t.status !== "Resolved" && t.status !== "Closed")
+                        tickets.filter((t) => t.status !== "Closed")
                             .length
                     }
                     icon={CheckSquare}
@@ -249,8 +246,8 @@ export const OfficerDashboard = () => {
                     color="primary"
                 />
                 <StatsCard
-                    title="Total Tickets Resolved"
-                    value={totalResolvedCount}
+                    title="Total Tickets Closed"
+                    value={totalClosedCount}
                     icon={CheckCircle2}
                     description="Verified with photographic proof"
                     color="primary"
@@ -280,10 +277,10 @@ export const OfficerDashboard = () => {
                         Assigned Tickets ({activeTickets.length})
                     </TabsTrigger>
                     <TabsTrigger
-                        value="resolved"
+                        value="closed"
                         className="font-bold text-xs sm:text-sm rounded-lg data-[state=active]:shadow-md"
                     >
-                        Resolved Tickets ({resolvedTickets.length})
+                        Closed Tickets ({closedTickets.length})
                     </TabsTrigger>
                 </TabsList>
 
@@ -365,10 +362,10 @@ export const OfficerDashboard = () => {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="resolved" className="space-y-4">
+                <TabsContent value="closed" className="space-y-4">
                     <Card className="border shadow-md">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-lg">Resolved & Closed Tickets</CardTitle>
+                            <CardTitle className="text-lg">Closed Tickets</CardTitle>
                             <CardDescription className="text-xs">
                                 History of tickets completed by field crews with photographic proof.
                                 Click the eye icon to view timeline.
@@ -377,15 +374,15 @@ export const OfficerDashboard = () => {
                         <CardContent className="p-5">
                             {loading ? (
                                 <div className="p-12 text-center text-muted-foreground text-sm">
-                                    Loading resolved tickets...
+                                    Loading closed tickets...
                                 </div>
-                            ) : resolvedTickets.length === 0 ? (
+                            ) : closedTickets.length === 0 ? (
                                 <EmptyState
-                                    title="No Resolved Tickets"
+                                    title="No Closed Tickets"
                                     description={
                                         searchQuery
-                                            ? "No resolved tickets match your search criteria."
-                                            : "No resolved tickets found in your history yet."
+                                            ? "No closed tickets match your search criteria."
+                                            : "No closed tickets found in your history yet."
                                     }
                                 />
                             ) : (
@@ -405,7 +402,7 @@ export const OfficerDashboard = () => {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {resolvedTickets.map((t, index) => (
+                                            {closedTickets.map((t, index) => (
                                                 <TableRow key={t.id} className="hover:bg-muted/50">
                                                     <TableCell className="font-mono font-bold text-xs text-muted-foreground">
                                                         {index + 1}
