@@ -49,9 +49,9 @@ async def detect_spam(title: str, description: str) -> dict | None:
 Your job: classify whether a citizen's complaint is GENUINE or SPAM.
 
 CLASSIFICATION RULES:
-- "bot": Repetitive/template text, lorem ipsum, random characters, keyboard mashing, auto-generated patterns
+- "bot": Repetitive/template text, lorem ipsum, random characters, keyboard mashing, gibberish, auto-generated patterns
 - "scam": Phishing links, money requests, personal info harvesting, redirect to external numbers/sites
-- "spam": Advertisements, promotions, political propaganda, jokes, memes, off-topic rants with no civic issue, or if the Image Analysis states no infrastructure issue is identified
+- "spam": Advertisements, promotions, political propaganda, jokes, memes, fake or non-existent landmarks, off-topic rants with no civic issue, or if the Image Analysis states no infrastructure issue is identified
 - "outdated": References events clearly years in the past with no current relevance
 - "none": A real civic infrastructure issue (even if brief, poorly written, or emotional)
 
@@ -66,7 +66,7 @@ Respond ONLY with a valid JSON object matching this structure:
 {
   "is_spam": true,
   "spam_type": "spam",
-  "reason": "brief explanation in under 50 words"
+  "reason": "brief explanation in under 10 words"
 }
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
@@ -81,7 +81,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=500,
+            max_completion_tokens=100,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -120,7 +120,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "user", "content": f"Text: {text}"},
             ],
             temperature=0.0,
-            max_completion_tokens=1000,
+            max_completion_tokens=400,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -143,13 +143,13 @@ WHAT TO REMOVE:
 - Repetitive content and filler words
 
 WHAT TO KEEP AND ENRICH:
-- Title: Make it clear, concise, and descriptive of the core issue.
+- Title: Discard the original title completely. Generate a brand new, clear, concise, and descriptive title for the core issue based strictly on the description.
 - Description: Keep the specific infrastructure problem, severity, duration, and impact. Make it semantically rich but factual.
 - Location (Landmark): Preserve the exact physical location, street names, landmarks, area names, and pincodes EXACTLY as they refer to the physical world, but remove any personal context or vulgarity. Make it semantically clear for mapping/deduplication.
 
 OUTPUT REQUIREMENTS:
 - Professional third-person tone suitable for a government work order.
-- Description should be a single paragraph, 2-3 sentences, maximum 80 words.
+- Description should be a single paragraph, 2-3 sentences, maximum 60 words.
 - No markdown formatting.
 - Respond ONLY with a valid JSON object matching this structure:
 {
@@ -170,7 +170,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=500,
+            max_completion_tokens=400,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -211,7 +211,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "user", "content": f"Officer Note: {note}"},
             ],
             temperature=0.0,
-            max_completion_tokens=300,
+            max_completion_tokens=200,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -256,7 +256,7 @@ Respond ONLY with a valid JSON object matching this structure:
 {{
   "department": "exact name from the list above",
   "confidence": 0.85,
-  "reasoning": "brief explanation in under 30 words"
+  "reasoning": "brief explanation in under 10 words"
 }}
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
@@ -288,7 +288,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
             model=MODEL,
             messages=messages,
             temperature=0.0,
-            max_completion_tokens=1024,
+            max_completion_tokens=100,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -365,7 +365,7 @@ EXISTING OPEN COMPLAINTS:
                 {"role": "user", "content": user_content},
             ],
             temperature=0.0,
-            max_completion_tokens=1024,
+            max_completion_tokens=100,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -473,7 +473,7 @@ RULES:
 - Respond ONLY with a valid JSON object matching this structure:
 {
   "is_valid": true,
-  "reason": "brief explanation in under 30 words"
+  "reason": "brief explanation in under 10 words"
 }
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT EXACTLY ONE RAW JSON OBJECT AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
@@ -488,7 +488,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=500,
+            max_completion_tokens=100,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
