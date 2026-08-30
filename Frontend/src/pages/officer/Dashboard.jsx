@@ -70,7 +70,7 @@ export const OfficerDashboard = () => {
         loadTickets();
     }, [user]);
 
-    const openModal = (ticket) => {
+    const openModal = async (ticket) => {
         setSelectedTicket(ticket);
         const draft = ticketDrafts[ticket.id] || {};
         const photoVal = draft.photo || "";
@@ -84,6 +84,18 @@ export const OfficerDashboard = () => {
                 !!photoVal ||
                 (draft.note !== undefined && draft.note !== "")
         );
+
+        try {
+            const data = await complaintService.getComplaintDetail(ticket.id);
+            if (data && data.complaint) {
+                setSelectedTicket(data.complaint);
+                setTickets((prev) => 
+                    prev.map((t) => (t.id === data.complaint.id ? data.complaint : t))
+                );
+            }
+        } catch (error) {
+            console.error("Failed to refresh ticket data", error);
+        }
     };
 
     const handleStatusChange = async (ticketId, nextStatus, noteMsg) => {
@@ -486,7 +498,7 @@ export const OfficerDashboard = () => {
                             <div className="flex flex-col gap-6 w-full pt-2">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-start">
                                     <div className="flex flex-col gap-4 h-full justify-between">
-                                        <div className="p-4 rounded-xl bg-muted/50 border text-xs space-y-2 flex-1">
+                                        <div className="p-4 rounded-xl bg-muted/50 border text-xs space-y-3 shrink-0">
                                             <div className="flex items-start gap-2.5">
                                                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                                                 <div>
@@ -524,10 +536,10 @@ export const OfficerDashboard = () => {
                                         </div>
 
                                         <div className="space-y-1.5 flex-1 flex flex-col">
-                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
                                                 Description
                                             </h4>
-                                            <p className="text-sm leading-relaxed text-foreground bg-muted/30 p-4 rounded-lg border flex-1">
+                                            <p className="text-sm leading-relaxed text-foreground bg-muted/30 p-4 rounded-lg border flex-1 flex flex-col justify-center">
                                                 {selectedTicket.description}
                                             </p>
                                         </div>
