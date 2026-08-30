@@ -89,7 +89,7 @@ export const OfficerDashboard = () => {
             const data = await complaintService.getComplaintDetail(ticket.id);
             if (data && data.complaint) {
                 setSelectedTicket(data.complaint);
-                setTickets((prev) => 
+                setTickets((prev) =>
                     prev.map((t) => (t.id === data.complaint.id ? data.complaint : t))
                 );
             }
@@ -249,10 +249,7 @@ export const OfficerDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <StatsCard
                     title="Active Assigned Tickets"
-                    value={
-                        tickets.filter((t) => t.status !== "Closed")
-                            .length
-                    }
+                    value={tickets.filter((t) => t.status !== "Closed").length}
                     icon={CheckSquare}
                     description="Pending field inspection & resolution"
                     color="primary"

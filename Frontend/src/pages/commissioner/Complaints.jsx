@@ -91,7 +91,7 @@ export const CommissionerComplaints = () => {
             const data = await complaintService.getComplaintDetail(comp.id);
             setViewingComplaint(data.complaint);
             setComplaintUpdates(data.updates || []);
-            setComplaints((prev) => 
+            setComplaints((prev) =>
                 prev.map((c) => (c.id === data.complaint.id ? { ...c, ...data.complaint } : c))
             );
         } catch (error) {
