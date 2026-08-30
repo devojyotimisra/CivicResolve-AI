@@ -45,7 +45,7 @@ async def _process_resolution_ai(
                 db.commit()
 
         photo_desc = await generate_description_from_photo(content)
-        if photo_desc and "No infrastructure issue identified" in photo_desc:
+        if photo_desc and "No infrastructure issue or repair identified" in photo_desc:
             _revoke_resolution(
                 db,
                 complaint,

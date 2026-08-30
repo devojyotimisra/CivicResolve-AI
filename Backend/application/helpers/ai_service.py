@@ -51,12 +51,12 @@ Your job: classify whether a citizen's complaint is GENUINE or SPAM.
 CLASSIFICATION RULES:
 - "bot": Repetitive/template text, lorem ipsum, random characters, keyboard mashing, gibberish, auto-generated patterns
 - "scam": Phishing links, money requests, personal info harvesting, redirect to external numbers/sites
-- "spam": Advertisements, promotions, political propaganda, jokes, memes, fake or non-existent landmarks, off-topic rants with no civic issue, or if the Image Analysis states no infrastructure issue is identified
+- "spam": Advertisements, promotions, political propaganda, jokes, memes, fake or non-existent landmarks, off-topic rants with no civic relevance
 - "outdated": References events clearly years in the past with no current relevance
-- "none": A real civic infrastructure issue (even if brief, poorly written, or emotional)
+- "none": A real civic infrastructure issue or a valid resolution report (even if brief, poorly written, or emotional)
 
 IMPORTANT GUIDELINES:
-- Short complaints ARE valid if they describe a real issue (e.g., "pothole near bus stop" is valid)
+- Short complaints/resolutions ARE valid if they describe a real issue or repair
 - Emotional language alone does NOT make something spam — citizens can be frustrated
 - Typos and grammatical errors do NOT indicate bot activity
 - Complaints in any Indian language are valid
@@ -383,12 +383,12 @@ async def generate_description_from_photo(photo_bytes: bytes) -> str | None:
 TASK: Analyze the provided photo and describe the civic/infrastructure issue visible in it.
 
 RULES:
-- Focus ONLY on the infrastructure problem (pothole, broken pipe, garbage, damaged road, broken streetlight, open manhole, waterlogging, etc.)
-- Describe: what the issue is, estimated severity, visible extent/dimensions, surrounding context
+- Focus ONLY on the infrastructure problem (pothole, broken pipe, garbage, damaged road, broken streetlight, open manhole, waterlogging, etc.) OR the evidence of a recent repair/resolution (e.g., fresh asphalt, new pipes, clean street).
+- Describe: what the issue or resolution is, estimated severity or quality, visible extent/dimensions, surrounding context
 - Do NOT describe people, vehicles, or irrelevant background elements
 - Write in professional, neutral tone
 - Keep under 500 characters
-- If no civic issue is visible, state "No infrastructure issue identified in the image"
+- If no civic issue or repair is visible, state "No infrastructure issue or repair identified in the image"
 
 CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONING. OUTPUT ONLY THE RAW TEXT DESCRIPTION AND NOTHING ELSE. NO MARKDOWN. NO CONVERSATION."""
 
@@ -467,9 +467,10 @@ async def verify_resolution_relevance(
 TASK: Verify if the provided resolution (photo analysis + officer note) actually resolves the original complaint.
 
 RULES:
-- The resolution must be related to the original issue (e.g., if the complaint is a pothole, the resolution should show a filled pothole).
-- If the resolution is clearly unrelated, mismatched, or fails to address the complaint, mark it as invalid.
-- Be somewhat lenient: if it plausibly addresses the issue, mark it valid.
+- Be HIGHLY LENIENT. The resolution must be even vaguely related to the original issue (e.g., if the complaint is a pothole, the resolution should show a filled pothole or state it was fixed).
+- Keep in mind that a photo of a fixed issue might look like a normal road/street without issues.
+- If the resolution is clearly unrelated or completely mismatched (e.g., complaint is a broken pipe, resolution photo is a tree), mark it as invalid.
+- If it plausibly addresses the issue or describes a valid repair, mark it valid.
 - Respond ONLY with a valid JSON object matching this structure:
 {
   "is_valid": true,
