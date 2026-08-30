@@ -10,7 +10,7 @@ RUN uv sync --frozen --no-dev
 
 COPY . /app
 
-RUN uv run python scripts/seed_db.py
+RUN SQLALCHEMY_DATABASE_URI=sqlite:///CivicResolveAI.sqlite3 JWT_ACCESS_TOKEN_EXPIRES_DAYS=31 PORT=8000 COMMISSIONER_MAIL=comm@cr.com COMMISSIONER_PASSWORD=COM-001 COMMISSIONER_NAME=Sudo uv run python scripts/seed_db.py
 
 EXPOSE 7860
 
