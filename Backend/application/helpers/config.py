@@ -19,7 +19,14 @@ class Config:
     FRONTEND_URL = getenv("FRONTEND_URL")
 
     GROQ_API_KEY = getenv("GROQ_API_KEY")
-    GROQ_MODEL = getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
+    GROQ_MODEL = getenv("GROQ_MODEL")
+
+    GROQ_BACKUP_API_KEY = getenv("GROQ_BACKUP_API_KEY")
+    GROQ_BACKUP_MODEL = getenv("GROQ_BACKUP_MODEL")
+
+    FALLBACK_API_KEY = getenv("FALLBACK_API_KEY")
+    FALLBACK_MODEL = getenv("FALLBACK_MODEL")
+    FALLBACK_BASE_URL = getenv("FALLBACK_BASE_URL")
 
     HOST = getenv("HOST")
     PORT = int(getenv("PORT"))
