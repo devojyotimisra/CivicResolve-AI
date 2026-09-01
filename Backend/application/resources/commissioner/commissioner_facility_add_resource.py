@@ -79,6 +79,16 @@ def commissioner_add_facility(
     )
 
     db.add(facility)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_ADD_FACILITY",
+            target_id=None,
+            details=f"Commissioner {user.name} added facility '{name}'.",
+        )
+    )
     db.commit()
 
     return {"message": f"Facility '{name}' created successfully"}

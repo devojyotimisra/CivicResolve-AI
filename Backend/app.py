@@ -78,6 +78,9 @@ from application.resources.commissioner.commissioner_citizens_resource import (
 from application.resources.commissioner.commissioner_complaint_detail_resource import (
     router as comm_complaint_detail_router,
 )
+from application.resources.commissioner.commissioner_complaint_spam_resource import (
+    router as comm_complaint_spam_router,
+)
 from application.resources.commissioner.commissioner_complaints_list_resource import (
     router as comm_complaints_router,
 )
@@ -108,6 +111,9 @@ from application.resources.commissioner.commissioner_facility_types_list_resourc
 from application.resources.commissioner.commissioner_facility_update_resource import (
     router as comm_facility_update_router,
 )
+from application.resources.commissioner.commissioner_merge_resource import (
+    router as comm_merge_router,
+)
 from application.resources.commissioner.commissioner_officer_add_resource import (
     router as comm_officer_add_router,
 )
@@ -125,6 +131,9 @@ from application.resources.commissioner.commissioner_profile_fetch_resource impo
 )
 from application.resources.commissioner.commissioner_profile_update_resource import (
     router as comm_profile_update_router,
+)
+from application.resources.commissioner.commissioner_unmerge_resource import (
+    router as comm_unmerge_router,
 )
 from application.resources.general.anonymous_complaint_resource import (
     router as anon_complaint_router,
@@ -231,6 +240,11 @@ def create_app():
     app.include_router(citizen_facility_detail_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_facility_book_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_bookings_router, prefix=prefix, tags=["citizen"])
+    from application.resources.citizen.citizen_facility_booking_cancel_resource import (
+        router as citizen_facility_booking_cancel_router,
+    )
+
+    app.include_router(citizen_facility_booking_cancel_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_all_bookings_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_fetch_router, prefix=prefix, tags=["citizen"])
     app.include_router(citizen_profile_update_router, prefix=prefix, tags=["citizen"])
@@ -246,7 +260,10 @@ def create_app():
     app.include_router(comm_dash_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_complaints_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_complaint_detail_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_complaint_spam_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_assign_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_merge_router, prefix=prefix, tags=["commissioner"])
+    app.include_router(comm_unmerge_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_officers_list_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_officer_add_router, prefix=prefix, tags=["commissioner"])
     app.include_router(comm_officer_update_router, prefix=prefix, tags=["commissioner"])

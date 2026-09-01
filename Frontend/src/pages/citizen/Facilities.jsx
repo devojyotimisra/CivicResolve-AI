@@ -39,6 +39,8 @@ import {
     Calendar as CalendarIcon,
     CreditCard,
     Printer,
+    XCircle,
+    AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,6 +65,23 @@ export const CitizenFacilities = () => {
     const [cardNumber, setCardNumber] = useState("");
     const [cardExpiry, setCardExpiry] = useState("");
     const [cardCvv, setCardCvv] = useState("");
+    const [cancelBookingId, setCancelBookingId] = useState(null);
+    const [cancelLoading, setCancelLoading] = useState(false);
+
+    const handleCancelBooking = async () => {
+        if (!cancelBookingId) return;
+        setCancelLoading(true);
+        try {
+            await facilityService.deleteBooking(cancelBookingId);
+            toast.success("Booking cancelled successfully. Refund initiated.");
+            await loadData();
+        } catch (error) {
+            toast.error(error.message || "Failed to cancel booking");
+        } finally {
+            setCancelLoading(false);
+            setCancelBookingId(null);
+        }
+    };
 
     const initBookSubmit = () => {
         if (!selectedDateStr || !selectedFacility) {
@@ -600,6 +619,7 @@ export const CitizenFacilities = () => {
                                                 <TableHead>Reserved Date</TableHead>
                                                 <TableHead>Purpose</TableHead>
                                                 <TableHead>Amount Paid</TableHead>
+                                                <TableHead>Status</TableHead>
 
                                                 <TableHead className="text-right">
                                                     Permit Action
@@ -630,19 +650,76 @@ export const CitizenFacilities = () => {
                                                         {bkg.purpose}
                                                     </TableCell>
                                                     <TableCell className="font-extrabold text-sm text-primary">
-                                                        ₹{bkg.amountPaid.toLocaleString("en-IN")}
+                                                        {bkg.status === "Cancelled" ? (
+                                                            <span className="text-muted-foreground line-through">
+                                                                ₹
+                                                                {bkg.amountPaid.toLocaleString(
+                                                                    "en-IN"
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span>
+                                                                ₹
+                                                                {bkg.amountPaid.toLocaleString(
+                                                                    "en-IN"
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                        {bkg.status === "Cancelled" && (
+                                                            <div className="text-[10px] text-destructive mt-1 font-bold">
+                                                                Refunded
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {bkg.status === "Cancelled" ? (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-destructive border-destructive/30 bg-destructive/10"
+                                                            >
+                                                                Cancelled
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
+                                                            >
+                                                                Confirmed
+                                                            </Badge>
+                                                        )}
                                                     </TableCell>
 
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleDownload(bkg)}
-                                                            className="h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10"
-                                                        >
-                                                            <Printer className="w-3.5 h-3.5 mr-1" />{" "}
-                                                            Print
-                                                        </Button>
+                                                    <TableCell className="text-right flex items-center justify-end gap-2">
+                                                        {bkg.status !== "Cancelled" && (
+                                                            <>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        handleDownload(bkg)
+                                                                    }
+                                                                    className="h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10"
+                                                                >
+                                                                    <Printer className="w-3.5 h-3.5 mr-1" />{" "}
+                                                                    Print
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        setCancelBookingId(bkg.id)
+                                                                    }
+                                                                    disabled={
+                                                                        new Date(bkg.bookedDate) <=
+                                                                        new Date()
+                                                                    }
+                                                                    className="h-8 text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    <XCircle className="w-3.5 h-3.5 mr-1" />{" "}
+                                                                    Cancel
+                                                                </Button>
+                                                            </>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -900,6 +977,41 @@ export const CitizenFacilities = () => {
                             {bookingLoading
                                 ? "Processing..."
                                 : `Pay ₹${selectedFacility?.pricePerDay?.toLocaleString("en-IN")}`}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!cancelBookingId}
+                onOpenChange={(open) => !open && !cancelLoading && setCancelBookingId(null)}
+            >
+                <DialogContent className="sm:max-w-md border">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-bold text-destructive">
+                            <AlertCircle className="w-5 h-5" />
+                            Cancel Reservation
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Are you sure you want to cancel this reservation? The amount paid will
+                            be refunded. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setCancelBookingId(null)}
+                            disabled={cancelLoading}
+                        >
+                            No, keep it
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleCancelBooking}
+                            disabled={cancelLoading}
+                            className="font-bold shadow-md"
+                        >
+                            {cancelLoading ? "Cancelling..." : "Yes, Cancel Booking"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

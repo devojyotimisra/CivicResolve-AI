@@ -21,6 +21,14 @@ def citizen_bills_list(
     if not user or not user.has_role("citizen"):
         raise HTTPException(status_code=403, detail="Citizen access required")
 
+    from application.helpers.notification_helper import (
+        apply_overdue_fines,
+        generate_due_date_notifications,
+    )
+
+    generate_due_date_notifications(db, current_user_id)
+    apply_overdue_fines(db, current_user_id)
+
     query = db.query(UtilityBill).filter_by(user_id=current_user_id)
 
     if status:

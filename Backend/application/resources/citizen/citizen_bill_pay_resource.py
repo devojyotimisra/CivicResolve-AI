@@ -60,6 +60,16 @@ def citizen_pay_bill(
         notif_type="success",
     )
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="CITIZEN_PAY_BILL",
+            target_id=bill.id,
+            details=f"Citizen {user.name} paid bill {bill.bill_number} for ₹{bill.amount:.2f}.",
+        )
+    )
     db.commit()
 
     return {

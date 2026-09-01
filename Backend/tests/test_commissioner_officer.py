@@ -373,6 +373,7 @@ def test_assign_officer_non_severe_complaint_fails(
     client, comm_headers, sample_complaint, existing_officer, db_session
 ):
     sample_complaint.severity = "Normal"
+    sample_complaint.assigned_officer_id = existing_officer.id
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
@@ -381,17 +382,21 @@ def test_assign_officer_non_severe_complaint_fails(
         f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+    assert (
+        "Reassigning officers within the same department is only allowed for Critical complaints"
+        in response.json()["detail"]
+    )
 
     db_session.refresh(sample_complaint)
     assert sample_complaint.severity == "Normal"
-    assert sample_complaint.assigned_officer_id is None
+    assert sample_complaint.assigned_officer_id == existing_officer.id
 
 
 def test_assign_officer_low_severity_fails(
     client, comm_headers, sample_complaint, existing_officer, db_session
 ):
     sample_complaint.severity = "Low"
+    sample_complaint.assigned_officer_id = existing_officer.id
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
@@ -400,17 +405,21 @@ def test_assign_officer_low_severity_fails(
         f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+    assert (
+        "Reassigning officers within the same department is only allowed for Critical complaints"
+        in response.json()["detail"]
+    )
 
     db_session.refresh(sample_complaint)
     assert sample_complaint.severity == "Low"
-    assert sample_complaint.assigned_officer_id is None
+    assert sample_complaint.assigned_officer_id == existing_officer.id
 
 
 def test_assign_officer_high_severity_fails(
     client, comm_headers, sample_complaint, existing_officer, db_session
 ):
     sample_complaint.severity = "High"
+    sample_complaint.assigned_officer_id = existing_officer.id
     db_session.commit()
 
     payload = {"officerId": existing_officer.id}
@@ -419,17 +428,21 @@ def test_assign_officer_high_severity_fails(
         f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+    assert (
+        "Reassigning officers within the same department is only allowed for Critical complaints"
+        in response.json()["detail"]
+    )
 
     db_session.refresh(sample_complaint)
     assert sample_complaint.severity == "High"
-    assert sample_complaint.assigned_officer_id is None
+    assert sample_complaint.assigned_officer_id == existing_officer.id
 
 
 def test_assign_officer_bypass_attempt_fails(
     client, comm_headers, sample_complaint, existing_officer, db_session
 ):
     sample_complaint.severity = "Normal"
+    sample_complaint.assigned_officer_id = existing_officer.id
     db_session.commit()
 
     payload = {"officerId": existing_officer.id, "severity": "Critical"}
@@ -438,11 +451,14 @@ def test_assign_officer_bypass_attempt_fails(
         f"/api/commissioner/assign/{sample_complaint.id}", json=payload, headers=comm_headers
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Officer assignment is only allowed for severe complaints"
+    assert (
+        "Reassigning officers within the same department is only allowed for Critical complaints"
+        in response.json()["detail"]
+    )
 
     db_session.refresh(sample_complaint)
     assert sample_complaint.severity == "Normal"
-    assert sample_complaint.assigned_officer_id is None
+    assert sample_complaint.assigned_officer_id == existing_officer.id
 
 
 def test_assign_deactivated_officer_fails(
@@ -537,7 +553,7 @@ def test_assign_officer_reassigns_in_progress_critical_complaint(
     assert audit is not None
     assert audit.old_status == "In Progress"
     assert audit.new_status == "In Progress"
-    assert "Officer Alice" in audit.note
+    assert "Complaint assigned to field officer." in audit.note
 
 
 def test_assign_officer_fails_for_non_field_officer_role(

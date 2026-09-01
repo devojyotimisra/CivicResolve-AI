@@ -37,6 +37,16 @@ def commissioner_delete_bill_type(
         )
 
     db.delete(bill_type)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_DELETE_BILL_TYPE",
+            target_id=bill_type_id,
+            details=f"Commissioner {user.name} deleted bill type '{bill_type.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": f"Bill type '{bill_type.name}' deleted successfully"}

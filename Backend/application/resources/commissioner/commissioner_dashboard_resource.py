@@ -36,7 +36,12 @@ def commissioner_dashboard(
     total_citizens = db.query(User).filter(User.roles.any(name="citizen")).count()
 
     bill_revenue = db.query(func.sum(UtilityBill.amount)).filter_by(status="Paid").scalar() or 0
-    booking_revenue = db.query(func.sum(FacilityBooking.amount_paid)).scalar() or 0
+    booking_revenue = (
+        db.query(func.sum(FacilityBooking.amount_paid))
+        .filter(FacilityBooking.status != "Cancelled")
+        .scalar()
+        or 0
+    )
     total_revenue = bill_revenue + booking_revenue
 
     by_category = (

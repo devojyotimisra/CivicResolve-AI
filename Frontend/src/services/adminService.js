@@ -101,7 +101,7 @@ export const adminService = {
             if (error.response && error.response.data && error.response.data.detail) {
                 throw new Error(error.response.data.detail);
             }
-            throw new Error("Failed to save department/category.");
+            throw new Error("Failed to save department.");
         }
     },
 
@@ -164,6 +164,32 @@ export const adminService = {
         } catch (error) {
             console.error("Error fetching system analytics:", error);
             throw error;
+        }
+    },
+    mergeComplaint: async (complaintId, masterId) => {
+        try {
+            const response = await client.post(`/commissioner/complaints/${complaintId}/merge`, {
+                master_id: masterId,
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error merging complaint:", error);
+            if (error.response && error.response.data && error.response.data.detail) {
+                throw new Error(error.response.data.detail);
+            }
+            throw new Error("Failed to merge complaint.");
+        }
+    },
+    unmergeComplaint: async (complaintId) => {
+        try {
+            const response = await client.post(`/commissioner/complaints/${complaintId}/unmerge`);
+            return response.data;
+        } catch (error) {
+            console.error("Error unmerging complaint:", error);
+            if (error.response && error.response.data && error.response.data.detail) {
+                throw new Error(error.response.data.detail);
+            }
+            throw new Error("Failed to unmerge complaint.");
         }
     },
 };

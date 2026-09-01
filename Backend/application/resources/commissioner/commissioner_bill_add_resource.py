@@ -110,6 +110,16 @@ def commissioner_issue_bill(
         notif_type="info",
     )
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_ADD_BILL",
+            target_id=citizen_id,
+            details=f"Commissioner {user.name} issued {bill_type} bill {bill_number} to citizen {citizen.name}.",
+        )
+    )
     db.commit()
 
     return {"message": f"Bill {bill_number} issued to {citizen.name}"}

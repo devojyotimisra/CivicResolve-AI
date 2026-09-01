@@ -20,6 +20,14 @@ def list_notifications(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    from application.helpers.notification_helper import (
+        apply_overdue_fines,
+        generate_due_date_notifications,
+    )
+
+    generate_due_date_notifications(db, current_user_id)
+    apply_overdue_fines(db, current_user_id)
+
     notifs = (
         db.query(Notification)
         .filter(Notification.user_id == current_user_id)

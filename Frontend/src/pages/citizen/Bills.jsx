@@ -205,12 +205,13 @@ export const CitizenBills = () => {
 
     const filteredBills = searchedBills.filter((b) => {
         if (filter === "pending") return b.status === "Pending";
+        if (filter === "overdue") return b.status === "Overdue";
         if (filter === "paid") return b.status === "Paid";
         return true;
     });
 
     const pendingTotal = bills
-        .filter((b) => b.status === "Pending")
+        .filter((b) => b.status === "Pending" || b.status === "Overdue")
         .reduce((acc, b) => acc + (b.amount || 0), 0);
 
     return (
@@ -259,6 +260,14 @@ export const CitizenBills = () => {
                         className="text-xs font-semibold"
                     >
                         Pending Dues ({searchedBills.filter((b) => b.status === "Pending").length})
+                    </Button>
+                    <Button
+                        variant={filter === "overdue" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilter("overdue")}
+                        className="text-xs font-semibold"
+                    >
+                        Overdue ({searchedBills.filter((b) => b.status === "Overdue").length})
                     </Button>
                     <Button
                         variant={filter === "paid" ? "default" : "outline"}
@@ -330,14 +339,20 @@ export const CitizenBills = () => {
                                                     className={
                                                         bill.status === "Paid"
                                                             ? "bg-primary/10 text-primary border-primary/20 font-bold"
-                                                            : "bg-muted/40 text-muted-foreground border font-bold"
+                                                            : bill.status === "Overdue"
+                                                              ? "bg-destructive/10 text-destructive border-destructive/20 font-bold"
+                                                              : "bg-muted/40 text-muted-foreground border font-bold"
                                                     }
                                                 >
-                                                    {bill.status === "Paid" ? "Paid" : "Pending"}
+                                                    {bill.status === "Paid"
+                                                        ? "Paid"
+                                                        : bill.status === "Overdue"
+                                                          ? "Overdue"
+                                                          : "Pending"}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {bill.status === "Pending" ? (
+                                                {bill.status !== "Paid" ? (
                                                     <Button
                                                         size="sm"
                                                         className="h-8 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"

@@ -27,5 +27,15 @@ def delete_notification(
         raise HTTPException(status_code=403, detail="Access denied")
 
     db.delete(notif)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="USER_DELETE_NOTIFICATION",
+            target_id=notif_id,
+            details=f"User {user.name} deleted notification {notif_id}.",
+        )
+    )
     db.commit()
     return {"message": "Notification deleted"}

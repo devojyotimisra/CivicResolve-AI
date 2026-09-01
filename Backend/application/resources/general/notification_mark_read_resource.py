@@ -27,6 +27,16 @@ def mark_as_read(
         raise HTTPException(status_code=403, detail="Access denied")
 
     notif.is_read = True
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="USER_MARK_NOTIFICATION_READ",
+            target_id=notif_id,
+            details=f"User {user.name} marked notification {notif_id} as read.",
+        )
+    )
     db.commit()
     db.refresh(notif)
     return notif

@@ -42,6 +42,16 @@ def commissioner_add_category(
             )
 
         category.name = name
+        from application.helpers.models import AuditLog
+
+        db.add(
+            AuditLog(
+                admin_id=current_user_id,
+                action_type="COMMISSIONER_UPDATE_DEPARTMENT",
+                target_id=category.id,
+                details=f"Commissioner {user.name} updated department {category.id} to '{name}'.",
+            )
+        )
         db.commit()
         return {"message": f"Department '{name}' updated successfully"}
     else:
@@ -50,5 +60,15 @@ def commissioner_add_category(
 
         category = Department(name=name)
         db.add(category)
+        from application.helpers.models import AuditLog
+
+        db.add(
+            AuditLog(
+                admin_id=current_user_id,
+                action_type="COMMISSIONER_ADD_DEPARTMENT",
+                target_id=None,
+                details=f"Commissioner {user.name} created department '{name}'.",
+            )
+        )
         db.commit()
         return {"message": f"Department '{name}' created successfully"}

@@ -52,7 +52,7 @@ export const TrackComplaint = () => {
         } catch (error) {
             console.error(error);
             toast.error(
-                "No civic report found matching this 12-character tracking token due to wrong token or spam/scam/bot detection"
+                "No civic report found matching this 12-character tracking token due to wrong token"
             );
             setComplaint(null);
             setUpdates([]);

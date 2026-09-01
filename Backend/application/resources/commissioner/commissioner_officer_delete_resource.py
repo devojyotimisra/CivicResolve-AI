@@ -29,6 +29,16 @@ def commissioner_delete_officer(
         )
 
     db.delete(officer)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_DELETE_OFFICER",
+            target_id=officer_id,
+            details=f"Commissioner {user.name} deleted officer '{officer.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Officer deleted successfully"}

@@ -29,6 +29,16 @@ def update_password(
         raise HTTPException(status_code=400, detail=result)
 
     user.password = hash_password(result)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="USER_UPDATE_PASSWORD",
+            target_id=current_user_id,
+            details=f"User {user.name} updated their password.",
+        )
+    )
     db.commit()
 
     return {"message": "Password updated successfully!"}

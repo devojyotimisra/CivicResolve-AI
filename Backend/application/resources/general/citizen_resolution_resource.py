@@ -77,6 +77,16 @@ def citizen_respond_resolution(
     )
 
     db.add(update)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=None,
+            action_type="CITIZEN_RESPOND_RESOLUTION",
+            target_id=complaint.id,
+            details=f"Citizen responded to resolution. Accepted: {data.accept}.",
+        )
+    )
     db.commit()
 
     return {"message": f"Resolution {'accepted' if data.accept else 'rejected'}"}

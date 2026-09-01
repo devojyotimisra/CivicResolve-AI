@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from application.extensions.db_extn import get_db
-from application.helpers.models import IST, Complaint, ComplaintUpdate, User
+from application.helpers.models import IST, AuditLog, Complaint, ComplaintUpdate, User
 from application.helpers.notification_helper import create_notification
 from application.helpers.schemas import CommissionerAssignOfficerRequest
 from application.middlewares.init_jwt import get_current_user_id
@@ -27,10 +27,23 @@ def commissioner_assign_officer(
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
-    if complaint.severity != "Critical":
+    if complaint.status == "Closed":
+        raise HTTPException(status_code=400, detail="Cannot reassign a closed complaint.")
+
+    if complaint.status == "Duplicate":
         raise HTTPException(
-            status_code=400, detail="Officer assignment is only allowed for severe complaints"
+            status_code=400,
+            detail="Cannot assign an officer to a Duplicate ticket. Unmerge it first.",
         )
+
+    if complaint.severity != "Critical" and complaint.assigned_officer_id is not None:
+        if data.officer_id:
+            officer = db.get(User, data.officer_id)
+            if officer and officer.department_id == complaint.department_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Reassigning officers within the same department is only allowed for Critical complaints.",
+                )
 
     officer_id = data.officer_id
     if not officer_id:
@@ -52,8 +65,13 @@ def commissioner_assign_officer(
     complaint.assigned_officer_id = officer_id
     complaint.assigned_officer_name = officer.name
 
-    if complaint.status == "Submitted":
+    if not complaint.department_id and officer.department_id:
+        complaint.department_id = officer.department_id
+        complaint.department = officer.department
+
+    if complaint.status in ["Submitted", "Resolved", "Rejected", "Spam"]:
         complaint.status = "Assigned"
+        complaint.resolution_note = None
 
     complaint.updated_at = datetime.now(IST)
 
@@ -61,15 +79,24 @@ def commissioner_assign_officer(
         if data.severity in ["Low", "Normal", "High", "Critical"]:
             complaint.severity = data.severity
 
+    note_text = f"Complaint assigned to field officer."
+
     update = ComplaintUpdate(
         complaint_id=complaint.id,
-        updated_by_id=current_user_id,
+        updated_by_id=None,
         old_status=old_status,
         new_status=complaint.status,
-        note=f"Assigned to officer: {officer.name}",
+        note=note_text,
     )
-
     db.add(update)
+
+    audit_log = AuditLog(
+        admin_id=current_user_id,
+        action_type="MANUAL_OFFICER_ASSIGNMENT",
+        target_id=complaint.id,
+        details=f"Commissioner manually assigned officer: {officer.name} (ID: {officer.id}) to ticket {complaint.token}. Severity: {complaint.severity}",
+    )
+    db.add(audit_log)
 
     create_notification(
         db,

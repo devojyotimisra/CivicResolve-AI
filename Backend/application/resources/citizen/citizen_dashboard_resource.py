@@ -30,7 +30,9 @@ def citizen_dashboard(
     upcoming_bookings = (
         db.query(FacilityBooking)
         .filter(
-            FacilityBooking.user_id == current_user_id, FacilityBooking.booked_date >= date.today()
+            FacilityBooking.user_id == current_user_id,
+            FacilityBooking.booked_date >= date.today(),
+            FacilityBooking.status != "Cancelled",
         )
         .count()
     )
@@ -48,7 +50,9 @@ def citizen_dashboard(
     upcoming_bookings_list = (
         db.query(FacilityBooking)
         .filter(
-            FacilityBooking.user_id == current_user_id, FacilityBooking.booked_date >= date.today()
+            FacilityBooking.user_id == current_user_id,
+            FacilityBooking.booked_date >= date.today(),
+            FacilityBooking.status != "Cancelled",
         )
         .order_by(FacilityBooking.booked_date.asc())
         .limit(5)

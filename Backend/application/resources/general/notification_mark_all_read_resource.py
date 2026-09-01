@@ -22,6 +22,17 @@ def mark_all_as_read(
         Notification.user_id == current_user_id,
         ~Notification.is_read,
     ).update({Notification.is_read: True}, synchronize_session="fetch")
+
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="USER_MARK_ALL_NOTIFICATIONS_READ",
+            target_id=current_user_id,
+            details=f"User {user.name} marked all notifications as read.",
+        )
+    )
     db.commit()
 
     return {"message": "All notifications marked as read"}

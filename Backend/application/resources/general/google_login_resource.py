@@ -69,6 +69,16 @@ def google_login(data: dict, db: Session = Depends(get_db)):
                 message="Update your profile to access bills and facilities.",
                 notif_type="warning",
             )
+            from application.helpers.models import AuditLog
+
+            db.add(
+                AuditLog(
+                    admin_id=user.id,
+                    action_type="AUTH_GOOGLE_REGISTER",
+                    target_id=user.id,
+                    details=f"User {user.name} registered via Google.",
+                )
+            )
             db.commit()
         else:
             if not user.is_active:

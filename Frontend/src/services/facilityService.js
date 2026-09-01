@@ -180,9 +180,15 @@ export const facilityService = {
         }
     },
 
-    deleteBooking: async (_bookingId) => {
-        throw new Error(
-            "Booking cancellation is not currently supported. Please contact the administration office."
-        );
+    deleteBooking: async (bookingId) => {
+        try {
+            const response = await client.post(`/citizen/bookings/${bookingId}/cancel`);
+            return response.data;
+        } catch (error) {
+            if (error.response && error.response.data && error.response.data.detail) {
+                throw new Error(error.response.data.detail);
+            }
+            throw new Error("Failed to cancel booking.");
+        }
     },
 };

@@ -39,6 +39,16 @@ def commissioner_delete_facility(
         )
 
     db.delete(facility)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_DELETE_FACILITY",
+            target_id=facility_id,
+            details=f"Commissioner {user.name} deleted facility '{facility.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Facility deleted"}

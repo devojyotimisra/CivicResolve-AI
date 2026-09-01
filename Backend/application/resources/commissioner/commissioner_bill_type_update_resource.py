@@ -40,6 +40,16 @@ def commissioner_update_bill_type(
         )
 
     bill_type.name = name
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_UPDATE_BILL_TYPE",
+            target_id=bill_type_id,
+            details=f"Commissioner {user.name} updated bill type {bill_type_id} to '{name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Bill type updated successfully", "id": bill_type.id, "name": bill_type.name}

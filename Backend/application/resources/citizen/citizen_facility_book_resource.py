@@ -57,7 +57,9 @@ def citizen_book_facility(
     existing = (
         db.query(FacilityBooking)
         .filter(
-            FacilityBooking.facility_id == facility_id, FacilityBooking.booked_date == booking_date
+            FacilityBooking.facility_id == facility_id,
+            FacilityBooking.booked_date == booking_date,
+            FacilityBooking.status != "Cancelled",
         )
         .first()
     )
@@ -99,6 +101,16 @@ def citizen_book_facility(
         notif_type="info",
     )
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="CITIZEN_BOOK_FACILITY",
+            target_id=facility.id,
+            details=f"Citizen {user.name} booked facility {facility.name} for {booking_date.isoformat()}.",
+        )
+    )
     db.commit()
     db.refresh(booking)
 

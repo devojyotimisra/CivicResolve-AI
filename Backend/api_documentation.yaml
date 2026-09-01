@@ -512,6 +512,33 @@ paths:
                 title: Response Citizen Bookings List Api Citizen Bookings Get
       security:
       - HTTPBearer: []
+  /api/citizen/bookings/{booking_id}/cancel:
+    post:
+      tags:
+      - citizen
+      summary: Cancel Facility Booking
+      operationId: cancel_facility_booking_api_citizen_bookings__booking_id__cancel_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Booking Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/citizen/all_bookings:
     get:
       tags:
@@ -838,6 +865,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/commissioner/complaint/{complaint_id}/spam:
+    put:
+      tags:
+      - commissioner
+      summary: Commissioner Mark Spam
+      operationId: commissioner_mark_spam_api_commissioner_complaint__complaint_id__spam_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Complaint Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Commissioner Mark Spam Api Commissioner Complaint  Complaint
+                  Id  Spam Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/commissioner/assign/{complaint_id}:
     put:
       tags:
@@ -870,6 +929,66 @@ paths:
                   type: string
                 title: Response Commissioner Assign Officer Api Commissioner Assign  Complaint
                   Id  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/commissioner/complaints/{complaint_id}/merge:
+    post:
+      tags:
+      - commissioner
+      summary: Commissioner Merge Complaint
+      operationId: commissioner_merge_complaint_api_commissioner_complaints__complaint_id__merge_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Complaint Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommissionerMergeRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/commissioner/complaints/{complaint_id}/unmerge:
+    post:
+      tags:
+      - commissioner
+      summary: Commissioner Unmerge Complaint
+      operationId: commissioner_unmerge_complaint_api_commissioner_complaints__complaint_id__unmerge_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: complaint_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Complaint Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
         '422':
           description: Validation Error
           content:
@@ -2093,6 +2212,15 @@ components:
       - id
       - name
       title: CommissionerFacilityTypeResponse
+    CommissionerMergeRequest:
+      properties:
+        masterId:
+          type: integer
+          title: Masterid
+      type: object
+      required:
+      - masterId
+      title: CommissionerMergeRequest
     CommissionerOfficerAddRequest:
       properties:
         email:
@@ -2258,6 +2386,12 @@ components:
           - type: string
           - type: 'null'
           title: Resolutionnote
+        isManuallyReassigned:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Ismanuallyreassigned
+          default: false
         createdAt:
           anyOf:
           - type: string
@@ -2378,6 +2512,10 @@ components:
           - type: string
           - type: 'null'
           title: Purpose
+        status:
+          type: string
+          title: Status
+          default: Confirmed
         createdAt:
           anyOf:
           - type: string
