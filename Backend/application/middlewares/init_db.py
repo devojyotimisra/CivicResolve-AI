@@ -36,6 +36,18 @@ def initialize_database(app):
 
             db.add(commissioner)
             db.commit()
+            db.refresh(commissioner)
+
+            from application.helpers.notification_helper import create_notification
+
+            create_notification(
+                db=db,
+                user_id=commissioner.id,
+                title="Update Profile",
+                message="Please update your profile in accordance",
+                notif_type="warning",
+            )
+            db.commit()
         else:
             updated = False
             if not existing_commissioner.badge_id:
