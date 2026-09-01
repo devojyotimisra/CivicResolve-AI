@@ -227,6 +227,7 @@ class FacilityBooking(Base):
     amount_paid = Column(Float, nullable=False)
     payment_ref = Column(String(100), nullable=True)
     purpose = Column(String(500), nullable=True)
+    status = Column(String(50), default="Confirmed", nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship("User", backref="bookings")
@@ -258,3 +259,19 @@ class Notification(Base):
     notif_type = Column(String(50), default="info", nullable=False)
     is_read = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    admin_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    action_type = Column(String(100), nullable=False)
+    target_id = Column(Integer, nullable=True)
+    details = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+
+    admin = relationship("User", foreign_keys=[admin_id])

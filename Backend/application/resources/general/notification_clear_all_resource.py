@@ -21,6 +21,16 @@ def clear_all_notifications(
     db.query(Notification).filter(Notification.user_id == current_user_id).delete(
         synchronize_session=False
     )
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="USER_CLEAR_NOTIFICATIONS",
+            target_id=current_user_id,
+            details=f"User {user.name} cleared all notifications.",
+        )
+    )
     db.commit()
 
     return {"message": "All notifications cleared"}

@@ -81,7 +81,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=100,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -120,7 +120,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "user", "content": f"Text: {text}"},
             ],
             temperature=0.0,
-            max_completion_tokens=400,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -170,7 +170,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=400,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -211,7 +211,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 {"role": "user", "content": f"Officer Note: {note}"},
             ],
             temperature=0.0,
-            max_completion_tokens=200,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -288,7 +288,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
             model=MODEL,
             messages=messages,
             temperature=0.0,
-            max_completion_tokens=100,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -365,7 +365,7 @@ EXISTING OPEN COMPLAINTS:
                 {"role": "user", "content": user_content},
             ],
             temperature=0.0,
-            max_completion_tokens=100,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )
@@ -410,7 +410,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=500,
+            max_completion_tokens=600,
             extra_body={"reasoning_effort": "none"},
         )
         return response.choices[0].message.content.strip()
@@ -448,7 +448,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=400,
+            max_completion_tokens=600,
             extra_body={"reasoning_effort": "none"},
         )
         return response.choices[0].message.content.strip()
@@ -489,7 +489,7 @@ CRITICAL INSTRUCTION: DO NOT OUTPUT ANY <think> TAGS. DO NOT OUTPUT ANY REASONIN
                 },
             ],
             temperature=0.0,
-            max_completion_tokens=100,
+            max_completion_tokens=600,
             response_format={"type": "json_object"},
             extra_body={"reasoning_effort": "none"},
         )

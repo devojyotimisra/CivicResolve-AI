@@ -73,6 +73,16 @@ def signup(data: dict, db: Session = Depends(get_db)):
     new_user.roles.append(citizen_role)
 
     db.add(new_user)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=None,
+            action_type="CITIZEN_REGISTER",
+            target_id=None,
+            details=f"User {name} registered.",
+        )
+    )
     db.commit()
 
     access_token = create_access_token(new_user.id)

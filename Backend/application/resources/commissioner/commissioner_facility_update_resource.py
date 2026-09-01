@@ -67,6 +67,16 @@ def commissioner_update_facility(
             detail="A facility with the exact name, type, address, and pincode already exists.",
         )
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_UPDATE_FACILITY",
+            target_id=facility_id,
+            details=f"Commissioner {user.name} updated facility '{facility.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Facility updated successfully"}

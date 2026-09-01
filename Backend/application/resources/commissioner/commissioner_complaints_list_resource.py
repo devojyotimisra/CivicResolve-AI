@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from application.extensions.db_extn import get_db
-from application.helpers.models import Complaint, Department, User
+from application.helpers.models import AuditLog, Complaint, Department, User
 from application.helpers.schemas import ComplaintSchema, DepartmentSchema
 from application.middlewares.init_jwt import get_current_user_id
 
@@ -32,11 +32,19 @@ def commissioner_complaints_list(
     if department_id:
         query = query.filter_by(department_id=department_id)
 
-    complaints = query.order_by(Complaint.created_at.desc()).all()
+    complaints = query.order_by(Complaint.id.asc()).all()
 
     for c in complaints:
         category = db.get(Department, c.department_id) if c.department_id else None
         c.department = category.name if category else c.department
+
+    reassignments = (
+        db.query(AuditLog.target_id).filter_by(action_type="MANUAL_OFFICER_ASSIGNMENT").all()
+    )
+    reassigned_ids = {r[0] for r in reassignments}
+
+    for c in complaints:
+        c.is_manually_reassigned = c.id in reassigned_ids
 
     categories = db.query(Department).order_by(Department.name).all()
 

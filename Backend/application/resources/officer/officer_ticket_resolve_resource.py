@@ -15,7 +15,7 @@ from application.helpers.ai_service import (
     translate_text,
     verify_resolution_relevance,
 )
-from application.helpers.models import IST, Complaint, ComplaintUpdate, User
+from application.helpers.models import IST, AuditLog, Complaint, ComplaintUpdate, User
 from application.helpers.notification_helper import create_notification
 from application.middlewares.init_jwt import get_current_user_id
 
@@ -40,8 +40,18 @@ async def _process_resolution_ai(
         if resolution_note_str:
             translation = await translate_text(resolution_note_str)
             if translation and translation.get("translated_text"):
+                original_note = resolution_note_str
                 resolution_note_str = translation["translated_text"]
                 complaint.resolution_note = resolution_note_str
+
+                db.add(
+                    AuditLog(
+                        admin_id=None,
+                        action_type="AI_TRANSLATION_SANITIZATION",
+                        target_id=complaint.id,
+                        details=f"AI translated the resolution note.\nOriginal: {original_note}\nTranslated: {resolution_note_str}",
+                    )
+                )
                 db.commit()
 
         photo_desc = await generate_description_from_photo(content)
@@ -90,9 +100,19 @@ async def _process_resolution_ai(
             return
 
         if resolution_note_str:
+            original_note_before_sanitization = resolution_note_str
             sanitized_note = await sanitize_resolution_note(resolution_note_str)
-            if sanitized_note:
+            if sanitized_note and sanitized_note != original_note_before_sanitization:
                 complaint.resolution_note = sanitized_note
+
+                db.add(
+                    AuditLog(
+                        admin_id=None,
+                        action_type="AI_TRANSLATION_SANITIZATION",
+                        target_id=complaint.id,
+                        details=f"AI sanitized the resolution note.\nOriginal: {original_note_before_sanitization}\nSanitized: {sanitized_note}",
+                    )
+                )
                 db.commit()
 
     finally:
@@ -133,6 +153,16 @@ def _revoke_resolution(
         note="Resolution rejected by automated system.",
     )
     db.add(update)
+
+    db.add(
+        AuditLog(
+            admin_id=None,
+            action_type="AI_RESOLUTION_REJECTION",
+            target_id=complaint.id,
+            details=f"AI rejected field officer resolution {reason}",
+        )
+    )
+
     db.commit()
 
 
@@ -209,6 +239,16 @@ async def officer_resolve_ticket(
         notif_type="success",
     )
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="OFFICER_RESOLVE_TICKET",
+            target_id=complaint.id,
+            details=f"Field Officer {user.name} resolved ticket {complaint.token}.",
+        )
+    )
     db.commit()
 
     background_tasks.add_task(

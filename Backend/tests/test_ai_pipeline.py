@@ -112,8 +112,8 @@ def test_ai_spam_detection_blocked_returns_400(client, db_session):
     assert response.status_code == 200
     db_session.expire_all()
     created = db_session.query(Complaint).filter_by(title="Broken Streetlight").first()
-    assert created is None
-    assert db_session.query(Complaint).count() == 0
+    assert created is not None
+    assert created.status == "Spam"
 
 
 def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
@@ -146,7 +146,8 @@ def test_ai_spam_detection_cleans_up_uploaded_photo(client, db_session):
     assert response.status_code == 200
     db_session.expire_all()
     created = db_session.query(Complaint).filter_by(title="Free Money Scam").first()
-    assert created is None
+    assert created is not None
+    assert created.status == "Spam"
     assert os.path.exists(expected_filepath) is False
 
 
@@ -394,13 +395,14 @@ def test_ai_duplicate_detection_escalates_master_severity_to_critical(client, db
 
     db_session.expire_all()
     deleted = db_session.query(Complaint).filter_by(token=res_data["trackingToken"]).first()
-    assert deleted is None
+    assert deleted is not None
+    assert deleted.status == "Duplicate"
 
     master_refreshed = db_session.get(Complaint, master.id)
     assert master_refreshed.severity == "Critical"
     assert res_data["trackingToken"] in master_refreshed.related_tokens
 
-    assert db_session.query(Complaint).count() == 1
+    assert db_session.query(Complaint).count() == 2
 
 
 def test_ai_duplicate_photo_master_without_photo_adopts_new_photo(client, db_session):
@@ -707,7 +709,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
 
     expected_desc = "Drain overflowing near Block A\n\n[Image Analysis: Mocked Image Description]"
 
-    mock_spam.assert_called_once_with("Clogged Drain", expected_desc)
+    mock_spam.assert_called_once_with("Sanitized Title", "Sanitized Description")
     mock_trans.assert_any_call("Clogged Drain", target_lang="en")
     mock_trans.assert_any_call(expected_desc, target_lang="en")
     mock_sanitize.assert_called_once_with("Clogged Drain", expected_desc, "Block A Corner")
@@ -716,6 +718,7 @@ def test_ai_functions_invoked_with_expected_parameters(client, db_session, ai_de
     assert route_args[0] == "Sanitized Title"
     assert route_args[1] == "Sanitized Description"
     assert route_args[2] == photo_content
+    assert route_args[3] == [ai_dept.name]
 
     mock_dup.assert_called_once()
     dup_args = mock_dup.call_args[0]

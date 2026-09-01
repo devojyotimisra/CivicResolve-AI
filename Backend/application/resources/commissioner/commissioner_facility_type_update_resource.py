@@ -56,6 +56,16 @@ def update_commissioner_facility_type(
             {"facility_type": new_name}
         )
 
+        from application.helpers.models import AuditLog
+
+        db.add(
+            AuditLog(
+                admin_id=current_user_id,
+                action_type="COMMISSIONER_UPDATE_FACILITY_TYPE",
+                target_id=type_id,
+                details=f"Commissioner {user.name} updated facility type to '{new_name}'.",
+            )
+        )
         db.commit()
         db.refresh(facility_type)
         return {

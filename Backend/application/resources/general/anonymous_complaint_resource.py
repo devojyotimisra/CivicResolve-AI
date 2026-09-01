@@ -20,7 +20,7 @@ from application.helpers.ai_service import (
     sanitize_complaint,
     translate_text,
 )
-from application.helpers.models import IST, Complaint, ComplaintUpdate, Department, User
+from application.helpers.models import IST, AuditLog, Complaint, ComplaintUpdate, Department, User
 from application.helpers.notification_helper import create_notification
 from application.helpers.schemas import AnonymousComplaintResponse
 from application.helpers.validators import validate_description, validate_title
@@ -95,15 +95,6 @@ async def _ai_pipeline_async(
                 complaint.description = description
                 db.commit()
 
-        spam_result = await detect_spam(title, description)
-        if spam_result and spam_result.get("is_spam"):
-            db.delete(complaint)
-            db.commit()
-
-            if filepath and os.path.exists(filepath):
-                os.remove(filepath)
-            return
-
         working_title = title
         working_description = description
         working_location = location_text
@@ -139,6 +130,42 @@ async def _ai_pipeline_async(
         complaint.title = working_title
         complaint.description = working_description
 
+        if working_title != title or working_description != description:
+            db.add(
+                AuditLog(
+                    admin_id=None,
+                    action_type="AI_TRANSLATION_SANITIZATION",
+                    target_id=complaint.id,
+                    details=f"AI processed text.\nOriginal Title: {title}\nSanitized Title: {working_title}\nOriginal Description: {description}\nSanitized Description: {working_description}",
+                )
+            )
+            db.commit()
+
+        spam_result = await detect_spam(working_title, working_description)
+        if spam_result and spam_result.get("is_spam"):
+            complaint.status = "Spam"
+            complaint.resolution_note = (
+                "This complaint was automatically flagged as spam/irrelevant by the system."
+            )
+
+            if filepath and os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
+
+            db.add(
+                AuditLog(
+                    admin_id=None,
+                    action_type="AI_SPAM_DETECTION",
+                    target_id=complaint.id,
+                    details=f"Complaint flagged as spam. Reason: {spam_result.get('reason', 'Unknown')}",
+                )
+            )
+
+            db.commit()
+            return
+
         departments = db.query(Department).all()
         dept_names = [d.name for d in departments]
         routing = await auto_route_complaint(
@@ -158,6 +185,14 @@ async def _ai_pipeline_async(
             complaint.department_id = final_dept_id
             if ai_dept_name:
                 complaint.department = ai_dept_name
+                db.add(
+                    AuditLog(
+                        admin_id=None,
+                        action_type="AI_AUTO_ROUTING",
+                        target_id=complaint.id,
+                        details=f"AI automatically routed complaint to department: {ai_dept_name}",
+                    )
+                )
 
         auto_officer_id = None
         auto_officer_name = None
@@ -196,6 +231,16 @@ async def _ai_pipeline_async(
 
         complaint.assigned_officer_id = auto_officer_id
         complaint.assigned_officer_name = auto_officer_name
+
+        if auto_officer_id:
+            db.add(
+                AuditLog(
+                    admin_id=None,
+                    action_type="AI_AUTO_ASSIGNMENT",
+                    target_id=complaint.id,
+                    details=f"AI automatically assigned complaint to officer: {auto_officer_name}",
+                )
+            )
 
         cutoff_24h = datetime.now(IST) - timedelta(hours=24)
         cutoff_30d = datetime.now(IST) - timedelta(days=30)
@@ -269,7 +314,7 @@ async def _ai_pipeline_async(
                                 updated_by_id=None,
                                 old_status=master.status,
                                 new_status=master.status,
-                                note="Late duplicate report logged. Discarded media and description.",
+                                note="Late duplicate report logged. Due to the 30-day cooldown policy, this issue cannot be re-opened immediately. If you believe this is a mistake, please file a new complaint after the 30-day cooldown period.",
                             )
                             db.add(dup_update)
                         else:
@@ -280,7 +325,16 @@ async def _ai_pipeline_async(
                                 master.description, working_description
                             )
                             if merged_desc:
+                                old_master_desc = master.description
                                 master.description = merged_desc
+                                db.add(
+                                    AuditLog(
+                                        admin_id=None,
+                                        action_type="AI_DUPLICATE_MERGE",
+                                        target_id=master.id,
+                                        details=f"AI merged description from duplicate ticket ID {complaint.id}.\nMaster before: {old_master_desc}\nDuplicate details: {working_description}\nMerged: {merged_desc}",
+                                    )
+                                )
                             else:
                                 combined_desc = f"{master.description}\n\n--- Additional Citizen Report ---\n{working_description}"
                                 master.description = combined_desc
@@ -288,10 +342,22 @@ async def _ai_pipeline_async(
                                     master.title, combined_desc, master.location
                                 )
                                 if re_sanitized:
+                                    old_title = master.title
+                                    old_desc = master.description
                                     if re_sanitized.get("sanitized_title"):
                                         master.title = re_sanitized["sanitized_title"]
                                     if re_sanitized.get("sanitized_description"):
                                         master.description = re_sanitized["sanitized_description"]
+
+                                    if old_title != master.title or old_desc != master.description:
+                                        db.add(
+                                            AuditLog(
+                                                admin_id=None,
+                                                action_type="AI_TRANSLATION_SANITIZATION",
+                                                target_id=master.id,
+                                                details=f"AI sanitized master ticket after appending duplicate details.\nOriginal Title: {old_title}\nSanitized Title: {master.title}\nOriginal Desc: {old_desc}\nSanitized Desc: {master.description}",
+                                            )
+                                        )
                                     if (
                                         master.location
                                         and re_sanitized.get("sanitized_location")
@@ -323,11 +389,29 @@ async def _ai_pipeline_async(
                             )
                             db.add(dup_update)
 
-                        db.delete(complaint)
+                        complaint.status = "Duplicate"
+                        complaint.resolution_note = f"Merged into master ticket {master.token}"
+                        complaint.assigned_officer_id = None
+                        complaint.assigned_officer_name = None
+                        complaint.department_id = None
+                        complaint.department = None
+
+                        db.add(
+                            AuditLog(
+                                admin_id=None,
+                                action_type="AI_DUPLICATE_DETECTION",
+                                target_id=complaint.id,
+                                details=f"AI detected as duplicate of ticket {master.token}. Reason: {dup_result.get('reason', 'Similarity matched')}",
+                            )
+                        )
+
                         db.commit()
                         return
 
         old_status = complaint.status
+        if old_status == "Spam":
+            final_status = "Spam"
+
         complaint.status = final_status
         complaint.updated_at = datetime.now(IST)
 
@@ -341,23 +425,24 @@ async def _ai_pipeline_async(
         )
         db.add(ai_update)
 
-        create_notification(
-            db,
-            target_role="commissioner",
-            title="New Complaint Filed",
-            message=f"New complaint: '{complaint.title}'"
-            + (f" — routed to {ai_dept_name}" if ai_dept_name else ""),
-            notif_type="info",
-        )
-
-        if auto_officer_id:
+        if final_status != "Spam":
             create_notification(
                 db,
-                user_id=auto_officer_id,
-                title="New Ticket Assigned",
-                message=f"Assigned to new complaint: '{complaint.title}'",
+                target_role="commissioner",
+                title="New Complaint Filed",
+                message=f"New complaint: '{complaint.title}'"
+                + (f" — routed to {ai_dept_name}" if ai_dept_name else ""),
                 notif_type="info",
             )
+
+            if auto_officer_id:
+                create_notification(
+                    db,
+                    user_id=auto_officer_id,
+                    title="New Ticket Assigned",
+                    message=f"Assigned to new complaint: '{complaint.title}'",
+                    notif_type="info",
+                )
 
         db.commit()
 

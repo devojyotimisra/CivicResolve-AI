@@ -28,5 +28,15 @@ def delete_commissioner_facility_type(
         )
 
     db.delete(facility_type)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_DELETE_FACILITY_TYPE",
+            target_id=type_id,
+            details=f"Commissioner {user.name} deleted facility type '{facility_type.name}'.",
+        )
+    )
     db.commit()
     return {"message": "Facility type deleted successfully"}

@@ -54,4 +54,16 @@ def login(data: dict, db: Session = Depends(get_db)):
 
     user.role = role
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=user.id,
+            action_type="AUTH_LOGIN",
+            target_id=user.id,
+            details=f"User {user.name} logged in.",
+        )
+    )
+    db.commit()
+
     return {"message": "Login successful", "token": access_token, "user": user}

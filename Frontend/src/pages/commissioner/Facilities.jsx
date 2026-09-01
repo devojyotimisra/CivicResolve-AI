@@ -533,6 +533,7 @@ export const CommissionerFacilities = () => {
                                                 <TableHead>Reserved Date</TableHead>
                                                 <TableHead>Purpose</TableHead>
                                                 <TableHead>Amount Paid</TableHead>
+                                                <TableHead>Status</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -562,7 +563,43 @@ export const CommissionerFacilities = () => {
                                                         {bkg.purpose}
                                                     </TableCell>
                                                     <TableCell className="font-extrabold text-sm text-primary">
-                                                        ₹{bkg.amountPaid.toLocaleString("en-IN")}
+                                                        {bkg.status === "Cancelled" ? (
+                                                            <span className="text-muted-foreground line-through">
+                                                                ₹
+                                                                {bkg.amountPaid.toLocaleString(
+                                                                    "en-IN"
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span>
+                                                                ₹
+                                                                {bkg.amountPaid.toLocaleString(
+                                                                    "en-IN"
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                        {bkg.status === "Cancelled" && (
+                                                            <div className="text-[10px] text-destructive mt-1 font-bold">
+                                                                Refunded
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {bkg.status === "Cancelled" ? (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-destructive border-destructive/30 bg-destructive/10"
+                                                            >
+                                                                Cancelled
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
+                                                            >
+                                                                Confirmed
+                                                            </Badge>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}

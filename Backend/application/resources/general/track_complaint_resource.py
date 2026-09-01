@@ -16,11 +16,12 @@ router = APIRouter()
 def track_complaint(token: str, db: Session = Depends(get_db)):
     complaint = db.query(Complaint).filter_by(token=token).first()
 
-    if not complaint:
+    if not complaint or complaint.status == "Duplicate":
         master = db.query(Complaint).filter(Complaint.related_tokens.contains(token)).first()
         if master:
             return {"redirect_to_token": master.token}
-        raise HTTPException(status_code=404, detail="Complaint not found")
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
 
     category = db.get(Department, complaint.department_id) if complaint.department_id else None
 

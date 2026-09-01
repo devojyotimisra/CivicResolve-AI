@@ -51,6 +51,16 @@ def commissioner_update_officer(
     if badge_id is not None:
         officer.badge_id = badge_id.strip() if badge_id else None
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_UPDATE_OFFICER",
+            target_id=officer_id,
+            details=f"Commissioner {user.name} updated officer '{officer.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Officer updated successfully"}

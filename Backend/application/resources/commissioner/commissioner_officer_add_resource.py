@@ -82,6 +82,16 @@ def commissioner_add_officer(
     )
     new_officer.roles.append(officer_role)
     db.add(new_officer)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_ADD_OFFICER",
+            target_id=None,
+            details=f"Commissioner {user.name} added officer '{name}'.",
+        )
+    )
     db.commit()
     db.refresh(new_officer)
 

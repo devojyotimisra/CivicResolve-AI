@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from application.extensions.db_extn import get_db
 from application.helpers.ai_service import translate_text
-from application.helpers.models import IST, Complaint, ComplaintUpdate, User
+from application.helpers.models import IST, AuditLog, Complaint, ComplaintUpdate, User
 from application.helpers.notification_helper import create_notification
 from application.helpers.schemas import OfficerTicketUpdateStatusRequest
 from application.middlewares.init_jwt import get_current_user_id
@@ -56,7 +56,17 @@ async def officer_update_ticket_status(
     if note_text:
         translation = await translate_text(note_text)
         if translation and translation.get("translated_text"):
+            original_note = note_text
             note_text = translation["translated_text"]
+
+            db.add(
+                AuditLog(
+                    admin_id=None,
+                    action_type="AI_TRANSLATION_SANITIZATION",
+                    target_id=complaint.id,
+                    details=f"AI translated status update note.\nOriginal: {original_note}\nTranslated: {note_text}",
+                )
+            )
 
     update = ComplaintUpdate(
         complaint_id=complaint.id,
@@ -76,6 +86,14 @@ async def officer_update_ticket_status(
         notif_type="info",
     )
 
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="OFFICER_UPDATE_TICKET_STATUS",
+            target_id=complaint.id,
+            details=f"Field Officer {user.name} updated ticket {complaint.token} status to {new_status}.",
+        )
+    )
     db.commit()
 
     return {"message": f"Status updated to {new_status}"}

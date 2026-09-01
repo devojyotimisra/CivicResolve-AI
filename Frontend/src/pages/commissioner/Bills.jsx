@@ -120,15 +120,31 @@ export const CommissionerBills = () => {
         }
     };
 
-    const filtered = bills.filter((b) => {
-        const query = searchQuery.toLowerCase();
-        const matchSearch = Object.values(b).some(
-            (val) =>
-                val !== null && val !== undefined && val.toString().toLowerCase().includes(query)
-        );
-        const matchStatus = statusFilter === "all" || b.status === statusFilter;
-        return matchSearch && matchStatus;
-    });
+    const getStatus = (b) => {
+        if (b.status === "Paid") return "Paid";
+        if (
+            b.status === "Overdue" ||
+            (b.status === "Pending" &&
+                new Date(b.dueDate) < new Date(new Date().setHours(0, 0, 0, 0)))
+        ) {
+            return "Overdue";
+        }
+        return "Pending";
+    };
+
+    const filtered = bills
+        .map((b) => ({ ...b, displayStatus: getStatus(b) }))
+        .filter((b) => {
+            const query = searchQuery.toLowerCase();
+            const matchSearch = Object.values(b).some(
+                (val) =>
+                    val !== null &&
+                    val !== undefined &&
+                    val.toString().toLowerCase().includes(query)
+            );
+            const matchStatus = statusFilter === "all" || b.displayStatus === statusFilter;
+            return matchSearch && matchStatus;
+        });
 
     return (
         <div className="space-y-6 pb-10">
@@ -170,6 +186,7 @@ export const CommissionerBills = () => {
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
                             <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Overdue">Overdue</SelectItem>
                             <SelectItem value="Paid">Paid</SelectItem>
                         </SelectContent>
                     </Select>
@@ -236,12 +253,14 @@ export const CommissionerBills = () => {
                                                 <Badge
                                                     variant="outline"
                                                     className={
-                                                        b.status === "Paid"
+                                                        b.displayStatus === "Paid"
                                                             ? "bg-primary/10 text-primary border-primary/20 font-bold"
-                                                            : "bg-muted/40 text-muted-foreground border font-bold"
+                                                            : b.displayStatus === "Overdue"
+                                                              ? "bg-destructive/10 text-destructive border-destructive/20 font-bold"
+                                                              : "bg-muted/40 text-muted-foreground border font-bold"
                                                     }
                                                 >
-                                                    {b.status === "Paid" ? "Paid" : "Pending"}
+                                                    {b.displayStatus}
                                                 </Badge>
                                             </TableCell>
                                         </TableRow>

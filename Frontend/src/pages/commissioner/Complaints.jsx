@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { complaintService } from "@/services/complaintService";
 import { adminService } from "@/services/adminService";
+import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { PhotoViewerModal } from "@/components/common/PhotoViewerModal";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -10,10 +11,20 @@ import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     Table,
     TableBody,
@@ -43,6 +54,8 @@ import {
     Clock,
     CheckCircle2,
     FileCheck,
+    GitMerge,
+    Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +71,17 @@ export const CommissionerComplaints = () => {
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [selectedOfficerId, setSelectedOfficerId] = useState("");
     const [assigning, setAssigning] = useState(false);
+    const [mergeComplaint, setMergeComplaint] = useState(null);
+    const [masterIdInput, setMasterIdInput] = useState("");
+    const [merging, setMerging] = useState(false);
+    const [confirmMergeOpen, setConfirmMergeOpen] = useState(false);
+    const [markingSpam, setMarkingSpam] = useState(false);
+    const [confirmSpamOpen, setConfirmSpamOpen] = useState(false);
+    const [spamComplaint, setSpamComplaint] = useState(null);
+
+    const [unmergeComplaint, setUnmergeComplaint] = useState(null);
+    const [unmerging, setUnmerging] = useState(false);
+    const [confirmUnmergeOpen, setConfirmUnmergeOpen] = useState(false);
 
     const [viewingComplaint, setViewingComplaint] = useState(null);
     const [complaintUpdates, setComplaintUpdates] = useState([]);
@@ -119,9 +143,105 @@ export const CommissionerComplaints = () => {
             loadData();
         } catch (error) {
             console.error(error);
-            toast.error("Assignment failed");
+            const msg = error.response?.data?.detail || "Assignment failed";
+            toast.error(msg);
         } finally {
             setAssigning(false);
+        }
+    };
+
+    const handleOpenConfirm = () => {
+        if (!mergeComplaint || !masterIdInput) {
+            toast.error("Please enter a master ticket ID.");
+            return;
+        }
+
+        const masterIdInt = parseInt(masterIdInput, 10);
+        if (masterIdInt === mergeComplaint.id) {
+            toast.error("Cannot merge a ticket into itself.");
+            return;
+        }
+
+        const masterTicket = complaints.find((c) => c.id === masterIdInt);
+        if (masterTicket) {
+            if (masterTicket.status === "Duplicate") {
+                toast.error("Cannot merge into a master ticket that is a Duplicate.");
+                return;
+            }
+            if (masterTicket.status === "Closed") {
+                const daysSinceUpdate =
+                    (new Date() - new Date(masterTicket.updated_at)) / (1000 * 60 * 60 * 24);
+                if (daysSinceUpdate > 30) {
+                    toast.error(
+                        "Cannot merge into a ticket that has been closed for more than 30 days."
+                    );
+                    return;
+                }
+            }
+        }
+
+        setConfirmMergeOpen(true);
+    };
+
+    const handleMergeConfirm = async () => {
+        setMerging(true);
+        try {
+            await adminService.mergeComplaint(mergeComplaint.id, parseInt(masterIdInput, 10));
+            toast.success("Ticket successfully merged!");
+            setMergeComplaint(null);
+            setMasterIdInput("");
+            setConfirmMergeOpen(false);
+            loadData();
+        } catch (error) {
+            console.error(error);
+            const msg = error.message || "Merge failed";
+            toast.error(msg);
+        } finally {
+            setMerging(false);
+            setConfirmMergeOpen(false);
+        }
+    };
+
+    const handleMarkSpamClick = (comp) => {
+        setSpamComplaint(comp);
+        setConfirmSpamOpen(true);
+    };
+
+    const handleMarkSpamConfirm = async () => {
+        if (!spamComplaint) return;
+        setMarkingSpam(true);
+        try {
+            await complaintService.markAsSpam(spamComplaint.id);
+            toast.success("Ticket marked as spam.");
+            loadData();
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message || "Failed to mark as spam.");
+        } finally {
+            setMarkingSpam(false);
+            setConfirmSpamOpen(false);
+            setSpamComplaint(null);
+        }
+    };
+
+    const handleUnmergeClick = (comp) => {
+        setUnmergeComplaint(comp);
+        setConfirmUnmergeOpen(true);
+    };
+
+    const handleUnmergeConfirm = async () => {
+        setUnmerging(true);
+        try {
+            await adminService.unmergeComplaint(unmergeComplaint.id);
+            toast.success("Ticket successfully un-merged!");
+            setUnmergeComplaint(null);
+            setConfirmUnmergeOpen(false);
+            loadData();
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message || "Failed to un-merge.");
+        } finally {
+            setUnmerging(false);
         }
     };
 
@@ -205,6 +325,10 @@ export const CommissionerComplaints = () => {
                             <SelectItem value="en-route-onsite">En Route / On Site</SelectItem>
                             <SelectItem value="In Progress">In Progress</SelectItem>
                             <SelectItem value="Resolved">Resolved</SelectItem>
+                            <SelectItem value="Duplicate">Duplicate</SelectItem>
+                            <SelectItem value="Rejected">Rejected</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                            <SelectItem value="Spam">Spam</SelectItem>
                         </SelectContent>
                     </Select>
                 </CardContent>
@@ -232,7 +356,8 @@ export const CommissionerComplaints = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[50px]">#</TableHead>
+                                        <TableHead className="w-[60px]">SL/No</TableHead>
+                                        <TableHead className="w-[80px]">Ticket ID</TableHead>
                                         <TableHead>Severity</TableHead>
                                         <TableHead>Hazard Summary</TableHead>
                                         <TableHead>Department</TableHead>
@@ -244,8 +369,11 @@ export const CommissionerComplaints = () => {
                                 <TableBody>
                                     {filtered.map((comp, index) => (
                                         <TableRow key={comp.id} className="hover:bg-muted/50">
-                                            <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                                            <TableCell className="font-mono text-xs text-muted-foreground/70">
                                                 {index + 1}
+                                            </TableCell>
+                                            <TableCell className="font-mono font-bold text-xs text-muted-foreground">
+                                                {comp.id}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
@@ -263,6 +391,31 @@ export const CommissionerComplaints = () => {
                                                 <span className="block text-[11px] text-muted-foreground truncate font-normal">
                                                     {comp.location}
                                                 </span>
+                                                {comp.status === "Duplicate" &&
+                                                    comp.resolutionNote && (
+                                                        <span className="block text-[11px] font-bold text-orange-600 mt-1 truncate">
+                                                            {(() => {
+                                                                const match =
+                                                                    comp.resolutionNote.match(
+                                                                        /master ticket ([A-Z0-9-]+)/
+                                                                    );
+                                                                if (match) {
+                                                                    const masterToken = match[1];
+                                                                    const master = complaints.find(
+                                                                        (c) =>
+                                                                            c.token === masterToken
+                                                                    );
+                                                                    if (master) {
+                                                                        return comp.resolutionNote.replace(
+                                                                            masterToken,
+                                                                            `#${master.id}`
+                                                                        );
+                                                                    }
+                                                                }
+                                                                return comp.resolutionNote;
+                                                            })()}
+                                                        </span>
+                                                    )}
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
                                                 <span className="font-bold text-foreground block">
@@ -284,37 +437,63 @@ export const CommissionerComplaints = () => {
                                                 <StatusBadge status={comp.status} />
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetails(comp)}
-                                                        className="h-8 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary"
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="h-8 px-2 border border-transparent hover:border-primary/20 hover:bg-primary/5 text-primary text-xs font-bold gap-1.5 inline-flex items-center"
+                                                        >
+                                                            <Settings className="h-3.5 w-3.5" />
+                                                            <span>Actions</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent
+                                                        align="end"
+                                                        className="w-48"
                                                     >
-                                                        <Eye className="w-3.5 h-3.5 mr-1" />
-                                                        View
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={
-                                                            comp.severity !== "Critical" ||
-                                                            comp.status === "Resolved" ||
-                                                            comp.status === "Closed"
-                                                        }
-                                                        onClick={() => setSelectedComplaint(comp)}
-                                                        className={`h-8 text-xs font-bold ${
-                                                            comp.severity === "Critical" &&
-                                                            comp.status !== "Resolved" &&
-                                                            comp.status !== "Closed"
-                                                                ? "text-primary border-primary/30 hover:bg-primary/10"
-                                                                : "opacity-50 cursor-not-allowed border-muted/50 text-muted-foreground"
-                                                        }`}
-                                                    >
-                                                        <UserPlus className="w-3.5 h-3.5 mr-1" />{" "}
-                                                        Assign/Reassign
-                                                    </Button>
-                                                </div>
+                                                        <DropdownMenuLabel>
+                                                            Actions
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleViewDetails(comp)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <Eye className="w-4 h-4 mr-2 text-primary" />{" "}
+                                                            View Details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                comp.status === "Duplicate"
+                                                                    ? handleUnmergeClick(comp)
+                                                                    : setSelectedComplaint(comp)
+                                                            }
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <UserPlus className="w-4 h-4 mr-2 text-primary" />{" "}
+                                                            {comp.status === "Duplicate"
+                                                                ? "Un-Merge"
+                                                                : "Assign/Reassign"}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => setMergeComplaint(comp)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <GitMerge className="w-4 h-4 mr-2 text-orange-600" />{" "}
+                                                            Merge
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            disabled={markingSpam}
+                                                            onClick={() =>
+                                                                handleMarkSpamClick(comp)
+                                                            }
+                                                            className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-500/10"
+                                                        >
+                                                            <ShieldAlert className="w-4 h-4 mr-2" />{" "}
+                                                            Mark as Spam
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -336,7 +515,7 @@ export const CommissionerComplaints = () => {
                             <span>Reassign Field Officer</span>
                         </DialogTitle>
                         <DialogDescription className="text-xs">
-                            Select an operational field officer to dispatch for the critical ticket.
+                            Select an operational field officer to dispatch for this ticket.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -363,18 +542,53 @@ export const CommissionerComplaints = () => {
                                         <SelectValue placeholder="Choose Officer from Directory" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {officers
-                                            .filter(
+                                        {(() => {
+                                            const availableOfficers = officers.filter(
                                                 (o) =>
-                                                    o.department === selectedComplaint.department &&
                                                     o.id !== selectedComplaint.assignedOfficerId &&
                                                     o.id !== selectedComplaint.assigned_officer_id
-                                            )
-                                            .map((off) => (
-                                                <SelectItem key={off.id} value={off.id}>
-                                                    {off.name} (Badge: {off.badgeId})
-                                                </SelectItem>
-                                            ))}
+                                            );
+
+                                            if (availableOfficers.length === 0) {
+                                                return (
+                                                    <SelectItem value="none" disabled>
+                                                        No officers available
+                                                    </SelectItem>
+                                                );
+                                            }
+
+                                            const groupedOfficers = availableOfficers.reduce(
+                                                (acc, off) => {
+                                                    const dept =
+                                                        off.department || "Unassigned Department";
+                                                    if (!acc[dept]) acc[dept] = [];
+                                                    acc[dept].push(off);
+                                                    return acc;
+                                                },
+                                                {}
+                                            );
+
+                                            return Object.entries(groupedOfficers).map(
+                                                ([dept, deptOfficers]) => (
+                                                    <SelectGroup key={dept}>
+                                                        <SelectLabel className="text-primary bg-muted/50">
+                                                            {dept}
+                                                        </SelectLabel>
+                                                        {deptOfficers.map((off) => {
+                                                            return (
+                                                                <SelectItem
+                                                                    key={off.id}
+                                                                    value={off.id}
+                                                                >
+                                                                    {off.name} (Badge: {off.badgeId}
+                                                                    )
+                                                                </SelectItem>
+                                                            );
+                                                        })}
+                                                    </SelectGroup>
+                                                )
+                                            );
+                                        })()}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -395,6 +609,70 @@ export const CommissionerComplaints = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={!!mergeComplaint}
+                onOpenChange={(open) => !open && setMergeComplaint(null)}
+            >
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Merge Complaint</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to merge this complaint (ID: {mergeComplaint?.id}
+                            )? Please enter the ID of the Master Ticket to merge it into.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Input
+                            type="number"
+                            placeholder="Master Ticket ID (e.g. 42)"
+                            value={masterIdInput}
+                            onChange={(e) => setMasterIdInput(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setMergeComplaint(null)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleOpenConfirm} disabled={!masterIdInput}>
+                            Confirm Merge
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ConfirmationModal
+                isOpen={confirmMergeOpen}
+                onClose={() => setConfirmMergeOpen(false)}
+                onConfirm={handleMergeConfirm}
+                title="Confirm Duplicate Merge"
+                description={`Are you absolutely sure you want to merge Ticket ID: ${mergeComplaint?.id} into Master Ticket ID: ${masterIdInput}? This ticket will become a duplicate.`}
+                confirmText="Yes, Merge it"
+                variant="destructive"
+                isLoading={merging}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmUnmergeOpen}
+                onClose={() => setConfirmUnmergeOpen(false)}
+                onConfirm={handleUnmergeConfirm}
+                title="Confirm Un-Merge"
+                description={`Are you sure you want to un-merge Ticket ID: ${unmergeComplaint?.id} from its master? It will be restored to Submitted state.`}
+                confirmText="Yes, Un-Merge"
+                variant="destructive"
+                isLoading={unmerging}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmSpamOpen}
+                onClose={() => setConfirmSpamOpen(false)}
+                onConfirm={handleMarkSpamConfirm}
+                title="Confirm Mark as Spam"
+                description={`Are you sure you want to mark Ticket ID: ${spamComplaint?.id} as spam? This action might flag the user.`}
+                confirmText="Yes, Mark Spam"
+                variant="destructive"
+                isLoading={markingSpam}
+            />
 
             <Dialog
                 open={!!viewingComplaint}
@@ -531,52 +809,117 @@ export const CommissionerComplaints = () => {
                                         </div>
                                     </Card>
 
-                                    <Card className="flex-1 border shadow-sm bg-muted/20 flex flex-col justify-center p-5">
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                                    <FileCheck className="w-4 h-4 text-primary" />
-                                                    <span>Evidence Uploaded by Field Officer</span>
-                                                </span>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Resolution verification proof submitted by field
-                                                    crew
-                                                </p>
-                                                {viewingComplaint?.resolutionNote && (
-                                                    <p className="text-xs italic text-foreground/80 mt-1.5 border-l-2 border-primary/50 pl-2">
-                                                        {viewingComplaint.resolutionNote}
+                                    {viewingComplaint?.status === "Duplicate" ? (
+                                        <Card className="flex-1 border shadow-sm bg-orange-500/10 flex flex-col justify-center p-5">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                <div className="space-y-1">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1.5">
+                                                        <GitMerge className="w-4 h-4 text-orange-600" />
+                                                        <span>Merged Ticket Information</span>
+                                                    </span>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        This ticket has been marked as a duplicate.
                                                     </p>
+                                                    {viewingComplaint?.resolutionNote && (
+                                                        <p className="text-xs italic font-semibold text-foreground/80 mt-1.5 border-l-2 border-orange-500/50 pl-2">
+                                                            {(() => {
+                                                                const match =
+                                                                    viewingComplaint.resolutionNote.match(
+                                                                        /master ticket ([A-Z0-9-]+)/
+                                                                    );
+                                                                if (match) {
+                                                                    const masterToken = match[1];
+                                                                    const master = complaints.find(
+                                                                        (c) =>
+                                                                            c.token === masterToken
+                                                                    );
+                                                                    if (master) {
+                                                                        return viewingComplaint.resolutionNote.replace(
+                                                                            masterToken,
+                                                                            `#${master.id}`
+                                                                        );
+                                                                    }
+                                                                }
+                                                                return viewingComplaint.resolutionNote;
+                                                            })()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ) : (
+                                        <Card className="flex-1 border shadow-sm bg-muted/20 flex flex-col justify-center p-5">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                <div className="space-y-1">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                        <FileCheck className="w-4 h-4 text-primary" />
+                                                        <span>
+                                                            Evidence Uploaded by Field Officer
+                                                        </span>
+                                                    </span>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Resolution verification proof submitted by
+                                                        field crew
+                                                    </p>
+                                                    {viewingComplaint?.resolutionNote && (
+                                                        <p className="text-xs italic text-foreground/80 mt-1.5 border-l-2 border-primary/50 pl-2">
+                                                            {(() => {
+                                                                const match =
+                                                                    viewingComplaint.resolutionNote.match(
+                                                                        /master ticket ([A-Z0-9-]+)/
+                                                                    );
+                                                                if (match) {
+                                                                    const masterToken = match[1];
+                                                                    const master = complaints.find(
+                                                                        (c) =>
+                                                                            c.token === masterToken
+                                                                    );
+                                                                    if (master) {
+                                                                        return viewingComplaint.resolutionNote.replace(
+                                                                            masterToken,
+                                                                            `#${master.id}`
+                                                                        );
+                                                                    }
+                                                                }
+                                                                return viewingComplaint.resolutionNote;
+                                                            })()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                {viewingComplaint?.resolutionPhotos?.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="h-10 w-36 px-4 font-bold shadow-sm"
+                                                            onClick={() =>
+                                                                setViewingImage({
+                                                                    photos: viewingComplaint.resolutionPhotos,
+                                                                    initialIndex: 0,
+                                                                    title: "Evidence Uploaded by Field Officer",
+                                                                })
+                                                            }
+                                                        >
+                                                            <Camera className="w-4 h-4 mr-2" />
+                                                            View (
+                                                            {
+                                                                viewingComplaint.resolutionPhotos
+                                                                    .length
+                                                            }
+                                                            )
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                                                        <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
+                                                            <EyeOff className="w-4 h-4" />
+                                                            <span>Not Uploaded</span>
+                                                        </div>
+                                                    </div>
                                                 )}
                                             </div>
-                                            {viewingComplaint?.resolutionPhotos?.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        className="h-10 w-36 px-4 font-bold shadow-sm"
-                                                        onClick={() =>
-                                                            setViewingImage({
-                                                                photos: viewingComplaint.resolutionPhotos,
-                                                                initialIndex: 0,
-                                                                title: "Evidence Uploaded by Field Officer",
-                                                            })
-                                                        }
-                                                    >
-                                                        <Camera className="w-4 h-4 mr-2" />
-                                                        View (
-                                                        {viewingComplaint.resolutionPhotos.length})
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-                                                    <div className="flex items-center justify-center gap-2 h-10 w-36 px-4 rounded-md bg-muted/60 border border-dashed text-muted-foreground font-semibold text-xs shrink-0">
-                                                        <EyeOff className="w-4 h-4" />
-                                                        <span>Not Uploaded</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Card>
+                                        </Card>
+                                    )}
                                 </div>
                             </div>
 

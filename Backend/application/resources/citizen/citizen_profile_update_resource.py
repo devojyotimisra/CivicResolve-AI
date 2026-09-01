@@ -59,6 +59,16 @@ def citizen_profile_update(
             raise HTTPException(status_code=400, detail=result)
         user.phone = result
 
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="CITIZEN_UPDATE_PROFILE",
+            target_id=user.id,
+            details=f"Citizen {user.name} updated their profile.",
+        )
+    )
     db.commit()
 
     return {"message": "Profile updated successfully"}

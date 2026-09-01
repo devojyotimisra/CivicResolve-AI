@@ -29,9 +29,11 @@ export const CitizenDashboard = () => {
         loadDashboardData();
     }, [user]);
 
-    const pendingBillsCount = bills.filter((b) => b.status === "Pending").length;
+    const pendingBillsCount = bills.filter(
+        (b) => b.status === "Pending" || b.status === "Overdue"
+    ).length;
     const pendingBillsAmount = bills
-        .filter((b) => b.status === "Pending")
+        .filter((b) => b.status === "Pending" || b.status === "Overdue")
         .reduce((acc, b) => acc + (b.amount || 0), 0);
     const upcomingBookingsCount = bookings.filter(
         (b) => new Date(b.bookedDate) >= new Date()
@@ -49,7 +51,7 @@ export const CitizenDashboard = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
                 <StatsCard
-                    title="Pending Utility Bills"
+                    title="Pending & Overdue Utility Bills"
                     value={`₹${pendingBillsAmount.toLocaleString("en-IN")}`}
                     icon={Receipt}
                     description={`${pendingBillsCount} bills awaiting online settlement`}

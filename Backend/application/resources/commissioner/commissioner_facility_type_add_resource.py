@@ -29,6 +29,16 @@ def add_commissioner_facility_type(
     try:
         new_type = FacilityType(name=request.name.strip())
         db.add(new_type)
+        from application.helpers.models import AuditLog
+
+        db.add(
+            AuditLog(
+                admin_id=current_user_id,
+                action_type="COMMISSIONER_ADD_FACILITY_TYPE",
+                target_id=None,
+                details=f"Commissioner {user.name} created facility type '{request.name.strip()}'.",
+            )
+        )
         db.commit()
         db.refresh(new_type)
         return {

@@ -58,6 +58,7 @@ class ComplaintSchema(CamelModel):
     severity: str
     resolution_photos: Optional[List[str]] = None
     resolution_note: Optional[str] = None
+    is_manually_reassigned: Optional[bool] = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
@@ -121,6 +122,7 @@ class FacilityBookingSchema(CamelModel):
     amount_paid: float
     payment_ref: Optional[str] = None
     purpose: Optional[str] = None
+    status: str = "Confirmed"
     created_at: Optional[datetime] = None
 
 
@@ -197,6 +199,10 @@ class CitizenProfileUpdateRequest(CamelModel):
 class CommissionerAssignOfficerRequest(CamelModel):
     officer_id: Optional[int] = None
     severity: Optional[str] = None
+
+
+class CommissionerMergeRequest(CamelModel):
+    master_id: int
 
 
 class CommissionerBillAddRequest(CamelModel):

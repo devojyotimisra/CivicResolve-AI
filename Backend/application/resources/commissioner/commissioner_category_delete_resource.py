@@ -35,6 +35,16 @@ def commissioner_delete_category(
         )
 
     db.delete(category)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_DELETE_DEPARTMENT",
+            target_id=category_id,
+            details=f"Commissioner {user.name} deleted department '{category.name}'.",
+        )
+    )
     db.commit()
 
     return {"message": "Department deleted"}

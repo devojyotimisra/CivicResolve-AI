@@ -28,6 +28,16 @@ def commissioner_create_bill_type(
 
     bill_type = BillType(name=name)
     db.add(bill_type)
+    from application.helpers.models import AuditLog
+
+    db.add(
+        AuditLog(
+            admin_id=current_user_id,
+            action_type="COMMISSIONER_ADD_BILL_TYPE",
+            target_id=None,
+            details=f"Commissioner {user.name} created bill type '{name}'.",
+        )
+    )
     db.commit()
     db.refresh(bill_type)
 
