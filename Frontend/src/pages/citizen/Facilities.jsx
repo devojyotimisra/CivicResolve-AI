@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { facilityService } from "@/services/facilityService";
 import { EmptyState } from "@/components/common/EmptyState";
+import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -982,40 +983,18 @@ export const CitizenFacilities = () => {
                 </DialogContent>
             </Dialog>
 
-            <Dialog
-                open={!!cancelBookingId}
-                onOpenChange={(open) => !open && !cancelLoading && setCancelBookingId(null)}
-            >
-                <DialogContent className="sm:max-w-md border">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-bold text-destructive">
-                            <AlertCircle className="w-5 h-5" />
-                            Cancel Reservation
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                            Are you sure you want to cancel this reservation? The amount paid will
-                            be refunded. This action cannot be undone.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => setCancelBookingId(null)}
-                            disabled={cancelLoading}
-                        >
-                            No, keep it
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleCancelBooking}
-                            disabled={cancelLoading}
-                            className="font-bold shadow-md"
-                        >
-                            {cancelLoading ? "Cancelling..." : "Yes, Cancel Booking"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmationModal
+                isOpen={!!cancelBookingId}
+                onClose={() => setCancelBookingId(null)}
+                onConfirm={handleCancelBooking}
+                title="Cancel Reservation"
+                description="Are you sure you want to cancel this reservation? The amount paid will be refunded. This action cannot be undone."
+                confirmText="Yes, Cancel Booking"
+                cancelText="No, keep it"
+                variant="destructive"
+                isLoading={cancelLoading}
+                icon={AlertCircle}
+            />
         </div>
     );
 };
